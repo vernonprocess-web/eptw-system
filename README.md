@@ -169,4 +169,5 @@ Open your browser at `http://localhost:8787` to interact with the dashboard.
   - 🟡 **Medium Risk**: RPN 5 – 11 (Amber)
   - 🔴 **High Risk**: RPN 12 – 25 (Red)
 - **Inline Row Actions**: Edit and Delete operations with standard native `fetch()` calls.
-- **Live Search**: Instant filtering across category, activity, hazard, and control measures.
+- **Interactive Column Sorting**: Clickable table headers for **ID**, **S** (Severity), **L** (Likelihood), **RPN**, Category, Activity, and Hazard with dynamic ascending/descending (`▲` / `▼`) indicator arrows.
+- **Live Search**: Instant filtering across ID, category, activity, hazard, and control measures.

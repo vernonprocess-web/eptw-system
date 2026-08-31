@@ -1,6 +1,8 @@
 -- Master RAMS (Risk Assessment & Method Statement) Library Schema & Comprehensive Seed Data
 -- Aligned with Singapore WSH Standards, BCA, SCDF Fire Code, EMA/SP Group Regulations, and Hierarchy of Controls
 
+DROP TABLE IF EXISTS Master_RAMS_Library;
+
 CREATE TABLE IF NOT EXISTS Master_RAMS_Library (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     activity_category TEXT NOT NULL,
@@ -106,7 +108,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 2: Site Preparation & Access Setup',
     'Edge Protection & Fall Prevention',
-    'Unprotected Roof Boundaries & Fragile Skylight Openings [CRITICAL HAZARD 1]',
+    'Unprotected Roof Boundaries & Fragile Skylight Openings',
     'Worker fall from height through open edges or skylights resulting in fatality',
     '1) Elimination: Restrict roof access until perimeter edge protection and skylight covers are 100% installed.
 2) Substitution: Use mobile elevating work platforms (MEWP/boom lifts) for perimeter work where feasible.
@@ -120,7 +122,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 2: Site Preparation & Access Setup',
     'Edge Protection & Fall Prevention',
-    'Falling Objects & Hand Tools Dropped from Rooftop Perimeter [CRITICAL HAZARD 2]',
+    'Falling Objects & Hand Tools Dropped from Rooftop Perimeter',
     'Struck-by injuries to personnel or public on ground level below roof perimeter',
     '1) Elimination: Prohibit staging of loose hand tools or hardware within 2m of roof boundaries.
 2) Substitution: Replace manual hand carrying of loose items with enclosed tool bags attached to workers.
@@ -134,7 +136,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 2: Site Preparation & Access Setup',
     'Edge Protection & Fall Prevention',
-    'Anchor Line Structural Failure or Improper Fall Arrest Attachment [CRITICAL HAZARD 3]',
+    'Anchor Line Structural Failure or Improper Fall Arrest Attachment',
     'Lifeline anchor displacement during fall arrest event causing worker impact with ground',
     '1) Elimination: Prioritize collective guardrail protection over individual fall arrest systems.
 2) Substitution: Utilize travel restraint lanyards (preventing reaching edge) instead of fall arrest lanyards where possible.
@@ -167,7 +169,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Crane Rigging & Ground Staging',
-    'Outrigger Ground Collapse & Sub-Soil Instability under Mobile Crane [CRITICAL HAZARD 1]',
+    'Outrigger Ground Collapse & Sub-Soil Instability under Mobile Crane',
     'Mobile crane tipping/toppling over causing catastrophic structural damage and multi-fatality',
     '1) Elimination: Avoid positioning crane near un-verified underground trenches, manholes, or soft soil banks.
 2) Substitution: Utilize heavy-duty steel outrigger spreader plates to distribute point loads over larger surface area.
@@ -181,7 +183,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Crane Rigging & Ground Staging',
-    'Lifting Gear Failure (Snapped Webbing Sling, Shackle, or Spreader Bar) [CRITICAL HAZARD 2]',
+    'Lifting Gear Failure (Snapped Webbing Sling, Shackle, or Spreader Bar)',
     'Dropped solar module pallet from height striking personnel or damaging facility building',
     '1) Elimination: Inspect and reject any worn, frayed, or damaged webbing slings prior to rigging.
 2) Substitution: Utilize certified modular lifting cages with net containment instead of open pallet slings.
@@ -195,7 +197,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Crane Rigging & Ground Staging',
-    'Overhead High-Voltage Power Line Proximity & Crane Boom Contact [CRITICAL HAZARD 3]',
+    'Overhead High-Voltage Power Line Proximity & Crane Boom Contact',
     'Electrocution of rigger/crane operator and severe electrical explosion',
     '1) Elimination: Maintain minimum 6-meter safe clearance from overhead power lines at all times.
 2) Substitution: Relocate crane setup position away from overhead electrical lines where feasible.
@@ -209,7 +211,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Mobile Crane Lifting to Rooftop',
-    'Overloading Designated Roof Structural Staging Zones [CRITICAL HAZARD 1]',
+    'Overloading Designated Roof Structural Staging Zones',
     'Local roof truss collapse due to concentrated point loading of heavy module pallets',
     '1) Elimination: Prohibit concentrated stacking of multiple module pallets in single roof bays.
 2) Substitution: Distribute module pallets immediately across PE-designated primary structural column lines.
@@ -223,7 +225,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Mobile Crane Lifting to Rooftop',
-    'Uncontrolled Load Swing Caused by High Wind Gusts [CRITICAL HAZARD 2]',
+    'Uncontrolled Load Swing Caused by High Wind Gusts',
     'Suspended load colliding with building structures, parapet walls, or rooftop workers',
     '1) Elimination: Cease all hoisting operations when wind speed exceeds 10 m/s (20 knots).
 2) Substitution: Utilize guided rail hoisting systems during gusty seasonal monsoon periods.
@@ -237,7 +239,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 3: Heavy Logistics & Primary Hoisting',
     'Mobile Crane Lifting to Rooftop',
-    'Personnel Standing Directly Under Suspended Load during Hoisting [CRITICAL HAZARD 3]',
+    'Personnel Standing Directly Under Suspended Load during Hoisting',
     'Crush fatality or severe impact injury from dropped material load',
     '1) Elimination: Strictly enforce prohibition of any person standing under or near suspended loads.
 2) Substitution: Use remote video monitoring for blind rooftop landing zones.
@@ -284,7 +286,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Mounting Frame Installation',
-    'Roof Sheet Penetration & Waterproofing Failure Leading to Water Leakage [CRITICAL HAZARD 1]',
+    'Roof Sheet Penetration & Waterproofing Failure Leading to Water Leakage',
     'Water ingress into building causing electrical short circuits and building structural damage',
     '1) Elimination: Utilize non-penetrating standing-seam clamps for metal roofs wherever structural profile allows.
 2) Substitution: Use pre-cast ballast concrete blocks on RC roofs instead of mechanical expansion anchors where weight permits.
@@ -298,7 +300,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Mounting Frame Installation',
-    'Flying Metal Swarf, Sharp Metal Chips & Noise Exposure during Drilling [CRITICAL HAZARD 2]',
+    'Flying Metal Swarf, Sharp Metal Chips & Noise Exposure during Drilling',
     'Eye injury, corneal laceration, puncture wounds, or occupational noise-induced hearing loss',
     '1) Elimination: Use pre-punched mounting rails to minimize on-site drilling and cutting.
 2) Substitution: Use low-speed hydraulic punch tools instead of high-speed rotary metal drills.
@@ -312,7 +314,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Mounting Frame Installation',
-    'Insecure Fastener Torque & Mounting Rail Displacement [CRITICAL HAZARD 3]',
+    'Insecure Fastener Torque & Mounting Rail Displacement',
     'Rail detachment during wind storms causing solar array displacement and falling debris',
     '1) Elimination: Utilize self-locking structural fasteners and anti-vibration locking washers.
 2) Substitution: Replace standard bolts with PE-approved stainless steel Grade A4-70 hardware.
@@ -326,7 +328,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Solar Module Placement & Clamping',
-    'Uncontrolled Wind Gust Catching Glass Panels during Manual Handling [CRITICAL HAZARD 1]',
+    'Uncontrolled Wind Gust Catching Glass Panels during Manual Handling',
     'Worker dragged by panel wind sail effect resulting in fall from height or dropped glass module',
     '1) Elimination: Halt module placement when wind speeds exceed 8 m/s on roof deck.
 2) Substitution: Transport modules in vertical rack carriers up to immediate mounting location.
@@ -340,7 +342,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Solar Module Placement & Clamping',
-    'Pinch Point & Hand Crush Injuries Between Module Frames & Aluminum Rails [CRITICAL HAZARD 2]',
+    'Pinch Point & Hand Crush Injuries Between Module Frames & Aluminum Rails',
     'Finger crush injury, severe bruising, or fracture during module seating and clamping',
     '1) Elimination: Design rail alignment guides to allow top-down drop placement without hand under-grip.
 2) Substitution: Use plastic module corner protectors during alignment and handling.
@@ -354,7 +356,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 4: Mechanical & Structural Installation',
     'Solar Module Placement & Clamping',
-    'Tempered Glass Module Breakage & Shard Lacerations [CRITICAL HAZARD 3]',
+    'Tempered Glass Module Breakage & Shard Lacerations',
     'Deep laceration wounds or eye injury from shattered tempered solar glass fragments',
     '1) Elimination: Immediately quarantine and remove micro-cracked or damaged modules before installation.
 2) Substitution: Use glass-glass double-tempered heavy-duty PV modules rated for high mechanical load.
@@ -387,7 +389,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'DC Stringing & Management',
-    'Electric Shock from High-Voltage DC Series Open-Circuit Voltage (Voc) under Sunlight [CRITICAL HAZARD 1]',
+    'Electric Shock from High-Voltage DC Series Open-Circuit Voltage (Voc) under Sunlight',
     'Severe DC electrical shock, cardiac arrest, or secondary fall from height',
     '1) Elimination: Cover solar module glass with light-blocking tarps or perform stringing during low irradiance hours.
 2) Substitution: Utilize touch-safe IP67/IP68 rated MC4/EVO2 connectors with insulated locking sleeves.
@@ -401,7 +403,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'DC Stringing & Management',
-    'Water Pooling Contact with Un-Elevated DC Solar Cabling [CRITICAL HAZARD 2]',
+    'Water Pooling Contact with Un-Elevated DC Solar Cabling',
     'Cable insulation degradation, earth fault, localized arcing, and rooftop fire hazard',
     '1) Elimination: Keep all DC solar cables 100% elevated off roof deck surface using UV-resistant clips/trays.
 2) Substitution: Utilize double-insulated halogen-free solar cables (EN 50618 / TÜV certified).
@@ -415,7 +417,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'DC Stringing & Management',
-    'Reverse Polarity / Mismatched DC Connectors Leading to Short Circuit [CRITICAL HAZARD 3]',
+    'Reverse Polarity / Mismatched DC Connectors Leading to Short Circuit',
     'High-current DC arc flash, connector melt-down, or electrical fire during string mating',
     '1) Elimination: Standardize to single manufacturer MC4/EVO2 connector types across entire installation.
 2) Substitution: Utilize key-coded polarity connectors to prevent physical reverse insertion.
@@ -485,7 +487,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'AC Interconnection',
-    'Arc Flash & High-Energy Electrical Shock during Termination into Live Main Switchboard (MSB) [CRITICAL HAZARD 1]',
+    'Arc Flash & High-Energy Electrical Shock during Termination into Live Main Switchboard (MSB)',
     'Fatal arc flash explosion, severe thermal burns, and building power outage',
     '1) Elimination: Schedule complete MSB busbar shutdown during final AC breaker installation where feasible.
 2) Substitution: Utilize insulated VDE torque tools rated for 1000V working voltage.
@@ -499,7 +501,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'AC Interconnection',
-    'Inadvertent Re-energization of Main Breaker by Facility Staff [CRITICAL HAZARD 2]',
+    'Inadvertent Re-energization of Main Breaker by Facility Staff',
     'Electrocution of electrician performing cable glanding and terminal connections inside MSB',
     '1) Elimination: Mechanically lock MSB incoming solar breaker in OPEN position using LOTO hasp.
 2) Substitution: Post dedicated electrical safety watchman at MSB room door during termination.
@@ -513,7 +515,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 5: Electrical System Setup Works',
     'AC Interconnection',
-    'Phase Mismatch / Incorrect AC Phase Rotation [CRITICAL HAZARD 3]',
+    'Phase Mismatch / Incorrect AC Phase Rotation',
     'Short circuit explosion, inverter damage, or trip of facility main incoming breaker upon energization',
     '1) Elimination: Perform phase rotation check (L1-L2-L3) using phase meter before connecting cables.
 2) Substitution: Color-code AC cables strictly to SS 638 standards (Brown, Black, Grey, Blue, Yellow/Green).
@@ -546,7 +548,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 6: Testing, Commissioning & Handover',
     'Energization & Hot Commissioning',
-    'Arc Flash Explosion during Initial AC/DC Switch-On under Full Load [CRITICAL HAZARD 1]',
+    'Arc Flash Explosion during Initial AC/DC Switch-On under Full Load',
     'Severe thermal burns, blast injury, or fire during initial inverter start-up',
     '1) Elimination: Verify zero-load state before closing DC isolators and AC circuit breakers.
 2) Substitution: Stand clear of inverter front panel enclosure during initial energization sequence.
@@ -560,7 +562,7 @@ INSERT INTO Master_RAMS_Library (
 (
     'Phase 6: Testing, Commissioning & Handover',
     'Energization & Hot Commissioning',
-    'Anti-Islanding Protection Failure Causing Reverse Power Feed to SP Group Grid [CRITICAL HAZARD 2]',
+    'Anti-Islanding Protection Failure Causing Reverse Power Feed to SP Group Grid',
     'Electrocution of SP Group grid maintenance workers operating on external utility lines',
     '1) Elimination: Perform mandatory anti-islanding trip test prior to commercial operation approval.
 2) Substitution: Utilize grid-tied inverters certified to IEC 62116 / IEEE 1547 anti-islanding standards.

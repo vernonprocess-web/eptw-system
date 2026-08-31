@@ -263,6 +263,28 @@
       white-space: nowrap;
     }
 
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease;
+    }
+
+    th.sortable:hover {
+      background-color: #1e293b;
+    }
+
+    .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 0.75rem;
+      opacity: 0.5;
+    }
+
+    th.sortable.active .sort-icon {
+      opacity: 1;
+      color: #60a5fa;
+    }
+
     th:last-child {
       border-right: none;
     }
@@ -447,15 +469,15 @@
         <table id="ramsTable">
           <thead>
             <tr>
-              <th style="width: 50px;">ID</th>
-              <th style="width: 160px;">Category</th>
-              <th style="width: 180px;">Work Activity</th>
-              <th style="width: 160px;">Hazard</th>
+              <th style="width: 70px;" class="sortable active" data-sort="id" onclick="handleSort('id')">ID <span class="sort-icon">▲</span></th>
+              <th style="width: 160px;" class="sortable" data-sort="activity_category" onclick="handleSort('activity_category')">Category <span class="sort-icon">⇅</span></th>
+              <th style="width: 180px;" class="sortable" data-sort="work_activity" onclick="handleSort('work_activity')">Work Activity <span class="sort-icon">⇅</span></th>
+              <th style="width: 160px;" class="sortable" data-sort="hazard" onclick="handleSort('hazard')">Hazard <span class="sort-icon">⇅</span></th>
               <th style="width: 180px;">Possible Accident</th>
               <th>Control Measures</th>
-              <th style="width: 50px; text-align: center;">S</th>
-              <th style="width: 50px; text-align: center;">L</th>
-              <th style="width: 110px; text-align: center;">RPN</th>
+              <th style="width: 60px; text-align: center;" class="sortable" data-sort="severity_s" onclick="handleSort('severity_s')">S <span class="sort-icon">⇅</span></th>
+              <th style="width: 60px; text-align: center;" class="sortable" data-sort="likelihood_l" onclick="handleSort('likelihood_l')">L <span class="sort-icon">⇅</span></th>
+              <th style="width: 110px; text-align: center;" class="sortable" data-sort="rpn" onclick="handleSort('rpn')">RPN <span class="sort-icon">⇅</span></th>
               <th style="width: 130px; text-align: center;">Actions</th>
             </tr>
           </thead>
@@ -471,6 +493,8 @@
     // State management
     let ramsData = [];
     let isEditing = false;
+    let currentSortColumn = 'id';
+    let currentSortDirection = 'asc';
 
     // Elements
     const form = document.getElementById('ramsForm');
@@ -488,6 +512,76 @@
     const tableBody = document.getElementById('tableBody');
     const searchInput = document.getElementById('searchInput');
     const toast = document.getElementById('toast');
+
+    // Handle column sorting
+    window.handleSort = function(column) {
+      if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortColumn = column;
+        currentSortDirection = (column === 'rpn' || column === 'severity_s' || column === 'likelihood_l') ? 'desc' : 'asc';
+      }
+      updateSortHeaderIcons();
+      renderProcessedData();
+    };
+
+    function updateSortHeaderIcons() {
+      document.querySelectorAll('th.sortable').forEach(th => {
+        const col = th.getAttribute('data-sort');
+        const iconSpan = th.querySelector('.sort-icon');
+        if (!iconSpan) return;
+
+        if (col === currentSortColumn) {
+          th.classList.add('active');
+          iconSpan.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
+        } else {
+          th.classList.remove('active');
+          iconSpan.textContent = '⇅';
+        }
+      });
+    }
+
+    // Get filtered and sorted dataset
+    function getProcessedData() {
+      const query = searchInput.value.toLowerCase().trim();
+      
+      // 1. Search Filter
+      let filtered = ramsData.filter(item => 
+        !query ||
+        (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
+        (item.work_activity && item.work_activity.toLowerCase().includes(query)) ||
+        (item.hazard && item.hazard.toLowerCase().includes(query)) ||
+        (item.possible_accident && item.possible_accident.toLowerCase().includes(query)) ||
+        (item.control_measures && item.control_measures.toLowerCase().includes(query)) ||
+        (item.id && String(item.id).includes(query))
+      );
+
+      // 2. Sorting
+      filtered.sort((a, b) => {
+        let valA = a[currentSortColumn];
+        let valB = b[currentSortColumn];
+
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return currentSortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+
+        if (strA < strB) return currentSortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return currentSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    function renderProcessedData() {
+      renderTable(getProcessedData());
+    }
 
     // Real-time RPN calculation logic
     function calculateRPN() {
@@ -533,7 +627,8 @@
 
         if (result.success) {
           ramsData = result.data || [];
-          renderTable(ramsData);
+          updateSortHeaderIcons();
+          renderProcessedData();
         } else {
           showToast(`Error fetching data: ${result.error}`, 'error');
         }
@@ -598,16 +693,8 @@
     }
 
     // Filter table by search query
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
-      const filtered = ramsData.filter(item => 
-        (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
-        (item.work_activity && item.work_activity.toLowerCase().includes(query)) ||
-        (item.hazard && item.hazard.toLowerCase().includes(query)) ||
-        (item.possible_accident && item.possible_accident.toLowerCase().includes(query)) ||
-        (item.control_measures && item.control_measures.toLowerCase().includes(query))
-      );
-      renderTable(filtered);
+    searchInput.addEventListener('input', () => {
+      renderProcessedData();
     });
 
     // Handle Form Submit (Add or Edit)
