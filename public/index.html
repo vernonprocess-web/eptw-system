@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master RAMS Management Dashboard</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --header-bg: #0f172a;
+      --header-text: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header .subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .badge-tag {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Notification Banner */
+    #toast {
+      display: none;
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    #toast.success {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    #toast.error {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    /* Form Section */
+    .form-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .rpn-preview {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rpn-input {
+      width: 80px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-align: center;
+      background-color: #f1f5f9;
+    }
+
+    .rpn-score-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .form-actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background-color: #e2e8f0;
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background-color: #cbd5e1;
+    }
+
+    /* Spreadsheet Table Styling */
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-toolbar {
+      padding: 16px 20px;
+      background-color: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-toolbar h3 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .search-input {
+      width: 300px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 600px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      background-color: var(--header-bg);
+      color: var(--header-text);
+      z-index: 10;
+    }
+
+    th {
+      padding: 12px 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      border-right: 1px solid #334155;
+      white-space: nowrap;
+    }
+
+    th:last-child {
+      border-right: none;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      border-right: 1px solid #f1f5f9;
+      vertical-align: top;
+    }
+
+    td:last-child {
+      border-right: none;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background-color: #f1f5f9;
+    }
+
+    /* RPN Badge Styling */
+    .rpn-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .rpn-low {
+      background-color: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .rpn-med {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .rpn-high {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .action-btn-group {
+      display: flex;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-action-edit {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
+
+    .btn-action-edit:hover {
+      background-color: #c7d2fe;
+    }
+
+    .btn-action-delete {
+      background-color: #fee2e2;
+      color: #991b1b;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
+
+    .btn-action-delete:hover {
+      background-color: #fca5a5;
+    }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div>
+        <h1>
+          Master RAMS Management Dashboard 
+          <span class="badge-tag">Cloudflare D1 + Hono</span>
+        </h1>
+        <div class="subtitle">Risk Assessment & Method Statement Centralized Library</div>
+      </div>
+    </header>
+
+    <div id="toast"></div>
+
+    <!-- Add / Edit RAMS Form -->
+    <div class="form-card">
+      <h2 id="formTitle">
+        <span>Add New RAMS Item</span>
+        <span id="editModeIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Item ID: <span id="editingIdText"></span></span>
+      </h2>
+      <form id="ramsForm">
+        <input type="hidden" id="ramsId" value="">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="activity_category">Activity Category *</label>
+            <input type="text" id="activity_category" required placeholder="e.g. Solar Equipment Installation">
+          </div>
+
+          <div class="form-group">
+            <label for="work_activity">Work Activity *</label>
+            <input type="text" id="work_activity" required placeholder="e.g. Rooftop Mounting Structure">
+          </div>
+
+          <div class="form-group">
+            <label for="hazard">Hazard *</label>
+            <input type="text" id="hazard" required placeholder="e.g. Working at Elevated Heights">
+          </div>
+
+          <div class="form-group">
+            <label for="possible_accident">Possible Accident *</label>
+            <input type="text" id="possible_accident" required placeholder="e.g. Fall from height">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="control_measures">Control Measures *</label>
+            <textarea id="control_measures" required placeholder="Detail safety controls, PPE, LOTO procedures, safety harness attachment..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="severity_s">Severity (S: 1 - 5) *</label>
+            <select id="severity_s" required>
+              <option value="1">1 - Negligible</option>
+              <option value="2">2 - Minor</option>
+              <option value="3" selected>3 - Moderate</option>
+              <option value="4">4 - Major</option>
+              <option value="5">5 - Catastrophic</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="likelihood_l">Likelihood (L: 1 - 5) *</label>
+            <select id="likelihood_l" required>
+              <option value="1">1 - Rare</option>
+              <option value="2">2 - Unlikely</option>
+              <option value="3" selected>3 - Possible</option>
+              <option value="4">4 - Likely</option>
+              <option value="5">5 - Almost Certain</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="rpn">Risk Priority Number (RPN = S &times; L)</label>
+            <div class="rpn-preview">
+              <input type="text" id="rpn" class="rpn-input" readonly value="9">
+              <div id="rpnBadge" class="rpn-score-badge rpn-med">MEDIUM RISK (9)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="btnCancel" class="btn-secondary" style="display: none;">Cancel Edit</button>
+          <button type="submit" id="btnSubmit" class="btn-primary">Add RAMS Entry</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-card">
+      <div class="table-toolbar">
+        <h3>Master RAMS Library Table</h3>
+        <input type="text" id="searchInput" class="search-input" placeholder="Search by category, activity, or hazard...">
+      </div>
+
+      <div class="table-container">
+        <table id="ramsTable">
+          <thead>
+            <tr>
+              <th style="width: 50px;">ID</th>
+              <th style="width: 160px;">Category</th>
+              <th style="width: 180px;">Work Activity</th>
+              <th style="width: 160px;">Hazard</th>
+              <th style="width: 180px;">Possible Accident</th>
+              <th>Control Measures</th>
+              <th style="width: 50px; text-align: center;">S</th>
+              <th style="width: 50px; text-align: center;">L</th>
+              <th style="width: 110px; text-align: center;">RPN</th>
+              <th style="width: 130px; text-align: center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Dynamic content loaded via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let ramsData = [];
+    let isEditing = false;
+
+    // Elements
+    const form = document.getElementById('ramsForm');
+    const formTitle = document.getElementById('formTitle');
+    const editingIdText = document.getElementById('editingIdText');
+    const editModeIndicator = document.getElementById('editModeIndicator');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnCancel = document.getElementById('btnCancel');
+    
+    const severityInput = document.getElementById('severity_s');
+    const likelihoodInput = document.getElementById('likelihood_l');
+    const rpnInput = document.getElementById('rpn');
+    const rpnBadge = document.getElementById('rpnBadge');
+    
+    const tableBody = document.getElementById('tableBody');
+    const searchInput = document.getElementById('searchInput');
+    const toast = document.getElementById('toast');
+
+    // Real-time RPN calculation logic
+    function calculateRPN() {
+      const s = parseInt(severityInput.value, 10) || 0;
+      const l = parseInt(likelihoodInput.value, 10) || 0;
+      const rpn = s * l;
+
+      rpnInput.value = rpn;
+
+      // Dynamic visual formatting
+      if (rpn <= 4) {
+        rpnBadge.className = 'rpn-score-badge rpn-low';
+        rpnBadge.textContent = `LOW RISK (${rpn})`;
+      } else if (rpn <= 11) {
+        rpnBadge.className = 'rpn-score-badge rpn-med';
+        rpnBadge.textContent = `MEDIUM RISK (${rpn})`;
+      } else {
+        rpnBadge.className = 'rpn-score-badge rpn-high';
+        rpnBadge.textContent = `HIGH RISK (${rpn})`;
+      }
+    }
+
+    severityInput.addEventListener('input', calculateRPN);
+    severityInput.addEventListener('change', calculateRPN);
+    likelihoodInput.addEventListener('input', calculateRPN);
+    likelihoodInput.addEventListener('change', calculateRPN);
+
+    // Notification toast helper
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.className = type;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4000);
+    }
+
+    // Fetch all RAMS records from API
+    async function loadRAMSData() {
+      try {
+        const response = await fetch('/api/rams');
+        const result = await response.json();
+
+        if (result.success) {
+          ramsData = result.data || [];
+          renderTable(ramsData);
+        } else {
+          showToast(`Error fetching data: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    }
+
+    // Get RPN CSS class for table rows
+    function getRPNClass(rpn) {
+      if (rpn <= 4) return 'rpn-low';
+      if (rpn <= 11) return 'rpn-med';
+      return 'rpn-high';
+    }
+
+    // Render RAMS data into spreadsheet table
+    function renderTable(data) {
+      if (!data || data.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="empty-state">No RAMS records found. Use the form above to add a new record.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = data.map(item => {
+        const rpnClass = getRPNClass(item.rpn);
+        return `
+          <tr>
+            <td><strong>#${item.id}</strong></td>
+            <td>${escapeHtml(item.activity_category)}</td>
+            <td><strong>${escapeHtml(item.work_activity)}</strong></td>
+            <td>${escapeHtml(item.hazard)}</td>
+            <td>${escapeHtml(item.possible_accident)}</td>
+            <td style="white-space: pre-wrap;">${escapeHtml(item.control_measures)}</td>
+            <td style="text-align: center;">${item.severity_s}</td>
+            <td style="text-align: center;">${item.likelihood_l}</td>
+            <td style="text-align: center;">
+              <span class="rpn-badge ${rpnClass}">${item.rpn}</span>
+            </td>
+            <td style="text-align: center;">
+              <div class="action-btn-group">
+                <button class="btn-action-edit" onclick="startEdit(${item.id})">Edit</button>
+                <button class="btn-action-delete" onclick="deleteRAMS(${item.id})">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // HTML escape utility
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Filter table by search query
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      const filtered = ramsData.filter(item => 
+        (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
+        (item.work_activity && item.work_activity.toLowerCase().includes(query)) ||
+        (item.hazard && item.hazard.toLowerCase().includes(query)) ||
+        (item.possible_accident && item.possible_accident.toLowerCase().includes(query)) ||
+        (item.control_measures && item.control_measures.toLowerCase().includes(query))
+      );
+      renderTable(filtered);
+    });
+
+    // Handle Form Submit (Add or Edit)
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const payload = {
+        activity_category: document.getElementById('activity_category').value.trim(),
+        work_activity: document.getElementById('work_activity').value.trim(),
+        hazard: document.getElementById('hazard').value.trim(),
+        possible_accident: document.getElementById('possible_accident').value.trim(),
+        control_measures: document.getElementById('control_measures').value.trim(),
+        severity_s: parseInt(severityInput.value, 10),
+        likelihood_l: parseInt(likelihoodInput.value, 10),
+        rpn: parseInt(rpnInput.value, 10)
+      };
+
+      const ramsId = document.getElementById('ramsId').value;
+
+      try {
+        let response;
+        if (ramsId) {
+          // PUT request to update
+          response = await fetch(`/api/rams/${ramsId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // POST request to create
+          response = await fetch('/api/rams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast(ramsId ? 'RAMS item updated successfully!' : 'New RAMS item added successfully!');
+          resetForm();
+          loadRAMSData();
+        } else {
+          showToast(`Save failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request failed: ${err.message}`, 'error');
+      }
+    });
+
+    // Populate form for Edit mode
+    window.startEdit = function(id) {
+      const item = ramsData.find(d => d.id === id);
+      if (!item) return;
+
+      document.getElementById('ramsId').value = item.id;
+      document.getElementById('activity_category').value = item.activity_category;
+      document.getElementById('work_activity').value = item.work_activity;
+      document.getElementById('hazard').value = item.hazard;
+      document.getElementById('possible_accident').value = item.possible_accident;
+      document.getElementById('control_measures').value = item.control_measures;
+      severityInput.value = item.severity_s;
+      likelihoodInput.value = item.likelihood_l;
+
+      calculateRPN();
+
+      // UI state for edit mode
+      isEditing = true;
+      formTitle.querySelector('span').textContent = 'Edit RAMS Record';
+      editingIdText.textContent = item.id;
+      editModeIndicator.style.display = 'inline';
+      btnSubmit.textContent = 'Update RAMS Record';
+      btnCancel.style.display = 'inline-block';
+
+      // Scroll to form smoothly
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Delete item
+    window.deleteRAMS = async function(id) {
+      if (!confirm(`Are you sure you want to delete RAMS record #${id}?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/rams/${id}`, { method: 'DELETE' });
+        const result = await response.json();
+
+        if (result.success) {
+          showToast(`RAMS record #${id} deleted successfully.`);
+          loadRAMSData();
+        } else {
+          showToast(`Delete failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    // Reset Form state
+    function resetForm() {
+      form.reset();
+      document.getElementById('ramsId').value = '';
+      isEditing = false;
+      formTitle.querySelector('span').textContent = 'Add New RAMS Item';
+      editModeIndicator.style.display = 'none';
+      btnSubmit.textContent = 'Add RAMS Entry';
+      btnCancel.style.display = 'none';
+      calculateRPN();
+    }
+
+    btnCancel.addEventListener('click', resetForm);
+
+    // Initial page setup
+    calculateRPN();
+    loadRAMSData();
+  </script>
+</body>
+</html>

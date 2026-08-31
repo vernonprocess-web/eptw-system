@@ -1,0 +1,16 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "master-rams-dashboard",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-03-01",
+	"assets": {
+		"directory": "./public"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "master-rams-db",
+			"database_id": "b4b001b1-a00c-4bb5-ad57-340bcb18cdda"
+		}
+	]
+}
