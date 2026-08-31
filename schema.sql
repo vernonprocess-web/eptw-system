@@ -32,7 +32,7 @@ INSERT INTO Master_RAMS_Library (
 2) Substitution: Deploy dedicated mobile crane/hoist mechanical lifting equipment instead of manual rooftop carrying.
 3) Engineering Controls: Install SS 568 compliant perimeter guardrails, toe-boards, permanent anchor lifelines, and fragile roof crawling boards.
 4) Administrative Controls: Formulate WSH Working-at-Heights Plan & Permit-to-Work (PTW); conduct daily Toolbox Talks and verify WAH certification.
-5) PPE: Wear SS 528 compliant full-body harness with double lanyard & shock absorber, safety helmet with chin strap, and anti-slip safety boots.',
+5) Personal Protective Equipment (PPE): Full-body safety harness (SS 570) connected to designated anchors in travel restraint mode; safety helmet with fastened chin strap (SS 98); safety footwear (SS 513); EN 388:2016 Cut 1 gloves; and high-visibility vest. (Exemption / Non-Harness Condition: Full-body harness is not required where permanent solid parapet walls min 1m high or certified collective perimeter edge guardrails are in place or/where no fall-from-height hazard exists or/when work is performed entirely at ground level.)',
     5,
     2,
     10
@@ -46,7 +46,7 @@ INSERT INTO Master_RAMS_Library (
 2) Substitution: Use touch-safe IP67/IP68 rated solar connectors and enclosed switch disconnectors.
 3) Engineering Controls: Install DC isolator switches, insulated barriers, arc-flash boundary guarding, and rapid shutdown devices.
 4) Administrative Controls: Enforce Lockout/Tagout (LOTO) under Licensed Electrical Worker (LEW) supervision; issue Electrical PTW; conduct voltage verification testing.
-5) PPE: Wear IEC 60903 class 0 (1000V rated) insulated gloves, arc-flash rated face shield, flame-resistant clothing, and dielectric safety shoes.',
+5) Personal Protective Equipment (PPE): Full-body safety harness (SS 570) connected to designated anchors in travel restraint mode; safety helmet with fastened chin strap (SS 98); safety footwear (SS 513); EN 388:2016 Cut 1 gloves; and high-visibility vest. (Exemption / Non-Harness Condition: Full-body harness is not required where permanent solid parapet walls min 1m high or certified collective perimeter edge guardrails are in place or/where no fall-from-height hazard exists or/when work is performed entirely at ground level.)',
     5,
     2,
     10
@@ -60,7 +60,7 @@ INSERT INTO Master_RAMS_Library (
 2) Substitution: Deploy ergonomic vacuum suction lifting handlers instead of direct manual carrying.
 3) Engineering Controls: Set up secure staging platforms on roof; erect barricaded drop-zone exclusion fencing below.
 4) Administrative Controls: Enforce WSH Ergonomic Guidelines (max 20kg/person, mandatory 2-man team lifting); schedule mandatory work rest cycles.
-5) PPE: Wear ANSI Level A4 cut-resistant grip gloves, steel-toe anti-slip safety boots, and safety helmet with chin strap.',
+5) Personal Protective Equipment (PPE): Full-body safety harness (SS 570) connected to designated anchors in travel restraint mode; safety helmet with fastened chin strap (SS 98); safety footwear (SS 513); EN 388:2016 Cut 1 gloves; and high-visibility vest. (Exemption / Non-Harness Condition: Full-body harness is not required where permanent solid parapet walls min 1m high or certified collective perimeter edge guardrails are in place or/where no fall-from-height hazard exists or/when work is performed entirely at ground level.)',
     3,
     2,
     6
@@ -74,7 +74,7 @@ INSERT INTO Master_RAMS_Library (
 2) Substitution: Select safer LiFePO4 (LFP) chemistry modules with integrated thermal management over standard NMC chemistry.
 3) Engineering Controls: Install H2/CO gas detectors, mechanical exhaust ventilation, and clean-agent automatic fire suppression systems.
 4) Administrative Controls: Establish BESS PTW & Emergency Response Plan (ERP) adhering to SCDF guidelines; display Hazmat warning signs; restrict entry to certified personnel.
-5) PPE: Wear chemical-resistant nitrile/neoprene gloves, splash-proof safety goggles, full face shield, and chemical protective apron.',
+5) Personal Protective Equipment (PPE): Full-body safety harness (SS 570) connected to designated anchors in travel restraint mode; safety helmet with fastened chin strap (SS 98); safety footwear (SS 513); EN 388:2016 Cut 1 gloves; and high-visibility vest. (Exemption / Non-Harness Condition: Full-body harness is not required where permanent solid parapet walls min 1m high or certified collective perimeter edge guardrails are in place or/where no fall-from-height hazard exists or/when work is performed entirely at ground level.)',
     4,
     2,
     8
@@ -88,7 +88,7 @@ INSERT INTO Master_RAMS_Library (
 2) Substitution: Deploy magnetic sweepers and industrial vacuum collectors instead of manual hand picking of glass & metal offcuts.
 3) Engineering Controls: Install enclosed trash chutes for lowering waste from roofs; provide puncture-proof covered waste bins.
 4) Administrative Controls: Enforce Singapore NEA & WSH general housekeeping guidelines; mandate regular site cleanup schedules.
-5) PPE: Wear EN 388 Level D cut-resistant safety gloves, ANSI Z87.1 impact safety glasses, and heavy-duty steel-toe safety boots.',
+5) Personal Protective Equipment (PPE): Full-body safety harness (SS 570) connected to designated anchors in travel restraint mode; safety helmet with fastened chin strap (SS 98); safety footwear (SS 513); EN 388:2016 Cut 1 gloves; and high-visibility vest. (Exemption / Non-Harness Condition: Full-body harness is not required where permanent solid parapet walls min 1m high or certified collective perimeter edge guardrails are in place or/where no fall-from-height hazard exists or/when work is performed entirely at ground level.)',
     2,
     2,
     4
