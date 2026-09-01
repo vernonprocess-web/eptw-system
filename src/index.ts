@@ -32,7 +32,9 @@ Extract the following information strictly as valid JSON:
 - issued_date: Certificate issue date strictly in YYYY-MM-DD format (e.g. "2023-01-25" if 25/01/2023)
 - cert_expiry: Certificate expiration date strictly in YYYY-MM-DD format (if applicable, otherwise empty string)
 - name: Full name of the worker (e.g. "BABU MD NAIM")
-- ic_wp_no: Identity Card (NRIC), Work Permit, or FIN number (e.g. "G2884785N", "0 64780727", "S9876543A")
+- ic_no: Singapore NRIC / Identity Card number ONLY (starts with S or T, e.g. "S9876543A"). If document is not an NRIC, return empty string "".
+- wp_no: Singapore Work Permit number ONLY (e.g. "0 64780727"). If document is not a Work Permit, return empty string "".
+- fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G2884785N"). If document is not a FIN card, return empty string "".
 - trade: Sector, job title or trade (e.g. "CONSTRUCTION", "Rigging & Lifting", "Electrician", "Scaffolder")
 
 Return ONLY valid JSON matching this schema:
@@ -43,7 +45,9 @@ Return ONLY valid JSON matching this schema:
   "issued_date": "YYYY-MM-DD",
   "cert_expiry": "YYYY-MM-DD",
   "name": "string",
-  "ic_wp_no": "string",
+  "ic_no": "string",
+  "wp_no": "string",
+  "fin_no": "string",
   "trade": "string"
 }`;
 
@@ -357,6 +361,9 @@ app.post('/api/workers/upload', async (c) => {
       issued_date: '',
       cert_expiry: '',
       name: '',
+      ic_no: '',
+      wp_no: '',
+      fin_no: '',
       ic_wp_no: '',
       trade: '',
     };
@@ -376,7 +383,10 @@ app.post('/api/workers/upload', async (c) => {
           issued_date: extracted.issued_date || '',
           cert_expiry: extracted.cert_expiry || '',
           name: extracted.name || '',
-          ic_wp_no: extracted.ic_wp_no || '',
+          ic_no: extracted.ic_no || '',
+          wp_no: extracted.wp_no || '',
+          fin_no: extracted.fin_no || '',
+          ic_wp_no: extracted.ic_no || extracted.wp_no || extracted.fin_no || extracted.ic_wp_no || '',
           trade: extracted.trade || '',
         };
       } catch (ocrErr: any) {
@@ -403,6 +413,9 @@ app.post('/api/workers', async (c) => {
       target_worker_id, // If attaching cert to existing worker
       worker_id,        // If creating new worker
       name,
+      ic_no,
+      wp_no,
+      fin_no,
       ic_wp_no,
       trade,
       cert_type,
@@ -415,38 +428,50 @@ app.post('/api/workers', async (c) => {
     } = body;
 
     let finalWorkerId = target_worker_id || worker_id;
+    const finalIcNo = ic_no || '';
+    const finalWpNo = wp_no || '';
+    const finalFinNo = fin_no || '';
+    const combinedIcWp = ic_wp_no || finalIcNo || finalWpNo || finalFinNo || '';
 
     // 1. If target worker ID is not provided, create a new Worker Profile
     if (!target_worker_id) {
-      if (!name || !ic_wp_no) {
-        return c.json({ success: false, error: 'Name and IC/WP No are required for new worker.' }, 400);
+      if (!name) {
+        return c.json({ success: false, error: 'Full name is required for new worker.' }, 400);
       }
 
       if (!finalWorkerId) {
         finalWorkerId = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
-      // Check if worker profile already exists
+      // Check if worker profile already exists by worker_id, IC, WP, or FIN
       const existingWorker = await c.env.DB.prepare(
-        'SELECT worker_id FROM Worker_Registry WHERE worker_id = ? OR ic_wp_no = ?'
-      ).bind(finalWorkerId, ic_wp_no).first();
+        `SELECT worker_id FROM Worker_Registry 
+         WHERE worker_id = ? 
+            OR (ic_no != '' AND ic_no = ?)
+            OR (wp_no != '' AND wp_no = ?)
+            OR (fin_no != '' AND fin_no = ?)`
+      ).bind(finalWorkerId, finalIcNo, finalWpNo, finalFinNo).first();
 
       if (!existingWorker) {
         await c.env.DB.prepare(
-          `INSERT INTO Worker_Registry (worker_id, name, ic_wp_no, trade)
-           VALUES (?, ?, ?, ?)`
-        ).bind(finalWorkerId, name, ic_wp_no, trade || 'General Worker').run();
+          `INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, ic_wp_no, trade)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker').run();
       } else {
         finalWorkerId = String(existingWorker.worker_id);
       }
     } else {
-      // If attaching to existing worker, optionally update trade/name if missing
-      if (trade || name) {
+      // If attaching to existing worker, update profile details if provided
+      if (trade || name || finalIcNo || finalWpNo || finalFinNo) {
         await c.env.DB.prepare(
           `UPDATE Worker_Registry 
-           SET name = COALESCE(NULLIF(?, ''), name), trade = COALESCE(NULLIF(?, ''), trade)
+           SET name = COALESCE(NULLIF(?, ''), name),
+               ic_no = COALESCE(NULLIF(?, ''), ic_no),
+               wp_no = COALESCE(NULLIF(?, ''), wp_no),
+               fin_no = COALESCE(NULLIF(?, ''), fin_no),
+               trade = COALESCE(NULLIF(?, ''), trade)
            WHERE worker_id = ?`
-        ).bind(name || '', trade || '', target_worker_id).run();
+        ).bind(name || '', finalIcNo, finalWpNo, finalFinNo, trade || '', target_worker_id).run();
       }
     }
 
@@ -497,21 +522,21 @@ app.put('/api/workers/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { name, ic_wp_no, trade } = body;
+    const { name, ic_no, wp_no, fin_no, trade } = body;
 
-    if (!name || !ic_wp_no || !trade) {
+    if (!name || !trade) {
       return c.json(
-        { success: false, error: 'Name, IC/WP No, and Trade are required.' },
+        { success: false, error: 'Name and Trade are required.' },
         400
       );
     }
 
     const result = await c.env.DB.prepare(
       `UPDATE Worker_Registry 
-       SET name = ?, ic_wp_no = ?, trade = ?
+       SET name = ?, ic_no = ?, wp_no = ?, fin_no = ?, trade = ?
        WHERE worker_id = ?`
     )
-      .bind(name, ic_wp_no, trade, id)
+      .bind(name, ic_no || '', wp_no || '', fin_no || '', trade, id)
       .run();
 
     if (result.meta.changes === 0) {

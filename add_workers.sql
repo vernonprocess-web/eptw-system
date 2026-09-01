@@ -6,7 +6,10 @@ DROP TABLE IF EXISTS Worker_Registry;
 CREATE TABLE IF NOT EXISTS Worker_Registry (
     worker_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    ic_wp_no TEXT NOT NULL,
+    ic_no TEXT,
+    wp_no TEXT,
+    fin_no TEXT,
+    ic_wp_no TEXT,
     trade TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -27,11 +30,11 @@ CREATE TABLE IF NOT EXISTS Worker_Certificates (
 );
 
 -- Initial seed data for Worker Registry
-INSERT INTO Worker_Registry (worker_id, name, ic_wp_no, trade) VALUES 
-('WRK-1001', 'Ahmad Bin Ibrahim', 'G1234567M', 'Solar Installer & Electrician'),
-('WRK-1002', 'Tan Kah Wee', 'S9876543A', 'Scaffolder & WAH Supervisor'),
-('WRK-1003', 'Rajesh Kumar', 'F5432109K', 'Structural Steel Fitter'),
-('WRK-80727', 'BABU MD NAIM', '0 64780727', 'CONSTRUCTION');
+INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, trade) VALUES 
+('WRK-1001', 'Ahmad Bin Ibrahim', '', '', 'G1234567M', 'Solar Installer & Electrician'),
+('WRK-1002', 'Tan Kah Wee', 'S9876543A', '', '', 'Scaffolder & WAH Supervisor'),
+('WRK-1003', 'Rajesh Kumar', '', '', 'F5432109K', 'Structural Steel Fitter'),
+('WRK-80727', 'BABU MD NAIM', '', '0 64780727', '', 'CONSTRUCTION');
 
 -- Initial seed certificates
 INSERT INTO Worker_Certificates (worker_id, cert_type, cert_no, issuer, issued_date, cert_expiry, cert_valid, cert_file_url) VALUES 

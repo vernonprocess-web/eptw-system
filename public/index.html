@@ -728,8 +728,18 @@
             </div>
 
             <div class="form-group">
-              <label for="ic_wp_no">IC / WP / FIN No *</label>
-              <input type="text" id="ic_wp_no" required placeholder="e.g. G2884785N or 0 64780727">
+              <label for="ic_no">NRIC / IC No</label>
+              <input type="text" id="ic_no" placeholder="e.g. S9876543A">
+            </div>
+
+            <div class="form-group">
+              <label for="wp_no">Work Permit No</label>
+              <input type="text" id="wp_no" placeholder="e.g. 0 64780727">
+            </div>
+
+            <div class="form-group">
+              <label for="fin_no">FIN No</label>
+              <input type="text" id="fin_no" placeholder="e.g. G2884785N">
             </div>
 
             <div class="form-group">
@@ -780,7 +790,7 @@
       <div class="table-card">
         <div class="table-toolbar">
           <h3>Worker Registry Spreadsheet Grid (1 Row per Worker)</h3>
-          <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC/WP, trade, or cert name...">
+          <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC, WP, FIN, trade, or cert name...">
         </div>
 
         <div class="table-container">
@@ -789,9 +799,11 @@
               <tr>
                 <th style="width: 40px; text-align: center;">Expand</th>
                 <th style="width: 110px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
-                <th style="width: 170px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Name <span class="sort-icon">⇅</span></th>
-                <th style="width: 130px;" class="sortable" data-sort="ic_wp_no" onclick="handleWorkerSort('ic_wp_no')">IC / WP No <span class="sort-icon">⇅</span></th>
-                <th style="width: 170px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
+                <th style="width: 160px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Name <span class="sort-icon">⇅</span></th>
+                <th style="width: 110px;" class="sortable" data-sort="ic_no" onclick="handleWorkerSort('ic_no')">NRIC / IC <span class="sort-icon">⇅</span></th>
+                <th style="width: 120px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">Work Permit <span class="sort-icon">⇅</span></th>
+                <th style="width: 110px;" class="sortable" data-sort="fin_no" onclick="handleWorkerSort('fin_no')">FIN No <span class="sort-icon">⇅</span></th>
+                <th style="width: 140px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
                 <th>Certificates</th>
                 <th style="width: 120px; text-align: center;">Overall Status</th>
                 <th style="width: 170px; text-align: center;">Actions</th>
@@ -1135,7 +1147,8 @@
       workerData.forEach(w => {
         const option = document.createElement('option');
         option.value = w.worker_id;
-        option.textContent = `👤 Attach to: ${w.name} (${w.ic_wp_no} / ${w.worker_id})`;
+        const mainId = w.ic_no || w.wp_no || w.fin_no || w.ic_wp_no || 'No ID';
+        option.textContent = `👤 Attach to: ${w.name} (${mainId} / ${w.worker_id})`;
         if (w.worker_id === selectedWorkerId) {
           option.selected = true;
         }
@@ -1150,14 +1163,18 @@
         if (worker) {
           document.getElementById('worker_id').value = worker.worker_id;
           document.getElementById('worker_name').value = worker.name;
-          document.getElementById('ic_wp_no').value = worker.ic_wp_no;
+          document.getElementById('ic_no').value = worker.ic_no || '';
+          document.getElementById('wp_no').value = worker.wp_no || '';
+          document.getElementById('fin_no').value = worker.fin_no || '';
           document.getElementById('trade').value = worker.trade;
         }
       } else {
         // Reset to new worker mode
         document.getElementById('worker_id').value = '';
         document.getElementById('worker_name').value = '';
-        document.getElementById('ic_wp_no').value = '';
+        document.getElementById('ic_no').value = '';
+        document.getElementById('wp_no').value = '';
+        document.getElementById('fin_no').value = '';
         document.getElementById('trade').value = '';
       }
     });
@@ -1197,25 +1214,33 @@
             if (result.ocr.cert_expiry) document.getElementById('cert_expiry').value = result.ocr.cert_expiry;
 
             const extractedName = (result.ocr.name || '').trim().toLowerCase();
-            const extractedIcWp = (result.ocr.ic_wp_no || '').trim().toLowerCase();
+            const extractedIc = (result.ocr.ic_no || '').trim().toLowerCase();
+            const extractedWp = (result.ocr.wp_no || '').trim().toLowerCase();
+            const extractedFin = (result.ocr.fin_no || '').trim().toLowerCase();
 
-            // Auto-match existing worker by IC/WP or Name
+            // Auto-match existing worker by IC, WP, FIN, or Name
             const matchedWorker = workerData.find(w => 
-              (extractedIcWp && w.ic_wp_no.toLowerCase().includes(extractedIcWp)) ||
-              (extractedName && w.name.toLowerCase().includes(extractedName))
+              (extractedIc && w.ic_no && w.ic_no.toLowerCase().includes(extractedIc)) ||
+              (extractedWp && w.wp_no && w.wp_no.toLowerCase().includes(extractedWp)) ||
+              (extractedFin && w.fin_no && w.fin_no.toLowerCase().includes(extractedFin)) ||
+              (extractedName && w.name && w.name.toLowerCase().includes(extractedName))
             );
 
             if (matchedWorker) {
               targetWorkerSelect.value = matchedWorker.worker_id;
               document.getElementById('worker_id').value = matchedWorker.worker_id;
               document.getElementById('worker_name').value = matchedWorker.name;
-              document.getElementById('ic_wp_no').value = matchedWorker.ic_wp_no;
+              document.getElementById('ic_no').value = matchedWorker.ic_no || '';
+              document.getElementById('wp_no').value = matchedWorker.wp_no || '';
+              document.getElementById('fin_no').value = matchedWorker.fin_no || '';
               document.getElementById('trade').value = matchedWorker.trade;
               showToast(`Matched existing worker: ${matchedWorker.name} (${matchedWorker.worker_id})`);
             } else {
               targetWorkerSelect.value = '';
               if (result.ocr.name) document.getElementById('worker_name').value = result.ocr.name;
-              if (result.ocr.ic_wp_no) document.getElementById('ic_wp_no').value = result.ocr.ic_wp_no;
+              if (result.ocr.ic_no) document.getElementById('ic_no').value = result.ocr.ic_no;
+              if (result.ocr.wp_no) document.getElementById('wp_no').value = result.ocr.wp_no;
+              if (result.ocr.fin_no) document.getElementById('fin_no').value = result.ocr.fin_no;
               if (result.ocr.trade) document.getElementById('trade').value = result.ocr.trade;
               document.getElementById('worker_id').value = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
             }
@@ -1285,7 +1310,9 @@
         return (
           (item.worker_id && item.worker_id.toLowerCase().includes(query)) ||
           (item.name && item.name.toLowerCase().includes(query)) ||
-          (item.ic_wp_no && item.ic_wp_no.toLowerCase().includes(query)) ||
+          (item.ic_no && item.ic_no.toLowerCase().includes(query)) ||
+          (item.wp_no && item.wp_no.toLowerCase().includes(query)) ||
+          (item.fin_no && item.fin_no.toLowerCase().includes(query)) ||
           (item.trade && item.trade.toLowerCase().includes(query)) ||
           certNames.includes(query)
         );
@@ -1328,7 +1355,7 @@
       if (!data || data.length === 0) {
         workerTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
+            <td colspan="10" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
           </tr>
         `;
         return;
@@ -1365,7 +1392,9 @@
             </td>
             <td><strong>${escapeHtml(item.worker_id)}</strong></td>
             <td><strong>${escapeHtml(item.name)}</strong></td>
-            <td><code>${escapeHtml(item.ic_wp_no)}</code></td>
+            <td><code>${escapeHtml(item.ic_no || '-')}</code></td>
+            <td><code>${escapeHtml(item.wp_no || '-')}</code></td>
+            <td><code>${escapeHtml(item.fin_no || '-')}</code></td>
             <td>${escapeHtml(item.trade)}</td>
             <td><strong>${certNamesText}</strong></td>
             <td style="text-align: center;">${overallStatusHTML}</td>
@@ -1415,7 +1444,7 @@
 
           rowsHTML += `
             <tr class="drawer-row">
-              <td colspan="8">
+              <td colspan="10">
                 <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
                   📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
                 </div>
@@ -1453,7 +1482,9 @@
       targetWorkerSelect.value = worker.worker_id;
       document.getElementById('worker_id').value = worker.worker_id;
       document.getElementById('worker_name').value = worker.name;
-      document.getElementById('ic_wp_no').value = worker.ic_wp_no;
+      document.getElementById('ic_no').value = worker.ic_no || '';
+      document.getElementById('wp_no').value = worker.wp_no || '';
+      document.getElementById('fin_no').value = worker.fin_no || '';
       document.getElementById('trade').value = worker.trade;
       document.getElementById('cert_type').value = '';
       document.getElementById('cert_no').value = '';
@@ -1474,7 +1505,9 @@
         target_worker_id: targetId || null,
         worker_id: document.getElementById('worker_id').value.trim(),
         name: document.getElementById('worker_name').value.trim(),
-        ic_wp_no: document.getElementById('ic_wp_no').value.trim(),
+        ic_no: document.getElementById('ic_no').value.trim(),
+        wp_no: document.getElementById('wp_no').value.trim(),
+        fin_no: document.getElementById('fin_no').value.trim(),
         trade: document.getElementById('trade').value.trim(),
         cert_type: document.getElementById('cert_type').value.trim(),
         cert_no: document.getElementById('cert_no').value.trim(),
@@ -1492,7 +1525,9 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: payload.name,
-              ic_wp_no: payload.ic_wp_no,
+              ic_no: payload.ic_no,
+              wp_no: payload.wp_no,
+              fin_no: payload.fin_no,
               trade: payload.trade
             })
           });
@@ -1525,7 +1560,9 @@
       document.getElementById('worker_id').value = item.worker_id;
       document.getElementById('worker_id').readOnly = true;
       document.getElementById('worker_name').value = item.name;
-      document.getElementById('ic_wp_no').value = item.ic_wp_no;
+      document.getElementById('ic_no').value = item.ic_no || '';
+      document.getElementById('wp_no').value = item.wp_no || '';
+      document.getElementById('fin_no').value = item.fin_no || '';
       document.getElementById('trade').value = item.trade;
 
       isEditingWorkerProfile = true;
