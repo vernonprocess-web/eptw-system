@@ -12,5 +12,11 @@
 			"database_name": "master-rams-db",
 			"database_id": "b4b001b1-a00c-4bb5-ad57-340bcb18cdda"
 		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "CERT_BUCKET",
+			"bucket_name": "cert-bucket"
+		}
 	]
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Master RAMS Management Dashboard</title>
+  <title>Master RAMS & Worker Registry Management Dashboard</title>
   <style>
     :root {
       --bg-color: #f8fafc;
@@ -42,7 +42,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       padding-bottom: 16px;
       border-bottom: 2px solid var(--border-color);
     }
@@ -70,6 +70,48 @@
       border-radius: 4px;
       font-weight: 600;
       text-transform: uppercase;
+    }
+
+    /* Tab Navigation */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: var(--primary);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom: 3px solid var(--primary);
+      background-color: #ffffff;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
 
     /* Notification Banner */
@@ -206,6 +248,53 @@
       background-color: #cbd5e1;
     }
 
+    /* OCR Upload Dropzone Card */
+    .upload-card {
+      background: #f0f9ff;
+      border: 2px dashed #0284c7;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      transition: background 0.2s;
+    }
+    .upload-card:hover {
+      background: #e0f2fe;
+    }
+    .upload-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+    .upload-sub {
+      font-size: 0.85rem;
+      color: #0284c7;
+      cursor: pointer;
+    }
+    .ocr-loader {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+      font-weight: 600;
+      color: #0284c7;
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid #bae6fd;
+      border-top-color: #0284c7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Spreadsheet Table Styling */
     .table-card {
       background: var(--card-bg);
@@ -235,7 +324,7 @@
 
     .table-container {
       overflow-x: auto;
-      max-height: 600px;
+      max-height: 650px;
     }
 
     table {
@@ -293,7 +382,7 @@
       padding: 12px 14px;
       border-bottom: 1px solid var(--border-color);
       border-right: 1px solid #f1f5f9;
-      vertical-align: top;
+      vertical-align: middle;
     }
 
     td:last-child {
@@ -306,6 +395,63 @@
 
     tbody tr:hover {
       background-color: #f1f5f9;
+    }
+
+    /* Expired Worker Highlight Row */
+    tr.expired-row {
+      background-color: #fee2e2 !important;
+      color: #991b1b;
+    }
+    tr.expired-row td {
+      border-bottom-color: #fca5a5;
+    }
+
+    /* Expandable Accordion Drawer */
+    tr.drawer-row {
+      background-color: #f1f5f9 !important;
+    }
+    tr.drawer-row td {
+      padding: 12px 20px;
+      background-color: #f8fafc;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .drawer-table {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+    .drawer-table th {
+      background-color: #334155;
+      color: #f8fafc;
+      font-size: 0.7rem;
+      padding: 8px 10px;
+    }
+    .drawer-table td {
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .status-valid {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .status-expired {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
     }
 
     /* RPN Badge Styling */
@@ -364,6 +510,36 @@
       background-color: #fca5a5;
     }
 
+    .btn-action-view {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 600;
+      display: inline-block;
+      border: 1px solid #bae6fd;
+    }
+
+    .btn-action-view:hover {
+      background-color: #bae6fd;
+    }
+
+    .btn-expand {
+      background-color: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn-expand:hover {
+      background-color: #e2e8f0;
+    }
+
     .empty-state {
       padding: 40px;
       text-align: center;
@@ -377,126 +553,318 @@
     <header>
       <div>
         <h1>
-          Master RAMS Management Dashboard 
-          <span class="badge-tag">Cloudflare D1 + Hono</span>
+          ePTW System & Site Management 
+          <span class="badge-tag">Cloudflare D1 + R2 + Hono</span>
         </h1>
-        <div class="subtitle">Risk Assessment & Method Statement Centralized Library</div>
+        <div class="subtitle">Risk Assessment (RAMS) & Multi-Certificate Worker Compliance Registry</div>
       </div>
     </header>
 
-    <div id="toast"></div>
-
-    <!-- Add / Edit RAMS Form -->
-    <div class="form-card">
-      <h2 id="formTitle">
-        <span>Add New RAMS Item</span>
-        <span id="editModeIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Item ID: <span id="editingIdText"></span></span>
-      </h2>
-      <form id="ramsForm">
-        <input type="hidden" id="ramsId" value="">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="activity_category">Activity Category *</label>
-            <input type="text" id="activity_category" required placeholder="e.g. Solar Equipment Installation">
-          </div>
-
-          <div class="form-group">
-            <label for="work_activity">Work Activity *</label>
-            <input type="text" id="work_activity" required placeholder="e.g. Rooftop Mounting Structure">
-          </div>
-
-          <div class="form-group">
-            <label for="hazard">Hazard *</label>
-            <input type="text" id="hazard" required placeholder="e.g. Working at Elevated Heights">
-          </div>
-
-          <div class="form-group">
-            <label for="possible_accident">Possible Accident *</label>
-            <input type="text" id="possible_accident" required placeholder="e.g. Fall from height">
-          </div>
-
-          <div class="form-group full-width">
-            <label for="control_measures">Control Measures *</label>
-            <textarea id="control_measures" required placeholder="Detail safety controls, PPE, LOTO procedures, safety harness attachment..."></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="severity_s">Severity (S: 1 - 5) *</label>
-            <select id="severity_s" required>
-              <option value="1">1 - Negligible</option>
-              <option value="2">2 - Minor</option>
-              <option value="3" selected>3 - Moderate</option>
-              <option value="4">4 - Major</option>
-              <option value="5">5 - Catastrophic</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="likelihood_l">Likelihood (L: 1 - 5) *</label>
-            <select id="likelihood_l" required>
-              <option value="1">1 - Rare</option>
-              <option value="2">2 - Unlikely</option>
-              <option value="3" selected>3 - Possible</option>
-              <option value="4">4 - Likely</option>
-              <option value="5">5 - Almost Certain</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="rpn">Risk Priority Number (RPN = S &times; L)</label>
-            <div class="rpn-preview">
-              <input type="text" id="rpn" class="rpn-input" readonly value="9">
-              <div id="rpnBadge" class="rpn-score-badge rpn-med">MEDIUM RISK (9)</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" id="btnCancel" class="btn-secondary" style="display: none;">Cancel Edit</button>
-          <button type="submit" id="btnSubmit" class="btn-primary">Add RAMS Entry</button>
-        </div>
-      </form>
+    <!-- Tab Navigation Bar -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('ramsTab')">
+        📋 Master RAMS Library
+      </button>
+      <button class="tab-btn" onclick="switchTab('workerTab')">
+        👷 Worker Registry & Gemini OCR
+      </button>
     </div>
 
-    <!-- Data Table -->
-    <div class="table-card">
-      <div class="table-toolbar">
-        <h3>Master RAMS Library Table</h3>
-        <input type="text" id="searchInput" class="search-input" placeholder="Search by category, activity, or hazard...">
+    <div id="toast"></div>
+
+    <!-- TAB 1: MASTER RAMS LIBRARY -->
+    <div id="ramsTab" class="tab-content active">
+      <!-- Add / Edit RAMS Form -->
+      <div class="form-card">
+        <h2 id="formTitle">
+          <span>Add New RAMS Item</span>
+          <span id="editModeIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Item ID: <span id="editingIdText"></span></span>
+        </h2>
+        <form id="ramsForm">
+          <input type="hidden" id="ramsId" value="">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="activity_category">Activity Category *</label>
+              <input type="text" id="activity_category" required placeholder="e.g. Solar Equipment Installation">
+            </div>
+
+            <div class="form-group">
+              <label for="work_activity">Work Activity *</label>
+              <input type="text" id="work_activity" required placeholder="e.g. Rooftop Mounting Structure">
+            </div>
+
+            <div class="form-group">
+              <label for="hazard">Hazard *</label>
+              <input type="text" id="hazard" required placeholder="e.g. Working at Elevated Heights">
+            </div>
+
+            <div class="form-group">
+              <label for="possible_accident">Possible Accident *</label>
+              <input type="text" id="possible_accident" required placeholder="e.g. Fall from height">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="control_measures">Control Measures *</label>
+              <textarea id="control_measures" required placeholder="Detail safety controls, PPE, LOTO procedures, safety harness attachment..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="severity_s">Severity (S: 1 - 5) *</label>
+              <select id="severity_s" required>
+                <option value="1">1 - Negligible</option>
+                <option value="2">2 - Minor</option>
+                <option value="3" selected>3 - Moderate</option>
+                <option value="4">4 - Major</option>
+                <option value="5">5 - Catastrophic</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="likelihood_l">Likelihood (L: 1 - 5) *</label>
+              <select id="likelihood_l" required>
+                <option value="1">1 - Rare</option>
+                <option value="2">2 - Unlikely</option>
+                <option value="3" selected>3 - Possible</option>
+                <option value="4">4 - Likely</option>
+                <option value="5">5 - Almost Certain</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="rpn">Risk Priority Number (RPN = S &times; L)</label>
+              <div class="rpn-preview">
+                <input type="text" id="rpn" class="rpn-input" readonly value="9">
+                <div id="rpnBadge" class="rpn-score-badge rpn-med">MEDIUM RISK (9)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="btnCancel" class="btn-secondary" style="display: none;">Cancel Edit</button>
+            <button type="submit" id="btnSubmit" class="btn-primary">Add RAMS Entry</button>
+          </div>
+        </form>
       </div>
 
-      <div class="table-container">
-        <table id="ramsTable">
-          <thead>
-            <tr>
-              <th style="width: 70px;" class="sortable active" data-sort="id" onclick="handleSort('id')">ID <span class="sort-icon">▲</span></th>
-              <th style="width: 160px;" class="sortable" data-sort="activity_category" onclick="handleSort('activity_category')">Category <span class="sort-icon">⇅</span></th>
-              <th style="width: 180px;" class="sortable" data-sort="work_activity" onclick="handleSort('work_activity')">Work Activity <span class="sort-icon">⇅</span></th>
-              <th style="width: 160px;" class="sortable" data-sort="hazard" onclick="handleSort('hazard')">Hazard <span class="sort-icon">⇅</span></th>
-              <th style="width: 180px;">Possible Accident</th>
-              <th>Control Measures</th>
-              <th style="width: 60px; text-align: center;" class="sortable" data-sort="severity_s" onclick="handleSort('severity_s')">S <span class="sort-icon">⇅</span></th>
-              <th style="width: 60px; text-align: center;" class="sortable" data-sort="likelihood_l" onclick="handleSort('likelihood_l')">L <span class="sort-icon">⇅</span></th>
-              <th style="width: 110px; text-align: center;" class="sortable" data-sort="rpn" onclick="handleSort('rpn')">RPN <span class="sort-icon">⇅</span></th>
-              <th style="width: 130px; text-align: center;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody">
-            <!-- Dynamic content loaded via JS -->
-          </tbody>
-        </table>
+      <!-- Data Table -->
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>Master RAMS Library Table</h3>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search by category, activity, or hazard...">
+        </div>
+
+        <div class="table-container">
+          <table id="ramsTable">
+            <thead>
+              <tr>
+                <th style="width: 70px;" class="sortable active" data-sort="id" onclick="handleSort('id')">ID <span class="sort-icon">▲</span></th>
+                <th style="width: 160px;" class="sortable" data-sort="activity_category" onclick="handleSort('activity_category')">Category <span class="sort-icon">⇅</span></th>
+                <th style="width: 180px;" class="sortable" data-sort="work_activity" onclick="handleSort('work_activity')">Work Activity <span class="sort-icon">⇅</span></th>
+                <th style="width: 160px;" class="sortable" data-sort="hazard" onclick="handleSort('hazard')">Hazard <span class="sort-icon">⇅</span></th>
+                <th style="width: 180px;">Possible Accident</th>
+                <th>Control Measures</th>
+                <th style="width: 60px; text-align: center;" class="sortable" data-sort="severity_s" onclick="handleSort('severity_s')">S <span class="sort-icon">⇅</span></th>
+                <th style="width: 60px; text-align: center;" class="sortable" data-sort="likelihood_l" onclick="handleSort('likelihood_l')">L <span class="sort-icon">⇅</span></th>
+                <th style="width: 110px; text-align: center;" class="sortable" data-sort="rpn" onclick="handleSort('rpn')">RPN <span class="sort-icon">⇅</span></th>
+                <th style="width: 130px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Dynamic content loaded via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- TAB 2: WORKER REGISTRY & MULTI-CERT OCR -->
+    <div id="workerTab" class="tab-content">
+      <!-- OCR Upload Card -->
+      <div class="upload-card">
+        <div onclick="document.getElementById('certFileInput').click()">
+          <div class="upload-title">📷 Upload Work Permit, WSQ, or SOC Safety Certificate for Automated OCR</div>
+          <div class="upload-sub">Click or drop image (JPG, PNG) to run Gemini Vision AI & extract certificate details</div>
+        </div>
+        <input type="file" id="certFileInput" accept="image/*" style="display: none;" onchange="handleCertUpload(this)">
+        
+        <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="targetWorkerSelect" style="font-size: 0.85rem; color: #0369a1; font-weight: 700;">Target Worker:</label>
+            <select id="targetWorkerSelect" style="padding: 6px 10px; font-size: 0.85rem; border-color: #0284c7; min-width: 260px;">
+              <option value="">✨ Create New Worker Profile</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="geminiApiKeyInput" style="font-size: 0.8rem; color: #0369a1; font-weight: 600;">Gemini API Key:</label>
+            <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy... (Optional if set in .dev.vars)" style="padding: 6px 8px; font-size: 0.8rem; width: 220px;" onchange="localStorage.setItem('gemini_api_key', this.value)">
+          </div>
+        </div>
+
+        <div id="ocrLoader" class="ocr-loader">
+          <div class="spinner"></div>
+          <span>Analyzing document with Gemini Vision OCR...</span>
+        </div>
+      </div>
+
+      <!-- Add / Edit Worker & Certificate Form -->
+      <div class="form-card">
+        <h2 id="workerFormTitle">
+          <span>Add Certificate / Register Worker</span>
+          <span id="workerEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Worker ID: <span id="editingWorkerIdText"></span></span>
+        </h2>
+        <form id="workerForm">
+          <div class="form-grid">
+            <!-- Worker Profile Information -->
+            <div class="form-group">
+              <label for="worker_id">Worker ID</label>
+              <input type="text" id="worker_id" placeholder="Auto-generated e.g. WRK-80727">
+            </div>
+
+            <div class="form-group">
+              <label for="worker_name">Full Name *</label>
+              <input type="text" id="worker_name" required placeholder="e.g. BABU MD NAIM">
+            </div>
+
+            <div class="form-group">
+              <label for="ic_wp_no">IC / WP / FIN No *</label>
+              <input type="text" id="ic_wp_no" required placeholder="e.g. G2884785N or 0 64780727">
+            </div>
+
+            <div class="form-group">
+              <label for="trade">Trade / Designation *</label>
+              <input type="text" id="trade" required placeholder="e.g. CONSTRUCTION / Solar Installer">
+            </div>
+
+            <!-- Certificate Details -->
+            <div class="form-group">
+              <label for="cert_type">Certificate Type / Name *</label>
+              <input type="text" id="cert_type" required placeholder="e.g. WSQ Supervise Safe Lifting Operation or Work Permit">
+            </div>
+
+            <div class="form-group">
+              <label for="cert_no">Cert / Ref / Student No</label>
+              <input type="text" id="cert_no" placeholder="e.g. LS-MF-COM-306E-1-00072">
+            </div>
+
+            <div class="form-group">
+              <label for="issuer">Issuing Provider / Academy</label>
+              <input type="text" id="issuer" placeholder="e.g. Wong Fong Academy / MOM Singapore">
+            </div>
+
+            <div class="form-group">
+              <label for="issued_date">Issued Date</label>
+              <input type="date" id="issued_date">
+            </div>
+
+            <div class="form-group">
+              <label for="cert_expiry">Expiry Date</label>
+              <input type="date" id="cert_expiry">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="cert_file_url">Certificate File URL (R2 Storage)</label>
+              <input type="text" id="cert_file_url" readonly placeholder="Uploaded file URL will appear here after OCR upload">
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="btnCancelWorker" class="btn-secondary" style="display: none;">Cancel Edit</button>
+            <button type="submit" id="btnSubmitWorker" class="btn-primary">Save Certificate to Worker</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Worker Registry Spreadsheet Data Table -->
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>Worker Registry Spreadsheet Grid (1 Row per Worker)</h3>
+          <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC/WP, trade, or cert name...">
+        </div>
+
+        <div class="table-container">
+          <table id="workerTable">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">Expand</th>
+                <th style="width: 110px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
+                <th style="width: 170px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Name <span class="sort-icon">⇅</span></th>
+                <th style="width: 130px;" class="sortable" data-sort="ic_wp_no" onclick="handleWorkerSort('ic_wp_no')">IC / WP No <span class="sort-icon">⇅</span></th>
+                <th style="width: 170px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
+                <th>Certificates</th>
+                <th style="width: 120px; text-align: center;">Overall Status</th>
+                <th style="width: 170px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="workerTableBody">
+              <!-- Dynamic content loaded via JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    // State management
+    // Global State
     let ramsData = [];
-    let isEditing = false;
+    let workerData = [];
+    let expandedWorkers = new Set(); // Track expanded drawer rows
+    
+    // RAMS State
     let currentSortColumn = 'id';
     let currentSortDirection = 'asc';
 
-    // Elements
+    // Worker State
+    let isEditingWorkerProfile = false;
+    let workerSortColumn = 'name';
+    let workerSortDirection = 'asc';
+
+    // UI Elements
+    const toast = document.getElementById('toast');
+    const searchInput = document.getElementById('searchInput');
+    const workerSearchInput = document.getElementById('workerSearchInput');
+    const targetWorkerSelect = document.getElementById('targetWorkerSelect');
+
+    // Tab Switching Logic
+    window.switchTab = function(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      if (tabId === 'ramsTab') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('ramsTab').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('workerTab').classList.add('active');
+      }
+    };
+
+    // Notification toast helper
+    function showToast(message, type = 'success') {
+      toast.textContent = message;
+      toast.className = type;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 4000);
+    }
+
+    // HTML escape utility
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // ============================================================================
+    // RAMS FUNCTIONS
+    // ============================================================================
     const form = document.getElementById('ramsForm');
     const formTitle = document.getElementById('formTitle');
     const editingIdText = document.getElementById('editingIdText');
@@ -508,12 +876,8 @@
     const likelihoodInput = document.getElementById('likelihood_l');
     const rpnInput = document.getElementById('rpn');
     const rpnBadge = document.getElementById('rpnBadge');
-    
     const tableBody = document.getElementById('tableBody');
-    const searchInput = document.getElementById('searchInput');
-    const toast = document.getElementById('toast');
 
-    // Handle column sorting
     window.handleSort = function(column) {
       if (currentSortColumn === column) {
         currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
@@ -526,7 +890,7 @@
     };
 
     function updateSortHeaderIcons() {
-      document.querySelectorAll('th.sortable').forEach(th => {
+      document.querySelectorAll('#ramsTable th.sortable').forEach(th => {
         const col = th.getAttribute('data-sort');
         const iconSpan = th.querySelector('.sort-icon');
         if (!iconSpan) return;
@@ -541,11 +905,8 @@
       });
     }
 
-    // Get filtered and sorted dataset
     function getProcessedData() {
       const query = searchInput.value.toLowerCase().trim();
-      
-      // 1. Search Filter
       let filtered = ramsData.filter(item => 
         !query ||
         (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
@@ -556,11 +917,9 @@
         (item.id && String(item.id).includes(query))
       );
 
-      // 2. Sorting
       filtered.sort((a, b) => {
         let valA = a[currentSortColumn];
         let valB = b[currentSortColumn];
-
         if (valA === undefined || valA === null) valA = '';
         if (valB === undefined || valB === null) valB = '';
 
@@ -570,7 +929,6 @@
 
         const strA = String(valA).toLowerCase();
         const strB = String(valB).toLowerCase();
-
         if (strA < strB) return currentSortDirection === 'asc' ? -1 : 1;
         if (strA > strB) return currentSortDirection === 'asc' ? 1 : -1;
         return 0;
@@ -583,15 +941,12 @@
       renderTable(getProcessedData());
     }
 
-    // Real-time RPN calculation logic
     function calculateRPN() {
       const s = parseInt(severityInput.value, 10) || 0;
       const l = parseInt(likelihoodInput.value, 10) || 0;
       const rpn = s * l;
-
       rpnInput.value = rpn;
 
-      // Dynamic visual formatting
       if (rpn <= 4) {
         rpnBadge.className = 'rpn-score-badge rpn-low';
         rpnBadge.textContent = `LOW RISK (${rpn})`;
@@ -609,42 +964,28 @@
     likelihoodInput.addEventListener('input', calculateRPN);
     likelihoodInput.addEventListener('change', calculateRPN);
 
-    // Notification toast helper
-    function showToast(message, type = 'success') {
-      toast.textContent = message;
-      toast.className = type;
-      toast.style.display = 'block';
-      setTimeout(() => {
-        toast.style.display = 'none';
-      }, 4000);
-    }
-
-    // Fetch all RAMS records from API
     async function loadRAMSData() {
       try {
         const response = await fetch('/api/rams');
         const result = await response.json();
-
         if (result.success) {
           ramsData = result.data || [];
           updateSortHeaderIcons();
           renderProcessedData();
         } else {
-          showToast(`Error fetching data: ${result.error}`, 'error');
+          showToast(`Error fetching RAMS data: ${result.error}`, 'error');
         }
       } catch (err) {
         showToast(`Network error: ${err.message}`, 'error');
       }
     }
 
-    // Get RPN CSS class for table rows
     function getRPNClass(rpn) {
       if (rpn <= 4) return 'rpn-low';
       if (rpn <= 11) return 'rpn-med';
       return 'rpn-high';
     }
 
-    // Render RAMS data into spreadsheet table
     function renderTable(data) {
       if (!data || data.length === 0) {
         tableBody.innerHTML = `
@@ -681,26 +1022,10 @@
       }).join('');
     }
 
-    // HTML escape utility
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
+    searchInput.addEventListener('input', renderProcessedData);
 
-    // Filter table by search query
-    searchInput.addEventListener('input', () => {
-      renderProcessedData();
-    });
-
-    // Handle Form Submit (Add or Edit)
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const payload = {
         activity_category: document.getElementById('activity_category').value.trim(),
         work_activity: document.getElementById('work_activity').value.trim(),
@@ -713,18 +1038,15 @@
       };
 
       const ramsId = document.getElementById('ramsId').value;
-
       try {
         let response;
         if (ramsId) {
-          // PUT request to update
           response = await fetch(`/api/rams/${ramsId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } else {
-          // POST request to create
           response = await fetch('/api/rams', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -733,7 +1055,6 @@
         }
 
         const result = await response.json();
-
         if (result.success) {
           showToast(ramsId ? 'RAMS item updated successfully!' : 'New RAMS item added successfully!');
           resetForm();
@@ -746,7 +1067,6 @@
       }
     });
 
-    // Populate form for Edit mode
     window.startEdit = function(id) {
       const item = ramsData.find(d => d.id === id);
       if (!item) return;
@@ -761,29 +1081,19 @@
       likelihoodInput.value = item.likelihood_l;
 
       calculateRPN();
-
-      // UI state for edit mode
-      isEditing = true;
       formTitle.querySelector('span').textContent = 'Edit RAMS Record';
       editingIdText.textContent = item.id;
       editModeIndicator.style.display = 'inline';
       btnSubmit.textContent = 'Update RAMS Record';
       btnCancel.style.display = 'inline-block';
-
-      // Scroll to form smoothly
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Delete item
     window.deleteRAMS = async function(id) {
-      if (!confirm(`Are you sure you want to delete RAMS record #${id}?`)) {
-        return;
-      }
-
+      if (!confirm(`Are you sure you want to delete RAMS record #${id}?`)) return;
       try {
         const response = await fetch(`/api/rams/${id}`, { method: 'DELETE' });
         const result = await response.json();
-
         if (result.success) {
           showToast(`RAMS record #${id} deleted successfully.`);
           loadRAMSData();
@@ -795,23 +1105,494 @@
       }
     };
 
-    // Reset Form state
     function resetForm() {
       form.reset();
       document.getElementById('ramsId').value = '';
-      isEditing = false;
       formTitle.querySelector('span').textContent = 'Add New RAMS Item';
       editModeIndicator.style.display = 'none';
       btnSubmit.textContent = 'Add RAMS Entry';
       btnCancel.style.display = 'none';
       calculateRPN();
     }
-
     btnCancel.addEventListener('click', resetForm);
 
-    // Initial page setup
+
+    // ============================================================================
+    // WORKER REGISTRY & MULTI-CERT OCR FUNCTIONS
+    // ============================================================================
+    const workerForm = document.getElementById('workerForm');
+    const workerFormTitle = document.getElementById('workerFormTitle');
+    const editingWorkerIdText = document.getElementById('editingWorkerIdText');
+    const workerEditIndicator = document.getElementById('workerEditIndicator');
+    const btnSubmitWorker = document.getElementById('btnSubmitWorker');
+    const btnCancelWorker = document.getElementById('btnCancelWorker');
+    const workerTableBody = document.getElementById('workerTableBody');
+    const ocrLoader = document.getElementById('ocrLoader');
+
+    // Populate Target Worker Select Dropdown
+    function populateTargetWorkerDropdown(selectedWorkerId = '') {
+      targetWorkerSelect.innerHTML = '<option value="">✨ Create New Worker Profile</option>';
+      workerData.forEach(w => {
+        const option = document.createElement('option');
+        option.value = w.worker_id;
+        option.textContent = `👤 Attach to: ${w.name} (${w.ic_wp_no} / ${w.worker_id})`;
+        if (w.worker_id === selectedWorkerId) {
+          option.selected = true;
+        }
+        targetWorkerSelect.appendChild(option);
+      });
+    }
+
+    targetWorkerSelect.addEventListener('change', () => {
+      const selectedId = targetWorkerSelect.value;
+      if (selectedId) {
+        const worker = workerData.find(w => w.worker_id === selectedId);
+        if (worker) {
+          document.getElementById('worker_id').value = worker.worker_id;
+          document.getElementById('worker_name').value = worker.name;
+          document.getElementById('ic_wp_no').value = worker.ic_wp_no;
+          document.getElementById('trade').value = worker.trade;
+        }
+      } else {
+        // Reset to new worker mode
+        document.getElementById('worker_id').value = '';
+        document.getElementById('worker_name').value = '';
+        document.getElementById('ic_wp_no').value = '';
+        document.getElementById('trade').value = '';
+      }
+    });
+
+    // Handle Certificate File Upload & Gemini OCR Call
+    window.handleCertUpload = async function(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      ocrLoader.style.display = 'flex';
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const apiKey = document.getElementById('geminiApiKeyInput')?.value || localStorage.getItem('gemini_api_key') || '';
+      const headers = {};
+      if (apiKey) headers['x-gemini-api-key'] = apiKey;
+
+      try {
+        const response = await fetch('/api/workers/upload', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Certificate uploaded and OCR complete!');
+          
+          if (result.cert_file_url) {
+            document.getElementById('cert_file_url').value = result.cert_file_url;
+          }
+          if (result.ocr) {
+            if (result.ocr.cert_type) document.getElementById('cert_type').value = result.ocr.cert_type;
+            if (result.ocr.cert_no) document.getElementById('cert_no').value = result.ocr.cert_no;
+            if (result.ocr.issuer) document.getElementById('issuer').value = result.ocr.issuer;
+            if (result.ocr.issued_date) document.getElementById('issued_date').value = result.ocr.issued_date;
+            if (result.ocr.cert_expiry) document.getElementById('cert_expiry').value = result.ocr.cert_expiry;
+
+            const extractedName = (result.ocr.name || '').trim().toLowerCase();
+            const extractedIcWp = (result.ocr.ic_wp_no || '').trim().toLowerCase();
+
+            // Auto-match existing worker by IC/WP or Name
+            const matchedWorker = workerData.find(w => 
+              (extractedIcWp && w.ic_wp_no.toLowerCase().includes(extractedIcWp)) ||
+              (extractedName && w.name.toLowerCase().includes(extractedName))
+            );
+
+            if (matchedWorker) {
+              targetWorkerSelect.value = matchedWorker.worker_id;
+              document.getElementById('worker_id').value = matchedWorker.worker_id;
+              document.getElementById('worker_name').value = matchedWorker.name;
+              document.getElementById('ic_wp_no').value = matchedWorker.ic_wp_no;
+              document.getElementById('trade').value = matchedWorker.trade;
+              showToast(`Matched existing worker: ${matchedWorker.name} (${matchedWorker.worker_id})`);
+            } else {
+              targetWorkerSelect.value = '';
+              if (result.ocr.name) document.getElementById('worker_name').value = result.ocr.name;
+              if (result.ocr.ic_wp_no) document.getElementById('ic_wp_no').value = result.ocr.ic_wp_no;
+              if (result.ocr.trade) document.getElementById('trade').value = result.ocr.trade;
+              document.getElementById('worker_id').value = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
+            }
+          }
+        } else {
+          showToast(`Upload failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Upload error: ${err.message}`, 'error');
+      } finally {
+        ocrLoader.style.display = 'none';
+        input.value = ''; // Reset file input
+      }
+    };
+
+    // Load Worker Registry Data
+    async function loadWorkerData() {
+      try {
+        const response = await fetch('/api/workers');
+        const result = await response.json();
+        if (result.success) {
+          workerData = result.data || [];
+          populateTargetWorkerDropdown();
+          updateWorkerSortHeaderIcons();
+          renderProcessedWorkerData();
+        } else {
+          showToast(`Error fetching worker records: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    }
+
+    // Sort Worker Table
+    window.handleWorkerSort = function(column) {
+      if (workerSortColumn === column) {
+        workerSortDirection = workerSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        workerSortColumn = column;
+        workerSortDirection = 'asc';
+      }
+      updateWorkerSortHeaderIcons();
+      renderProcessedWorkerData();
+    };
+
+    function updateWorkerSortHeaderIcons() {
+      document.querySelectorAll('#workerTable th.sortable').forEach(th => {
+        const col = th.getAttribute('data-sort');
+        const iconSpan = th.querySelector('.sort-icon');
+        if (!iconSpan) return;
+
+        if (col === workerSortColumn) {
+          th.classList.add('active');
+          iconSpan.textContent = workerSortDirection === 'asc' ? '▲' : '▼';
+        } else {
+          th.classList.remove('active');
+          iconSpan.textContent = '⇅';
+        }
+      });
+    }
+
+    function getProcessedWorkerData() {
+      const query = workerSearchInput.value.toLowerCase().trim();
+      let filtered = workerData.filter(item => {
+        if (!query) return true;
+        const certNames = (item.certificates || []).map(c => c.cert_type).join(' ').toLowerCase();
+        return (
+          (item.worker_id && item.worker_id.toLowerCase().includes(query)) ||
+          (item.name && item.name.toLowerCase().includes(query)) ||
+          (item.ic_wp_no && item.ic_wp_no.toLowerCase().includes(query)) ||
+          (item.trade && item.trade.toLowerCase().includes(query)) ||
+          certNames.includes(query)
+        );
+      });
+
+      filtered.sort((a, b) => {
+        let valA = a[workerSortColumn];
+        let valB = b[workerSortColumn];
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA < strB) return workerSortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return workerSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    function renderProcessedWorkerData() {
+      renderWorkerTable(getProcessedWorkerData());
+    }
+
+    workerSearchInput.addEventListener('input', renderProcessedWorkerData);
+
+    // Toggle Row Accordion Drawer
+    window.toggleWorkerDrawer = function(workerId) {
+      if (expandedWorkers.has(workerId)) {
+        expandedWorkers.delete(workerId);
+      } else {
+        expandedWorkers.add(workerId);
+      }
+      renderProcessedWorkerData();
+    };
+
+    // Render Worker Table Grid (1 Compact Row per Worker + Expandable Accordion Drawer)
+    function renderWorkerTable(data) {
+      if (!data || data.length === 0) {
+        workerTableBody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let rowsHTML = '';
+
+      data.forEach(item => {
+        const certs = item.certificates || [];
+        const isExpanded = expandedWorkers.has(item.worker_id);
+
+        // Calculate overall validity across all certs
+        const hasExpiredCert = certs.some(c => c.cert_expiry && c.cert_expiry < todayStr);
+        const overallStatusHTML = hasExpiredCert
+          ? `<span class="status-badge status-expired">1 EXPIRED CERT</span>`
+          : `<span class="status-badge status-valid">VALID</span>`;
+
+        const rowClass = hasExpiredCert ? 'expired-row' : '';
+
+        // CERTIFICATES SUMMARY: Display comma-separated names of all attached certificates
+        const certNamesText = certs.length > 0 
+          ? certs.map(c => escapeHtml(c.cert_type)).join(', ')
+          : '<span style="color: #94a3b8; font-style: italic;">No certificates attached</span>';
+
+        const expandIcon = isExpanded ? '▼' : '►';
+
+        // Main Worker Row (1 row per worker)
+        rowsHTML += `
+          <tr class="${rowClass}">
+            <td style="text-align: center;">
+              <button class="btn-expand" onclick="toggleWorkerDrawer('${escapeHtml(item.worker_id)}')">${expandIcon}</button>
+            </td>
+            <td><strong>${escapeHtml(item.worker_id)}</strong></td>
+            <td><strong>${escapeHtml(item.name)}</strong></td>
+            <td><code>${escapeHtml(item.ic_wp_no)}</code></td>
+            <td>${escapeHtml(item.trade)}</td>
+            <td><strong>${certNamesText}</strong></td>
+            <td style="text-align: center;">${overallStatusHTML}</td>
+            <td style="text-align: center;">
+              <div class="action-btn-group">
+                <button class="btn-action-view" onclick="prepareAddCert('${escapeHtml(item.worker_id)}')">+ Add Cert</button>
+                <button class="btn-action-edit" onclick="startEditWorker('${escapeHtml(item.worker_id)}')">Edit</button>
+                <button class="btn-action-delete" onclick="deleteWorker('${escapeHtml(item.worker_id)}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        // Expandable Row Drawer (Nested table listing all certificates)
+        if (isExpanded) {
+          let drawerCertsHTML = '';
+
+          if (certs.length === 0) {
+            drawerCertsHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b;">No certificates attached to this worker.</td></tr>`;
+          } else {
+            drawerCertsHTML = certs.map(c => {
+              const certExpired = c.cert_expiry && c.cert_expiry < todayStr;
+              const certStatusBadge = certExpired
+                ? `<span class="status-badge status-expired">EXPIRED</span>`
+                : `<span class="status-badge status-valid">VALID</span>`;
+
+              const certDocLink = c.cert_file_url
+                ? `<a href="${escapeHtml(c.cert_file_url)}" target="_blank" class="btn-action-view">View Cert</a>`
+                : `<span style="color: #94a3b8;">No File</span>`;
+
+              return `
+                <tr ${certExpired ? 'style="background-color: #fee2e2;"' : ''}>
+                  <td><strong>${escapeHtml(c.cert_type)}</strong></td>
+                  <td><code>${escapeHtml(c.cert_no || 'N/A')}</code></td>
+                  <td>${escapeHtml(c.issuer || 'N/A')}</td>
+                  <td>${escapeHtml(c.issued_date || 'N/A')}</td>
+                  <td>${escapeHtml(c.cert_expiry || 'N/A')}</td>
+                  <td style="text-align: center;">${certStatusBadge}</td>
+                  <td style="text-align: center;">${certDocLink}</td>
+                  <td style="text-align: center;">
+                    <button class="btn-action-delete" onclick="deleteCertificate(${c.cert_id})">Delete Cert</button>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+
+          rowsHTML += `
+            <tr class="drawer-row">
+              <td colspan="8">
+                <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
+                  📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
+                </div>
+                <table class="drawer-table">
+                  <thead>
+                    <tr>
+                      <th>Certificate Name / Type</th>
+                      <th>Cert / Ref No</th>
+                      <th>Issuer</th>
+                      <th>Issued Date</th>
+                      <th>Expiry Date</th>
+                      <th style="text-align: center;">Status</th>
+                      <th style="text-align: center;">Document</th>
+                      <th style="text-align: center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${drawerCertsHTML}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      workerTableBody.innerHTML = rowsHTML;
+    }
+
+    // Pre-fill form to add certificate to specific worker
+    window.prepareAddCert = function(workerId) {
+      const worker = workerData.find(w => w.worker_id === workerId);
+      if (!worker) return;
+
+      targetWorkerSelect.value = worker.worker_id;
+      document.getElementById('worker_id').value = worker.worker_id;
+      document.getElementById('worker_name').value = worker.name;
+      document.getElementById('ic_wp_no').value = worker.ic_wp_no;
+      document.getElementById('trade').value = worker.trade;
+      document.getElementById('cert_type').value = '';
+      document.getElementById('cert_no').value = '';
+      document.getElementById('issuer').value = '';
+      document.getElementById('issued_date').value = '';
+      document.getElementById('cert_expiry').value = '';
+      document.getElementById('cert_file_url').value = '';
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Submit Worker / Certificate Form
+    workerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const targetId = targetWorkerSelect.value;
+      const payload = {
+        target_worker_id: targetId || null,
+        worker_id: document.getElementById('worker_id').value.trim(),
+        name: document.getElementById('worker_name').value.trim(),
+        ic_wp_no: document.getElementById('ic_wp_no').value.trim(),
+        trade: document.getElementById('trade').value.trim(),
+        cert_type: document.getElementById('cert_type').value.trim(),
+        cert_no: document.getElementById('cert_no').value.trim(),
+        issuer: document.getElementById('issuer').value.trim(),
+        issued_date: document.getElementById('issued_date').value,
+        cert_expiry: document.getElementById('cert_expiry').value,
+        cert_file_url: document.getElementById('cert_file_url').value.trim()
+      };
+
+      try {
+        let response;
+        if (isEditingWorkerProfile && targetId) {
+          response = await fetch(`/api/workers/${targetId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: payload.name,
+              ic_wp_no: payload.ic_wp_no,
+              trade: payload.trade
+            })
+          });
+        } else {
+          response = await fetch('/api/workers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(isEditingWorkerProfile ? 'Worker profile updated!' : 'Certificate saved to worker registry!');
+          resetWorkerForm();
+          loadWorkerData();
+        } else {
+          showToast(`Save failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request failed: ${err.message}`, 'error');
+      }
+    });
+
+    window.startEditWorker = function(workerId) {
+      const item = workerData.find(w => w.worker_id === workerId);
+      if (!item) return;
+
+      targetWorkerSelect.value = item.worker_id;
+      document.getElementById('worker_id').value = item.worker_id;
+      document.getElementById('worker_id').readOnly = true;
+      document.getElementById('worker_name').value = item.name;
+      document.getElementById('ic_wp_no').value = item.ic_wp_no;
+      document.getElementById('trade').value = item.trade;
+
+      isEditingWorkerProfile = true;
+      workerFormTitle.querySelector('span').textContent = 'Edit Worker Profile';
+      editingWorkerIdText.textContent = item.worker_id;
+      workerEditIndicator.style.display = 'inline';
+      btnSubmitWorker.textContent = 'Update Worker Profile';
+      btnCancelWorker.style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteCertificate = async function(certId) {
+      if (!confirm('Are you sure you want to delete this certificate?')) return;
+      try {
+        const response = await fetch(`/api/certs/${certId}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+          showToast('Certificate deleted successfully.');
+          loadWorkerData();
+        } else {
+          showToast(`Delete failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    window.deleteWorker = async function(workerId) {
+      if (!confirm(`Are you sure you want to delete worker ${workerId} and ALL associated certificates?`)) return;
+
+      try {
+        const response = await fetch(`/api/workers/${workerId}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Worker ${workerId} and certificates deleted.`);
+          loadWorkerData();
+        } else {
+          showToast(`Delete failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    function resetWorkerForm() {
+      workerForm.reset();
+      document.getElementById('worker_id').readOnly = false;
+      targetWorkerSelect.value = '';
+      isEditingWorkerProfile = false;
+      workerFormTitle.querySelector('span').textContent = 'Add Certificate / Register Worker';
+      workerEditIndicator.style.display = 'none';
+      btnSubmitWorker.textContent = 'Save Certificate to Worker';
+      btnCancelWorker.style.display = 'none';
+    }
+
+    btnCancelWorker.addEventListener('click', resetWorkerForm);
+
+    // Restore stored Gemini API key if present
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey && document.getElementById('geminiApiKeyInput')) {
+      document.getElementById('geminiApiKeyInput').value = savedKey;
+    }
+
+    // Initial Load
     calculateRPN();
     loadRAMSData();
+    loadWorkerData();
   </script>
 </body>
 </html>
