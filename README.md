@@ -1,21 +1,24 @@
-# Master RAMS (Risk Assessment & Method Statement) Management Dashboard
+# ePTW System & Site Management Dashboard
 
-A high-performance, spreadsheet-like Master RAMS Management Dashboard built using **Cloudflare Workers (Hono framework)**, **Cloudflare D1 (SQLite)**, and a **Vanilla HTML/CSS/JS** frontend.
+A high-performance, spreadsheet-like electronic Permit-to-Work (ePTW) and Site Safety Management System built using **Cloudflare Workers (Hono framework)**, **Cloudflare D1 (SQLite)**, **Cloudflare R2 Storage**, and a **Vanilla HTML/CSS/JS** frontend.
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-├── schema.sql           # Database schema & sample data for Solar Equipment Installation
+├── schema.sql                   # Base RAMS database schema & initial seed data
+├── add_workers.sql              # Worker Registry & Multi-Certificate schema
+├── add_projects.sql             # Project / Site Directory schema & seed data
+├── add_ptw.sql                  # ePTW Transaction Engine schema & seed permits
+├── update_schema_ic_wp_fin.sql  # IC/WP/FIN field normalization migration
 ├── src/
-│   └── index.ts         # Hono REST API backend with Cloudflare D1 integration
+│   └── index.ts                 # Hono REST API backend & Gemini Vision OCR handler
 ├── public/
-│   └── index.html       # Spreadsheet-like Admin Dashboard with real-time RPN calculation
-├── wrangler.json        # Cloudflare Worker & D1 binding configuration
-├── package.json         # Node.js dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-└── README.md            # GitHub & Cloudflare deployment guide
+│   └── index.html               # Enterprise spreadsheet UI, Control Center & ePTW Engine
+├── wrangler.json                # Cloudflare Worker, D1 & R2 binding configuration
+├── package.json                 # Node.js dependencies and scripts
+└── README.md                    # System documentation & deployment guide
 ```
 
 ---
@@ -23,27 +26,25 @@ A high-performance, spreadsheet-like Master RAMS Management Dashboard built usin
 ## 🛠️ Local Development & Testing
 
 ### 1. Install Dependencies
-Open your terminal in the project directory and run:
 ```bash
 npm install
 ```
 
-### 2. Create Local D1 Database & Run Schema
-Create a local Cloudflare D1 database and execute `schema.sql` to generate the table and seed initial sample data:
+### 2. Execute Schemas on Local D1 Database
+Execute all schema migration scripts to set up the local database:
 ```bash
-# Create D1 database locally
-npx wrangler d1 create master-rams-db
-
-# Execute schema.sql on local environment
 npx wrangler d1 execute master-rams-db --local --file=./schema.sql
+npx wrangler d1 execute master-rams-db --local --file=./add_workers.sql
+npx wrangler d1 execute master-rams-db --local --file=./add_projects.sql
+npx wrangler d1 execute master-rams-db --local --file=./add_ptw.sql
 ```
 
 ### 3. Run Development Server
-Start the Wrangler local development server:
 ```bash
 npm run dev
 ```
-Open your browser at `http://localhost:8787` to interact with the dashboard.
+Open your browser at `http://localhost:8787` to access the application.
+
 
 ---
 

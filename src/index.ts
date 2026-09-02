@@ -584,7 +584,345 @@ app.delete('/api/workers/:id', async (c) => {
   }
 });
 
+// ============================================================================
+// PROJECT DIRECTORY ROUTES & CONTROL CENTER API
+// ============================================================================
+
+// GET /api/projects - Fetch all projects
+app.get('/api/projects', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT * FROM Project_Directory ORDER BY start_date DESC, project_id DESC'
+    ).all();
+    return c.json({ success: true, data: results });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/projects - Create a new project
+app.post('/api/projects', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { project_name, client_name, location, project_manager, status, start_date } = body;
+    let { project_id } = body;
+
+    if (!project_name || !location) {
+      return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
+    }
+
+    if (!project_id || !project_id.trim()) {
+      project_id = `PRJ-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    const existing = await c.env.DB.prepare(
+      'SELECT project_id FROM Project_Directory WHERE project_id = ?'
+    ).bind(project_id).first();
+
+    if (existing) {
+      return c.json({ success: false, error: `Project ID ${project_id} already exists.` }, 400);
+    }
+
+    await c.env.DB.prepare(
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      project_id,
+      project_name,
+      client_name || '',
+      location,
+      project_manager || 'TBD',
+      status || 'Active',
+      start_date || new Date().toISOString().split('T')[0]
+    ).run();
+
+    return c.json({
+      success: true,
+      message: 'Project created successfully.',
+      project_id
+    }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// PUT /api/projects/:id - Update an existing project
+app.put('/api/projects/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { project_name, client_name, location, project_manager, status, start_date } = body;
+
+    if (!project_name || !location) {
+      return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
+    }
+
+    const result = await c.env.DB.prepare(
+      `UPDATE Project_Directory 
+       SET project_name = ?, client_name = ?, location = ?, project_manager = ?, status = ?, start_date = ?
+       WHERE project_id = ?`
+    ).bind(
+      project_name,
+      client_name || '',
+      location,
+      project_manager || 'TBD',
+      status || 'Active',
+      start_date || new Date().toISOString().split('T')[0],
+      id
+    ).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'Project record not found.' }, 404);
+    }
+
+    return c.json({ success: true, message: 'Project updated successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// DELETE /api/projects/:id - Remove a project
+app.delete('/api/projects/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const result = await c.env.DB.prepare(
+      'DELETE FROM Project_Directory WHERE project_id = ?'
+    ).bind(id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'Project record not found.' }, 404);
+    }
+
+    return c.json({ success: true, message: 'Project deleted successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/projects/:id/dashboard - Project Control Center KPI Endpoint
+app.get('/api/projects/:id/dashboard', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const project = await c.env.DB.prepare(
+      'SELECT * FROM Project_Directory WHERE project_id = ?'
+    ).bind(id).first();
+
+    if (!project) {
+      return c.json({ success: false, error: 'Project not found.' }, 404);
+    }
+
+    // Dynamic / Mock KPI metrics for Project Control Center
+    const isTuas = id === 'PRJ-002';
+    const isUpcoming = project.status === 'Upcoming';
+
+    const kpiData = {
+      project,
+      kpis: {
+        active_ptws: isUpcoming ? 0 : (isTuas ? 6 : 4),
+        workers_on_site: isUpcoming ? 0 : (isTuas ? 18 : 12),
+        days_without_incident: isUpcoming ? 0 : (isTuas ? 88 : 45),
+        wsh_compliance_score: isUpcoming ? '100%' : '98.5%',
+        high_risk_activities: isUpcoming ? 0 : (isTuas ? 4 : 2),
+        pending_permits: isUpcoming ? 1 : 2
+      }
+    };
+
+    return c.json({ success: true, data: kpiData });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/projects/provisional - Provisional Site Bypass Endpoint
+app.post('/api/projects/provisional', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { project_name, location, client_name, project_manager } = body;
+
+    if (!project_name || !location) {
+      return c.json({ success: false, error: 'Site Name and Address/Location are required.' }, 400);
+    }
+
+    const project_id = `PRJ-PROV-${Math.floor(100 + Math.random() * 900)}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    await c.env.DB.prepare(
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      project_id,
+      project_name,
+      client_name || 'Provisional Client',
+      location,
+      project_manager || 'Site Supervisor',
+      'Provisional',
+      todayStr
+    ).run();
+
+    return c.json({
+      success: true,
+      message: 'Provisional site registered successfully.',
+      project_id,
+      project_name
+    }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// ePTW TRANSACTION ENGINE ROUTES
+// ============================================================================
+
+// GET /api/ptw - Fetch all permits joined with Project details
+app.get('/api/ptw', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      `SELECT p.*, prj.project_name, prj.location, prj.client_name
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       ORDER BY p.created_at DESC`
+    ).all();
+    return c.json({ success: true, data: results });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw - Create a new permit to work
+app.post('/api/ptw', async (c) => {
+  try {
+    const body = await c.req.json();
+    const {
+      project_id,
+      ptw_type,
+      work_description,
+      assigned_workers_json,
+      selected_rams_json,
+      status,
+      valid_until
+    } = body;
+
+    if (!project_id || !work_description) {
+      return c.json({ success: false, error: 'Project Site and Work Description are required.' }, 400);
+    }
+
+    let { ptw_id } = body;
+    if (!ptw_id || !ptw_id.trim()) {
+      ptw_id = `PTW-2026-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    const defaultExpiry = new Date();
+    defaultExpiry.setHours(18, 0, 0, 0); // Default to 6:00 PM today
+    const expiryStr = valid_until || defaultExpiry.toISOString().replace('T', ' ').substring(0, 19);
+
+    const workersJsonStr = typeof assigned_workers_json === 'string' 
+      ? assigned_workers_json 
+      : JSON.stringify(assigned_workers_json || []);
+
+    const ramsJsonStr = typeof selected_rams_json === 'string' 
+      ? selected_rams_json 
+      : JSON.stringify(selected_rams_json || []);
+
+    await c.env.DB.prepare(
+      `INSERT INTO PTW_Records (ptw_id, project_id, ptw_type, work_description, assigned_workers_json, selected_rams_json, status, valid_until)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      ptw_id,
+      project_id,
+      ptw_type || 'Work at Height',
+      work_description,
+      workersJsonStr,
+      ramsJsonStr,
+      status || 'Draft',
+      expiryStr
+    ).run();
+
+    return c.json({
+      success: true,
+      message: 'Permit created successfully.',
+      ptw_id
+    }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// PUT /api/ptw/:id - Update permit details or status transition
+app.put('/api/ptw/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const {
+      project_id,
+      ptw_type,
+      work_description,
+      assigned_workers_json,
+      selected_rams_json,
+      status,
+      valid_until
+    } = body;
+
+    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first();
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit record not found.' }, 404);
+    }
+
+    const updatedProjectId = project_id || existing.project_id;
+    const updatedType = ptw_type || existing.ptw_type;
+    const updatedDesc = work_description || existing.work_description;
+
+    const updatedWorkers = assigned_workers_json !== undefined
+      ? (typeof assigned_workers_json === 'string' ? assigned_workers_json : JSON.stringify(assigned_workers_json))
+      : existing.assigned_workers_json;
+
+    const updatedRams = selected_rams_json !== undefined
+      ? (typeof selected_rams_json === 'string' ? selected_rams_json : JSON.stringify(selected_rams_json))
+      : existing.selected_rams_json;
+
+    const updatedStatus = status || existing.status;
+    const updatedExpiry = valid_until || existing.valid_until;
+
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records 
+       SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?, status = ?, valid_until = ?
+       WHERE ptw_id = ?`
+    ).bind(
+      updatedProjectId,
+      updatedType,
+      updatedDesc,
+      updatedWorkers,
+      updatedRams,
+      updatedStatus,
+      updatedExpiry,
+      id
+    ).run();
+
+    return c.json({ success: true, message: `Permit ${id} updated successfully.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// DELETE /api/ptw/:id - Delete a permit
+app.delete('/api/ptw/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ?').bind(id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'Permit record not found.' }, 404);
+    }
+
+    return c.json({ success: true, message: 'Permit deleted successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // Serve static assets from public folder
 app.use('/*', serveStatic({ root: './' }));
 
 export default app;
+
+

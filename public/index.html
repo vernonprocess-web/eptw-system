@@ -434,6 +434,23 @@
       font-size: 0.8rem;
     }
 
+    /* Bulleted List for Worker Certificates */
+    .cert-bullet-list {
+      list-style-type: disc;
+      padding-left: 16px;
+      margin: 4px 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #0f172a;
+    }
+    .cert-bullet-list li {
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+    .cert-bullet-list li:last-child {
+      margin-bottom: 0;
+    }
+
     /* Status Badges */
     .status-badge {
       display: inline-block;
@@ -540,6 +557,200 @@
       background-color: #e2e8f0;
     }
 
+    .btn-action-dashboard {
+      background-color: #dbeafe;
+      color: #1e40af;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border: 1px solid #bfdbfe;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .btn-action-dashboard:hover {
+      background-color: #bfdbfe;
+    }
+
+    /* Project Status Badges */
+    .status-project-active {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .status-project-upcoming {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .status-project-completed {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .status-project-onhold {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    /* Control Center Dashboard CSS */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .dashboard-header h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dashboard-header .meta-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+    }
+    .kpi-card .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .kpi-card .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .kpi-card .kpi-sub {
+      font-size: 0.8rem;
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    /* PTW Status Badges */
+    .status-ptw-active {
+      background-color: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .status-ptw-draft {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .status-ptw-closed {
+      background-color: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .status-ptw-revoked {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    /* Checkbox Selector Box */
+    .checkbox-selector-box {
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .checkbox-item input {
+      cursor: pointer;
+    }
+
+    /* Modals for Provisional Site & Permit View */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 24px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .btn-bypass {
+      background-color: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-bypass:hover {
+      background-color: #dcfce7;
+    }
+
     .empty-state {
       padding: 40px;
       text-align: center;
@@ -567,6 +778,12 @@
       </button>
       <button class="tab-btn" onclick="switchTab('workerTab')">
         👷 Worker Registry & Gemini OCR
+      </button>
+      <button class="tab-btn" onclick="switchTab('projectTab')">
+        📁 Project Directory
+      </button>
+      <button class="tab-btn" onclick="switchTab('ptwTab')">
+        📄 Active PTWs (ePTW)
       </button>
     </div>
 
@@ -816,12 +1033,323 @@
         </div>
       </div>
     </div>
+
+    <!-- TAB 3: PROJECT DIRECTORY & CONTROL CENTER -->
+    <div id="projectTab" class="tab-content">
+      <!-- 1. Main Project Directory View -->
+      <div id="projectListView">
+        <!-- Add / Edit Project Form -->
+        <div class="form-card">
+          <h2 id="projectFormTitle">
+            <span>Register New Project / Site</span>
+            <span id="projectEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Project: <span id="editingProjectIdText"></span></span>
+          </h2>
+          <form id="projectForm">
+            <input type="hidden" id="editingProjectId" value="">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="project_id_input">Project ID (Optional)</label>
+                <input type="text" id="project_id_input" placeholder="e.g. PRJ-004 (Auto-generated if blank)">
+              </div>
+
+              <div class="form-group">
+                <label for="project_name_input">Project Name *</label>
+                <input type="text" id="project_name_input" required placeholder="e.g. Jurong Island Solar PV Installation">
+              </div>
+
+              <div class="form-group">
+                <label for="client_name_input">Client Name</label>
+                <input type="text" id="client_name_input" placeholder="e.g. Sembcorp Industries">
+              </div>
+
+              <div class="form-group">
+                <label for="location_input">Location / Address *</label>
+                <input type="text" id="location_input" required placeholder="e.g. 10 Sakra Road, Jurong Island">
+              </div>
+
+              <div class="form-group">
+                <label for="project_manager_input">Project Manager</label>
+                <input type="text" id="project_manager_input" placeholder="e.g. Vernon Tan">
+              </div>
+
+              <div class="form-group">
+                <label for="project_status_input">Status</label>
+                <select id="project_status_input">
+                  <option value="Active" selected>Active 🟢</option>
+                  <option value="Upcoming">Upcoming 🟡</option>
+                  <option value="Completed">Completed ⚪</option>
+                  <option value="On Hold">On Hold 🔴</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="start_date_input">Start Date</label>
+                <input type="date" id="start_date_input">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" id="btnCancelProject" class="btn-secondary" style="display: none;">Cancel Edit</button>
+              <button type="submit" id="btnSubmitProject" class="btn-primary">Register Project</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Project High-Density Spreadsheet Table -->
+        <div class="table-card">
+          <div class="table-toolbar">
+            <h3>Project & Site Directory</h3>
+            <input type="text" id="projectSearchInput" class="search-input" placeholder="Search project name, client, or location...">
+          </div>
+
+          <div class="table-container">
+            <table id="projectTable">
+              <thead>
+                <tr>
+                  <th style="width: 110px;" class="sortable active" data-sort="project_id" onclick="handleProjectSort('project_id')">Project ID <span class="sort-icon">▲</span></th>
+                  <th style="width: 220px;" class="sortable" data-sort="project_name" onclick="handleProjectSort('project_name')">Project Name <span class="sort-icon">⇅</span></th>
+                  <th style="width: 180px;" class="sortable" data-sort="client_name" onclick="handleProjectSort('client_name')">Client Name <span class="sort-icon">⇅</span></th>
+                  <th>Location / Site Address</th>
+                  <th style="width: 140px;" class="sortable" data-sort="project_manager" onclick="handleProjectSort('project_manager')">Project Manager <span class="sort-icon">⇅</span></th>
+                  <th style="width: 110px;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Start Date <span class="sort-icon">⇅</span></th>
+                  <th style="width: 110px; text-align: center;">Status</th>
+                  <th style="width: 210px; text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectTableBody">
+                <!-- Dynamic content loaded via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Project Control Center Sub-View -->
+      <div id="projectDashboardView" style="display: none;">
+        <div class="dashboard-header">
+          <div>
+            <h2>
+              <span id="dashProjectTitle">Project Dashboard</span>
+              <span id="dashProjectStatusBadge" class="status-badge status-project-active">ACTIVE</span>
+            </h2>
+            <div class="meta-sub" id="dashProjectSubtitle">Loading project details...</div>
+          </div>
+          <button class="btn-secondary" onclick="closeProjectDashboard()">← Back to Directory</button>
+        </div>
+
+        <!-- KPI Metric Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Active Permits (ePTW)</div>
+            <div class="kpi-value" id="kpiActivePtws">0</div>
+            <div class="kpi-sub">Authorized & Active</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Workers On-Site</div>
+            <div class="kpi-value" id="kpiWorkersOnSite">0</div>
+            <div class="kpi-sub">Verified & Compliant</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Incident-Free Days</div>
+            <div class="kpi-value" id="kpiDaysIncidentFree">0</div>
+            <div class="kpi-sub">Zero LTI Recorded</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">WSH Compliance Score</div>
+            <div class="kpi-value" id="kpiComplianceScore">100%</div>
+            <div class="kpi-sub">Audited & Verified</div>
+          </div>
+        </div>
+
+        <!-- Project Overview Card -->
+        <div class="form-card">
+          <h2>Project Site Information</h2>
+          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div>
+              <label>Project ID</label>
+              <div style="font-weight: 700; font-size: 1rem;" id="infoProjectId">-</div>
+            </div>
+            <div>
+              <label>Client</label>
+              <div style="font-weight: 600; font-size: 0.95rem;" id="infoClientName">-</div>
+            </div>
+            <div>
+              <label>Location</label>
+              <div style="font-weight: 600; font-size: 0.95rem;" id="infoLocation">-</div>
+            </div>
+            <div>
+              <label>Project Manager</label>
+              <div style="font-weight: 600; font-size: 0.95rem;" id="infoProjectManager">-</div>
+            </div>
+            <div>
+              <label>Start Date</label>
+              <div style="font-weight: 600; font-size: 0.95rem;" id="infoStartDate">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ePTW TRANSACTION ENGINE -->
+    <div id="ptwTab" class="tab-content">
+      <!-- Draft / Edit Permit Form -->
+      <div class="form-card">
+        <h2 id="ptwFormTitle">
+          <span>Draft New Permit to Work (ePTW)</span>
+          <span id="ptwEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Permit: <span id="editingPtwIdText"></span></span>
+        </h2>
+        <form id="ptwForm">
+          <input type="hidden" id="editingPtwId" value="">
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: span 2;">
+              <label for="ptw_project_id">Select Project / Site Location *</label>
+              <div style="display: flex; gap: 8px;">
+                <select id="ptw_project_id" required style="flex: 1;">
+                  <option value="">-- Select Registered Site --</option>
+                </select>
+                <button type="button" class="btn-bypass" onclick="openProvisionalSiteModal()">[+ Add Missing Site]</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ptw_type">High-Risk Permit Category *</label>
+              <select id="ptw_type" required>
+                <option value="Work at Height" selected>🔴 Work at Height (WAH)</option>
+                <option value="Hot Work">🟠 Hot Work (Welding/Grinding)</option>
+                <option value="Electrical Work">⚡ Electrical Work (MSB/LOTO)</option>
+                <option value="Lifting Operation">🔵 Lifting Operation (Crane/Rigging)</option>
+                <option value="Confined Space">🟣 Confined Space Entry</option>
+                <option value="General Construction">🟢 General Construction</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="ptw_valid_until">Permit Expiry / Shift Valid Until *</label>
+              <input type="datetime-local" id="ptw_valid_until" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="ptw_work_description">Detailed Work Activity Description *</label>
+              <textarea id="ptw_work_description" required placeholder="Describe exact site tasks, equipment to be deployed, location zone, and safety measures..."></textarea>
+            </div>
+
+            <!-- Worker Selection Box -->
+            <div class="form-group full-width">
+              <label>Assign Certified Site Workers * (Select all applicable)</label>
+              <div id="workerCheckboxList" class="checkbox-selector-box">
+                <!-- Loaded dynamically via JS -->
+              </div>
+            </div>
+
+            <!-- RAMS Selection Box -->
+            <div class="form-group full-width">
+              <label>Link Applicable RAMS Safety Controls * (Select all applicable)</label>
+              <div id="ramsCheckboxList" class="checkbox-selector-box">
+                <!-- Loaded dynamically via JS -->
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ptw_status">Initial Permit Status</label>
+              <select id="ptw_status">
+                <option value="Draft" selected>Draft 🟡</option>
+                <option value="Active">Active 🟢</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="btnCancelPtw" class="btn-secondary" style="display: none;">Cancel Edit</button>
+            <button type="submit" id="btnSubmitPtw" class="btn-primary">Issue / Save Permit</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- High-Density Permit Spreadsheet Grid -->
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h3>Permits to Work (ePTW) Directory</h3>
+          <input type="text" id="ptwSearchInput" class="search-input" placeholder="Search permit ID, site, work description, worker...">
+        </div>
+
+        <div class="table-container">
+          <table id="ptwTable">
+            <thead>
+              <tr>
+                <th style="width: 120px;" class="sortable active" data-sort="ptw_id" onclick="handlePtwSort('ptw_id')">Permit ID <span class="sort-icon">▲</span></th>
+                <th style="width: 200px;" class="sortable" data-sort="project_name" onclick="handlePtwSort('project_name')">Project / Site <span class="sort-icon">⇅</span></th>
+                <th style="width: 140px;" class="sortable" data-sort="ptw_type" onclick="handlePtwSort('ptw_type')">Permit Category <span class="sort-icon">⇅</span></th>
+                <th>Work Description</th>
+                <th style="width: 180px;">Assigned Workers</th>
+                <th style="width: 180px;">RAMS Hazards</th>
+                <th style="width: 110px;" class="sortable" data-sort="valid_until" onclick="handlePtwSort('valid_until')">Valid Until <span class="sort-icon">⇅</span></th>
+                <th style="width: 110px; text-align: center;">Status</th>
+                <th style="width: 210px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ptwTableBody">
+              <!-- Dynamic content loaded via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 1: PROVISIONAL SITE BYPASS -->
+    <div id="provisionalSiteModal" class="modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>⚡ Register Provisional Site Location</h3>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeProvisionalSiteModal()">✕</button>
+        </div>
+        <form id="provisionalSiteForm">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="prov_project_name">Site / Project Name *</label>
+            <input type="text" id="prov_project_name" required placeholder="e.g. Bedok Reservoir Substation #4">
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="prov_location">Physical Location / Address *</label>
+            <input type="text" id="prov_location" required placeholder="e.g. 700 Bedok Reservoir Road">
+          </div>
+          <div class="form-group" style="margin-bottom: 16px;">
+            <label for="prov_client_name">Client / Owner Name (Optional)</label>
+            <input type="text" id="prov_client_name" placeholder="e.g. SP PowerGrid">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="closeProvisionalSiteModal()">Cancel</button>
+            <button type="submit" class="btn-primary">Create & Auto-Select Site</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 2: VIEW PERMIT SUMMARY DOCUMENT -->
+    <div id="permitViewModal" class="modal-backdrop">
+      <div class="modal-card" style="max-width: 700px;">
+        <div class="modal-header">
+          <h3 id="permitViewTitle">📄 Permit to Work Document</h3>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closePermitViewModal()">✕</button>
+        </div>
+        <div id="permitViewBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
+          <!-- Content populated via JS -->
+        </div>
+        <div class="form-actions" style="margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="closePermitViewModal()">Close</button>
+          <button type="button" class="btn-primary" onclick="window.print()">🖨️ Print Permit</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
     // Global State
     let ramsData = [];
     let workerData = [];
+    let projectData = [];
+    let ptwData = [];
     let expandedWorkers = new Set(); // Track expanded drawer rows
     
     // RAMS State
@@ -833,10 +1361,22 @@
     let workerSortColumn = 'name';
     let workerSortDirection = 'asc';
 
+    // Project State
+    let isEditingProject = false;
+    let projectSortColumn = 'start_date';
+    let projectSortDirection = 'desc';
+
+    // ePTW State
+    let isEditingPtw = false;
+    let ptwSortColumn = 'created_at';
+    let ptwSortDirection = 'desc';
+
     // UI Elements
     const toast = document.getElementById('toast');
     const searchInput = document.getElementById('searchInput');
     const workerSearchInput = document.getElementById('workerSearchInput');
+    const projectSearchInput = document.getElementById('projectSearchInput');
+    const ptwSearchInput = document.getElementById('ptwSearchInput');
     const targetWorkerSelect = document.getElementById('targetWorkerSelect');
 
     // Tab Switching Logic
@@ -847,9 +1387,18 @@
       if (tabId === 'ramsTab') {
         document.querySelectorAll('.tab-btn')[0].classList.add('active');
         document.getElementById('ramsTab').classList.add('active');
-      } else {
+      } else if (tabId === 'workerTab') {
         document.querySelectorAll('.tab-btn')[1].classList.add('active');
         document.getElementById('workerTab').classList.add('active');
+      } else if (tabId === 'projectTab') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('projectTab').classList.add('active');
+      } else if (tabId === 'ptwTab') {
+        document.querySelectorAll('.tab-btn')[3].classList.add('active');
+        document.getElementById('ptwTab').classList.add('active');
+        populateProjectDropdown();
+        populateWorkerChecklist();
+        populateRamsChecklist();
       }
     };
 
@@ -1350,6 +1899,50 @@
       renderProcessedWorkerData();
     };
 
+    // Certificate Hierarchy Priority Ranking Function
+    function getCertPriorityScore(certTypeStr) {
+      if (!certTypeStr) return 99;
+      const name = certTypeStr.toLowerCase().trim();
+
+      // Tier 1: Identity & Legal Permits (Work Permit, NRIC, IC, FIN, Passport)
+      if (name.includes('work permit') || name.includes('wp') || name.includes('nric') || name.includes('ic') || name.includes('fin') || name.includes('passport')) {
+        return 1;
+      }
+
+      // Tier 2: Managerial Certs (Project Manager, Construction Manager, PM)
+      if (name.includes('project manager') || name.includes('construction manager') || name.includes('site manager') || (name.includes('manager') && !name.includes('management'))) {
+        return 2;
+      }
+
+      // Tier 3: Safety Certs (BCSS, Safety Officer, Safety Coordinator, WSH, SOC, WAH Assessor, Health Management)
+      if (name.includes('bcss') || name.includes('safety officer') || name.includes('safety coordinator') || name.includes('wsh') || name.includes('soc') || name.includes('wah assessor') || name.includes('safety management') || name.includes('safety course') || name.includes('health management')) {
+        return 3;
+      }
+
+      // Tier 4: Supervisor Certs (Lifting Supervisor, Supervise Safe Lifting, Scaffold Supervisor, Formwork Supervisor)
+      if (name.includes('supervise') || name.includes('supervisor') || name.includes('foreman')) {
+        return 4;
+      }
+
+      // Tier 5: Trade / Operator Certs & Licenses (Rigger, Signalman, Boom Lift, Scissor Lift, Forklift, Driver, Crane, Operator, Welder, Electrician, Scaffolder, Work at Height)
+      if (name.includes('rigger') || name.includes('signalman') || name.includes('boom lift') || name.includes('scissor') || name.includes('forklift') || name.includes('driv') || name.includes('crane') || name.includes('operator') || name.includes('welder') || name.includes('electrician') || name.includes('scaffolder') || name.includes('work at height') || name.includes('wah')) {
+        return 5;
+      }
+
+      // Tier 6: Other
+      return 6;
+    }
+
+    function sortWorkerCertificates(certs) {
+      if (!certs || !Array.isArray(certs)) return [];
+      return [...certs].sort((a, b) => {
+        const scoreA = getCertPriorityScore(a.cert_type);
+        const scoreB = getCertPriorityScore(b.cert_type);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return (a.cert_type || '').localeCompare(b.cert_type || '');
+      });
+    }
+
     // Render Worker Table Grid (1 Compact Row per Worker + Expandable Accordion Drawer)
     function renderWorkerTable(data) {
       if (!data || data.length === 0) {
@@ -1367,6 +1960,7 @@
 
       data.forEach(item => {
         const certs = item.certificates || [];
+        const sortedCerts = sortWorkerCertificates(certs);
         const isExpanded = expandedWorkers.has(item.worker_id);
 
         // Calculate overall validity across all certs
@@ -1377,9 +1971,9 @@
 
         const rowClass = hasExpiredCert ? 'expired-row' : '';
 
-        // CERTIFICATES SUMMARY: Display comma-separated names of all attached certificates
-        const certNamesText = certs.length > 0 
-          ? certs.map(c => escapeHtml(c.cert_type)).join(', ')
+        // CERTIFICATES SUMMARY: Standardized Bulleted List ordered by priority
+        const certNamesText = sortedCerts.length > 0 
+          ? `<ul class="cert-bullet-list">${sortedCerts.map(c => `<li>${escapeHtml(c.cert_type)}</li>`).join('')}</ul>`
           : '<span style="color: #94a3b8; font-style: italic;">No certificates attached</span>';
 
         const expandIcon = isExpanded ? '▼' : '►';
@@ -1396,7 +1990,7 @@
             <td><code>${escapeHtml(item.wp_no || '-')}</code></td>
             <td><code>${escapeHtml(item.fin_no || '-')}</code></td>
             <td>${escapeHtml(item.trade)}</td>
-            <td><strong>${certNamesText}</strong></td>
+            <td>${certNamesText}</td>
             <td style="text-align: center;">${overallStatusHTML}</td>
             <td style="text-align: center;">
               <div class="action-btn-group">
@@ -1408,14 +2002,14 @@
           </tr>
         `;
 
-        // Expandable Row Drawer (Nested table listing all certificates)
+        // Expandable Row Drawer (Nested table listing all certificates in sorted priority)
         if (isExpanded) {
           let drawerCertsHTML = '';
 
-          if (certs.length === 0) {
+          if (sortedCerts.length === 0) {
             drawerCertsHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b;">No certificates attached to this worker.</td></tr>`;
           } else {
-            drawerCertsHTML = certs.map(c => {
+            drawerCertsHTML = sortedCerts.map(c => {
               const certExpired = c.cert_expiry && c.cert_expiry < todayStr;
               const certStatusBadge = certExpired
                 ? `<span class="status-badge status-expired">EXPIRED</span>`
@@ -1620,16 +2214,746 @@
 
     btnCancelWorker.addEventListener('click', resetWorkerForm);
 
+    // ============================================================================
+    // PROJECT DIRECTORY & CONTROL CENTER FUNCTIONS
+    // ============================================================================
+    const projectForm = document.getElementById('projectForm');
+    const projectFormTitle = document.getElementById('projectFormTitle');
+    const projectEditIndicator = document.getElementById('projectEditIndicator');
+    const editingProjectIdText = document.getElementById('editingProjectIdText');
+    const btnSubmitProject = document.getElementById('btnSubmitProject');
+    const btnCancelProject = document.getElementById('btnCancelProject');
+    const projectTableBody = document.getElementById('projectTableBody');
+
+    async function loadProjectData() {
+      try {
+        const response = await fetch('/api/projects');
+        const result = await response.json();
+        if (result.success) {
+          projectData = result.data || [];
+          updateProjectSortHeaderIcons();
+          renderProcessedProjectData();
+        } else {
+          showToast(`Error fetching project data: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    }
+
+    window.handleProjectSort = function(column) {
+      if (projectSortColumn === column) {
+        projectSortDirection = projectSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        projectSortColumn = column;
+        projectSortDirection = column === 'start_date' ? 'desc' : 'asc';
+      }
+      updateProjectSortHeaderIcons();
+      renderProcessedProjectData();
+    };
+
+    function updateProjectSortHeaderIcons() {
+      document.querySelectorAll('#projectTable th.sortable').forEach(th => {
+        const col = th.getAttribute('data-sort');
+        const iconSpan = th.querySelector('.sort-icon');
+        if (!iconSpan) return;
+
+        if (col === projectSortColumn) {
+          th.classList.add('active');
+          iconSpan.textContent = projectSortDirection === 'asc' ? '▲' : '▼';
+        } else {
+          th.classList.remove('active');
+          iconSpan.textContent = '⇅';
+        }
+      });
+    }
+
+    function getProcessedProjectData() {
+      const query = projectSearchInput ? projectSearchInput.value.toLowerCase().trim() : '';
+      let filtered = projectData.filter(item => 
+        !query ||
+        (item.project_id && item.project_id.toLowerCase().includes(query)) ||
+        (item.project_name && item.project_name.toLowerCase().includes(query)) ||
+        (item.client_name && item.client_name.toLowerCase().includes(query)) ||
+        (item.location && item.location.toLowerCase().includes(query)) ||
+        (item.project_manager && item.project_manager.toLowerCase().includes(query)) ||
+        (item.status && item.status.toLowerCase().includes(query))
+      );
+
+      filtered.sort((a, b) => {
+        let valA = a[projectSortColumn] || '';
+        let valB = b[projectSortColumn] || '';
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA < strB) return projectSortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return projectSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    function renderProcessedProjectData() {
+      renderProjectTable(getProcessedProjectData());
+    }
+
+    if (projectSearchInput) {
+      projectSearchInput.addEventListener('input', renderProcessedProjectData);
+    }
+
+    function getProjectStatusBadge(status) {
+      const s = (status || 'Active').toLowerCase();
+      if (s === 'active') return '<span class="status-badge status-project-active">ACTIVE 🟢</span>';
+      if (s === 'upcoming') return '<span class="status-badge status-project-upcoming">UPCOMING 🟡</span>';
+      if (s === 'completed') return '<span class="status-badge status-project-completed">COMPLETED ⚪</span>';
+      if (s === 'on hold' || s === 'onhold') return '<span class="status-badge status-project-onhold">ON HOLD 🔴</span>';
+      return `<span class="status-badge status-project-active">${escapeHtml(status)}</span>`;
+    }
+
+    function renderProjectTable(data) {
+      if (!data || data.length === 0) {
+        projectTableBody.innerHTML = `
+          <tr>
+            <td colspan="8" class="empty-state">No projects found. Use the form above to register a new project.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      projectTableBody.innerHTML = data.map(item => {
+        const statusBadge = getProjectStatusBadge(item.status);
+        return `
+          <tr>
+            <td><strong>${escapeHtml(item.project_id)}</strong></td>
+            <td><strong>${escapeHtml(item.project_name)}</strong></td>
+            <td>${escapeHtml(item.client_name || '-')}</td>
+            <td>${escapeHtml(item.location)}</td>
+            <td>${escapeHtml(item.project_manager || 'TBD')}</td>
+            <td>${escapeHtml(item.start_date || '-')}</td>
+            <td style="text-align: center;">${statusBadge}</td>
+            <td style="text-align: center;">
+              <div class="action-btn-group">
+                <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">📊 View Dashboard</button>
+                <button class="btn-action-edit" onclick="startEditProject('${escapeHtml(item.project_id)}')">Edit</button>
+                <button class="btn-action-delete" onclick="deleteProject('${escapeHtml(item.project_id)}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    projectForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        project_id: document.getElementById('project_id_input').value.trim(),
+        project_name: document.getElementById('project_name_input').value.trim(),
+        client_name: document.getElementById('client_name_input').value.trim(),
+        location: document.getElementById('location_input').value.trim(),
+        project_manager: document.getElementById('project_manager_input').value.trim(),
+        status: document.getElementById('project_status_input').value,
+        start_date: document.getElementById('start_date_input').value
+      };
+
+      const editingId = document.getElementById('editingProjectId').value;
+      try {
+        let response;
+        if (editingId) {
+          response = await fetch(`/api/projects/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          response = await fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(editingId ? `Project ${editingId} updated!` : 'New project registered successfully!');
+          resetProjectForm();
+          loadProjectData();
+        } else {
+          showToast(`Save failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request failed: ${err.message}`, 'error');
+      }
+    });
+
+    window.startEditProject = function(projectId) {
+      const item = projectData.find(p => p.project_id === projectId);
+      if (!item) return;
+
+      document.getElementById('editingProjectId').value = item.project_id;
+      document.getElementById('project_id_input').value = item.project_id;
+      document.getElementById('project_id_input').readOnly = true;
+      document.getElementById('project_name_input').value = item.project_name;
+      document.getElementById('client_name_input').value = item.client_name || '';
+      document.getElementById('location_input').value = item.location;
+      document.getElementById('project_manager_input').value = item.project_manager || '';
+      document.getElementById('project_status_input').value = item.status || 'Active';
+      document.getElementById('start_date_input').value = item.start_date || '';
+
+      isEditingProject = true;
+      projectFormTitle.querySelector('span').textContent = 'Edit Project Details';
+      editingProjectIdText.textContent = item.project_id;
+      projectEditIndicator.style.display = 'inline';
+      btnSubmitProject.textContent = 'Update Project';
+      btnCancelProject.style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteProject = async function(projectId) {
+      if (!confirm(`Are you sure you want to delete project ${projectId}?`)) return;
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Project ${projectId} deleted successfully.`);
+          loadProjectData();
+        } else {
+          showToast(`Delete failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    function resetProjectForm() {
+      projectForm.reset();
+      document.getElementById('editingProjectId').value = '';
+      document.getElementById('project_id_input').readOnly = false;
+      isEditingProject = false;
+      projectFormTitle.querySelector('span').textContent = 'Register New Project / Site';
+      projectEditIndicator.style.display = 'none';
+      btnSubmitProject.textContent = 'Register Project';
+      btnCancelProject.style.display = 'none';
+    }
+
+    btnCancelProject.addEventListener('click', resetProjectForm);
+
+    // CONTROL CENTER SUB-VIEW LOGIC
+    window.openProjectDashboard = async function(projectId) {
+      document.getElementById('projectListView').style.display = 'none';
+      document.getElementById('projectDashboardView').style.display = 'block';
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}/dashboard`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          const { project, kpis } = result.data;
+          document.getElementById('dashProjectTitle').textContent = `${project.project_name}`;
+          document.getElementById('dashProjectStatusBadge').innerHTML = getProjectStatusBadge(project.status);
+          document.getElementById('dashProjectSubtitle').textContent = `Project ID: ${project.project_id} | Client: ${project.client_name || 'N/A'} | Location: ${project.location}`;
+
+          document.getElementById('kpiActivePtws').textContent = kpis.active_ptws;
+          document.getElementById('kpiWorkersOnSite').textContent = kpis.workers_on_site;
+          document.getElementById('kpiDaysIncidentFree').textContent = kpis.days_without_incident;
+          document.getElementById('kpiComplianceScore').textContent = kpis.wsh_compliance_score;
+
+          document.getElementById('infoProjectId').textContent = project.project_id;
+          document.getElementById('infoClientName').textContent = project.client_name || 'N/A';
+          document.getElementById('infoLocation').textContent = project.location;
+          document.getElementById('infoProjectManager').textContent = project.project_manager || 'TBD';
+          document.getElementById('infoStartDate').textContent = project.start_date || 'N/A';
+        } else {
+          showToast(`Could not load dashboard: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Dashboard error: ${err.message}`, 'error');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.closeProjectDashboard = function() {
+      document.getElementById('projectDashboardView').style.display = 'none';
+      document.getElementById('projectListView').style.display = 'block';
+    };
+
     // Restore stored Gemini API key if present
     const savedKey = localStorage.getItem('gemini_api_key');
     if (savedKey && document.getElementById('geminiApiKeyInput')) {
       document.getElementById('geminiApiKeyInput').value = savedKey;
     }
 
+    // ============================================================================
+    // ePTW TRANSACTION ENGINE FUNCTIONS
+    // ============================================================================
+    const ptwForm = document.getElementById('ptwForm');
+    const ptwFormTitle = document.getElementById('ptwFormTitle');
+    const ptwEditIndicator = document.getElementById('ptwEditIndicator');
+    const editingPtwIdText = document.getElementById('editingPtwIdText');
+    const btnSubmitPtw = document.getElementById('btnSubmitPtw');
+    const btnCancelPtw = document.getElementById('btnCancelPtw');
+    const ptwTableBody = document.getElementById('ptwTableBody');
+
+    // Populate Project Select Dropdown in PTW Form
+    function populateProjectDropdown(selectedProjectId = '') {
+      const ptwProjectSelect = document.getElementById('ptw_project_id');
+      if (!ptwProjectSelect) return;
+      ptwProjectSelect.innerHTML = '<option value="">-- Select Registered Site Location --</option>';
+      projectData.forEach(p => {
+        const option = document.createElement('option');
+        option.value = p.project_id;
+        option.textContent = `📍 ${p.project_name} (${p.project_id} | ${p.location})`;
+        if (p.project_id === selectedProjectId) {
+          option.selected = true;
+        }
+        ptwProjectSelect.appendChild(option);
+      });
+    }
+
+    // Populate Worker Multi-Select Checkboxes
+    function populateWorkerChecklist(selectedWorkerIds = []) {
+      const box = document.getElementById('workerCheckboxList');
+      if (!box) return;
+      if (!workerData || workerData.length === 0) {
+        box.innerHTML = '<span style="color: #94a3b8; font-style: italic;">No registered workers found. Register workers in Worker Registry first.</span>';
+        return;
+      }
+
+      box.innerHTML = workerData.map(w => {
+        const isChecked = selectedWorkerIds.includes(w.worker_id) ? 'checked' : '';
+        const certCount = (w.certificates || []).length;
+        const mainId = w.ic_no || w.wp_no || w.fin_no || w.worker_id;
+        return `
+          <label class="checkbox-item">
+            <input type="checkbox" name="ptw_workers" value="${escapeHtml(w.worker_id)}" ${isChecked}>
+            <span><strong>${escapeHtml(w.name)}</strong> (${escapeHtml(w.trade)} | ID: ${escapeHtml(mainId)} | 📜 ${certCount} Certs)</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    // Populate RAMS Safety Rules Multi-Select Checkboxes
+    function populateRamsChecklist(selectedRamsIds = []) {
+      const box = document.getElementById('ramsCheckboxList');
+      if (!box) return;
+      if (!ramsData || ramsData.length === 0) {
+        box.innerHTML = '<span style="color: #94a3b8; font-style: italic;">No RAMS items found in library. Add items in Master RAMS Library first.</span>';
+        return;
+      }
+
+      box.innerHTML = ramsData.map(r => {
+        const isChecked = selectedRamsIds.includes(r.id) || selectedRamsIds.includes(String(r.id)) ? 'checked' : '';
+        const rpnClass = getRPNClass(r.rpn);
+        return `
+          <label class="checkbox-item">
+            <input type="checkbox" name="ptw_rams" value="${r.id}" ${isChecked}>
+            <span>
+              <span class="rpn-badge ${rpnClass}" style="padding: 2px 6px; font-size: 0.7rem;">RPN ${r.rpn}</span>
+              <strong>${escapeHtml(r.work_activity)}</strong> — ${escapeHtml(r.hazard)}
+            </span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    async function loadPtwData() {
+      try {
+        const response = await fetch('/api/ptw');
+        const result = await response.json();
+        if (result.success) {
+          ptwData = result.data || [];
+          updatePtwSortHeaderIcons();
+          renderProcessedPtwData();
+        } else {
+          showToast(`Error fetching PTW records: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    }
+
+    window.handlePtwSort = function(column) {
+      if (ptwSortColumn === column) {
+        ptwSortDirection = ptwSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        ptwSortColumn = column;
+        ptwSortDirection = column === 'created_at' || column === 'valid_until' ? 'desc' : 'asc';
+      }
+      updatePtwSortHeaderIcons();
+      renderProcessedPtwData();
+    };
+
+    function updatePtwSortHeaderIcons() {
+      document.querySelectorAll('#ptwTable th.sortable').forEach(th => {
+        const col = th.getAttribute('data-sort');
+        const iconSpan = th.querySelector('.sort-icon');
+        if (!iconSpan) return;
+
+        if (col === ptwSortColumn) {
+          th.classList.add('active');
+          iconSpan.textContent = ptwSortDirection === 'asc' ? '▲' : '▼';
+        } else {
+          th.classList.remove('active');
+          iconSpan.textContent = '⇅';
+        }
+      });
+    }
+
+    function getProcessedPtwData() {
+      const query = ptwSearchInput ? ptwSearchInput.value.toLowerCase().trim() : '';
+      let filtered = ptwData.filter(item => {
+        if (!query) return true;
+        const pId = (item.ptw_id || '').toLowerCase();
+        const prjName = (item.project_name || '').toLowerCase();
+        const pType = (item.ptw_type || '').toLowerCase();
+        const desc = (item.work_description || '').toLowerCase();
+        const status = (item.status || '').toLowerCase();
+        return pId.includes(query) || prjName.includes(query) || pType.includes(query) || desc.includes(query) || status.includes(query);
+      });
+
+      filtered.sort((a, b) => {
+        let valA = a[ptwSortColumn] || '';
+        let valB = b[ptwSortColumn] || '';
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA < strB) return ptwSortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return ptwSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      return filtered;
+    }
+
+    function renderProcessedPtwData() {
+      renderPtwTable(getProcessedPtwData());
+    }
+
+    if (ptwSearchInput) {
+      ptwSearchInput.addEventListener('input', renderProcessedPtwData);
+    }
+
+    function getPtwStatusBadge(status) {
+      const s = (status || 'Draft').toLowerCase();
+      if (s === 'active') return '<span class="status-badge status-ptw-active">ACTIVE 🟢</span>';
+      if (s === 'draft') return '<span class="status-badge status-ptw-draft">DRAFT 🟡</span>';
+      if (s === 'closed') return '<span class="status-badge status-ptw-closed">CLOSED ⚪</span>';
+      if (s === 'revoked') return '<span class="status-badge status-ptw-revoked">REVOKED 🔴</span>';
+      return `<span class="status-badge status-ptw-active">${escapeHtml(status)}</span>`;
+    }
+
+    function renderPtwTable(data) {
+      if (!data || data.length === 0) {
+        ptwTableBody.innerHTML = `
+          <tr>
+            <td colspan="9" class="empty-state">No Permit-to-Work records found. Use the form above to draft a new permit.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      ptwTableBody.innerHTML = data.map(item => {
+        const statusBadge = getPtwStatusBadge(item.status);
+
+        // Parse workers JSON
+        let workerIds = [];
+        try { workerIds = typeof item.assigned_workers_json === 'string' ? JSON.parse(item.assigned_workers_json) : (item.assigned_workers_json || []); } catch(e){}
+        const assignedWorkerNames = workerIds.map(id => {
+          const w = workerData.find(wItem => wItem.worker_id === id);
+          return w ? w.name : id;
+        });
+
+        const workersListText = assignedWorkerNames.length > 0
+          ? `<ul class="cert-bullet-list">${assignedWorkerNames.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+          : '<span style="color: #94a3b8; font-style: italic;">None Assigned</span>';
+
+        // Parse RAMS JSON
+        let ramsIds = [];
+        try { ramsIds = typeof item.selected_rams_json === 'string' ? JSON.parse(item.selected_rams_json) : (item.selected_rams_json || []); } catch(e){}
+        const ramsSummaries = ramsIds.map(rId => {
+          const r = ramsData.find(rItem => rItem.id === Number(rId) || rItem.id === String(rId));
+          return r ? r.work_activity : `RAMS #${rId}`;
+        });
+
+        const ramsListText = ramsSummaries.length > 0
+          ? `<ul class="cert-bullet-list">${ramsSummaries.map(rName => `<li>${escapeHtml(rName)}</li>`).join('')}</ul>`
+          : '<span style="color: #94a3b8; font-style: italic;">None Linked</span>';
+
+        const validUntilText = item.valid_until ? item.valid_until.replace('T', ' ').substring(0, 16) : '-';
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(item.ptw_id)}</strong></td>
+            <td>
+              <strong>${escapeHtml(item.project_name || item.project_id)}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.location || '')}</div>
+            </td>
+            <td><strong>${escapeHtml(item.ptw_type || 'Work at Height')}</strong></td>
+            <td>${escapeHtml(item.work_description)}</td>
+            <td>${workersListText}</td>
+            <td>${ramsListText}</td>
+            <td><code style="font-size: 0.8rem;">${escapeHtml(validUntilText)}</code></td>
+            <td style="text-align: center;">${statusBadge}</td>
+            <td style="text-align: center;">
+              <div class="action-btn-group">
+                <button class="btn-action-view" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ View</button>
+                ${item.status === 'Draft' ? `<button class="btn-action-dashboard" style="background-color: #dcfce7; color: #15803d;" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Active')">Activate</button>` : ''}
+                ${item.status === 'Active' ? `<button class="btn-action-edit" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>` : ''}
+                <button class="btn-action-edit" onclick="startEditPtw('${escapeHtml(item.ptw_id)}')">Edit</button>
+                <button class="btn-action-delete" onclick="deletePtw('${escapeHtml(item.ptw_id)}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Submit Permit Form
+    ptwForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const selectedWorkers = Array.from(document.querySelectorAll('input[name="ptw_workers"]:checked')).map(cb => cb.value);
+      const selectedRams = Array.from(document.querySelectorAll('input[name="ptw_rams"]:checked')).map(cb => cb.value);
+
+      if (selectedWorkers.length === 0) {
+        showToast('Please select at least one worker for this permit.', 'error');
+        return;
+      }
+
+      if (selectedRams.length === 0) {
+        showToast('Please select at least one RAMS safety control.', 'error');
+        return;
+      }
+
+      const payload = {
+        project_id: document.getElementById('ptw_project_id').value,
+        ptw_type: document.getElementById('ptw_type').value,
+        work_description: document.getElementById('ptw_work_description').value.trim(),
+        valid_until: document.getElementById('ptw_valid_until').value,
+        assigned_workers_json: selectedWorkers,
+        selected_rams_json: selectedRams,
+        status: document.getElementById('ptw_status').value
+      };
+
+      const editingId = document.getElementById('editingPtwId').value;
+      try {
+        let response;
+        if (editingId) {
+          response = await fetch(`/api/ptw/${editingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          response = await fetch('/api/ptw', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(editingId ? `Permit ${editingId} updated!` : `Permit ${result.ptw_id || ''} issued successfully!`);
+          resetPtwForm();
+          loadPtwData();
+        } else {
+          showToast(`Save failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request failed: ${err.message}`, 'error');
+      }
+    });
+
+    window.updatePtwStatus = async function(ptwId, newStatus) {
+      try {
+        const response = await fetch(`/api/ptw/${ptwId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} status updated to ${newStatus}.`);
+          loadPtwData();
+        } else {
+          showToast(`Update failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    window.startEditPtw = function(ptwId) {
+      const item = ptwData.find(p => p.ptw_id === ptwId);
+      if (!item) return;
+
+      document.getElementById('editingPtwId').value = item.ptw_id;
+      populateProjectDropdown(item.project_id);
+      document.getElementById('ptw_type').value = item.ptw_type || 'Work at Height';
+      document.getElementById('ptw_work_description').value = item.work_description || '';
+      document.getElementById('ptw_status').value = item.status || 'Draft';
+      if (item.valid_until) {
+        document.getElementById('ptw_valid_until').value = item.valid_until.substring(0, 16);
+      }
+
+      let workerIds = [];
+      try { workerIds = typeof item.assigned_workers_json === 'string' ? JSON.parse(item.assigned_workers_json) : (item.assigned_workers_json || []); } catch(e){}
+      populateWorkerChecklist(workerIds);
+
+      let ramsIds = [];
+      try { ramsIds = typeof item.selected_rams_json === 'string' ? JSON.parse(item.selected_rams_json) : (item.selected_rams_json || []); } catch(e){}
+      populateRamsChecklist(ramsIds);
+
+      isEditingPtw = true;
+      ptwFormTitle.querySelector('span').textContent = 'Edit Permit Details';
+      editingPtwIdText.textContent = item.ptw_id;
+      ptwEditIndicator.style.display = 'inline';
+      btnSubmitPtw.textContent = 'Update Permit';
+      btnCancelPtw.style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deletePtw = async function(ptwId) {
+      if (!confirm(`Are you sure you want to delete permit ${ptwId}?`)) return;
+      try {
+        const response = await fetch(`/api/ptw/${ptwId}`, { method: 'DELETE' });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} deleted successfully.`);
+          loadPtwData();
+        } else {
+          showToast(`Delete failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    function resetPtwForm() {
+      ptwForm.reset();
+      document.getElementById('editingPtwId').value = '';
+      isEditingPtw = false;
+      ptwFormTitle.querySelector('span').textContent = 'Draft New Permit to Work (ePTW)';
+      ptwEditIndicator.style.display = 'none';
+      btnSubmitPtw.textContent = 'Issue / Save Permit';
+      btnCancelPtw.style.display = 'none';
+      
+      // Set default expiry to 6:00 PM today
+      const now = new Date();
+      now.setHours(18, 0, 0, 0);
+      const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+      document.getElementById('ptw_valid_until').value = localIso;
+
+      populateProjectDropdown();
+      populateWorkerChecklist();
+      populateRamsChecklist();
+    }
+
+    btnCancelPtw.addEventListener('click', resetPtwForm);
+
+    // PROVISIONAL SITE BYPASS MODAL LOGIC
+    window.openProvisionalSiteModal = function() {
+      document.getElementById('provisionalSiteModal').style.display = 'flex';
+    };
+
+    window.closeProvisionalSiteModal = function() {
+      document.getElementById('provisionalSiteModal').style.display = 'none';
+      document.getElementById('provisionalSiteForm').reset();
+    };
+
+    document.getElementById('provisionalSiteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        project_name: document.getElementById('prov_project_name').value.trim(),
+        location: document.getElementById('prov_location').value.trim(),
+        client_name: document.getElementById('prov_client_name').value.trim()
+      };
+
+      try {
+        const response = await fetch('/api/projects/provisional', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Provisional site '${result.project_name}' registered!`);
+          closeProvisionalSiteModal();
+          await loadProjectData();
+          populateProjectDropdown(result.project_id);
+        } else {
+          showToast(`Provisional creation failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request error: ${err.message}`, 'error');
+      }
+    });
+
+    // PERMIT DOCUMENT SUMMARY MODAL
+    window.openPermitViewModal = function(ptwId) {
+      const item = ptwData.find(p => p.ptw_id === ptwId);
+      if (!item) return;
+
+      document.getElementById('permitViewTitle').textContent = `📄 Permit Document — ${item.ptw_id}`;
+
+      let workerIds = [];
+      try { workerIds = typeof item.assigned_workers_json === 'string' ? JSON.parse(item.assigned_workers_json) : (item.assigned_workers_json || []); } catch(e){}
+      const assignedWorkers = workerIds.map(id => {
+        const w = workerData.find(wItem => wItem.worker_id === id);
+        return w ? `${w.name} (${w.trade} | ID: ${w.ic_no || w.wp_no || w.fin_no || w.worker_id})` : id;
+      });
+
+      let ramsIds = [];
+      try { ramsIds = typeof item.selected_rams_json === 'string' ? JSON.parse(item.selected_rams_json) : (item.selected_rams_json || []); } catch(e){}
+      const assignedRams = ramsIds.map(rId => {
+        const r = ramsData.find(rItem => rItem.id === Number(rId) || rItem.id === String(rId));
+        return r ? `[${r.activity_category}] ${r.work_activity} — Hazard: ${r.hazard} (RPN: ${r.rpn})` : `RAMS Rule #${rId}`;
+      });
+
+      const bodyHtml = `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <div><strong>Permit ID:</strong> ${escapeHtml(item.ptw_id)}</div>
+            <div><strong>Status:</strong> ${getPtwStatusBadge(item.status)}</div>
+          </div>
+          <div><strong>Site / Location:</strong> ${escapeHtml(item.project_name || item.project_id)} (${escapeHtml(item.location || '')})</div>
+          <div><strong>Permit Category:</strong> ${escapeHtml(item.ptw_type || 'Work at Height')}</div>
+          <div><strong>Validity Expiry:</strong> ${escapeHtml(item.valid_until || 'N/A')}</div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Work Description</h4>
+          <p style="background: #ffffff; border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px;">${escapeHtml(item.work_description)}</p>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Assigned Site Personnel (${assignedWorkers.length})</h4>
+          <ul style="padding-left: 20px;">
+            ${assignedWorkers.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Linked RAMS Safety Controls (${assignedRams.length})</h4>
+          <ul style="padding-left: 20px;">
+            ${assignedRams.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+
+      document.getElementById('permitViewBody').innerHTML = bodyHtml;
+      document.getElementById('permitViewModal').style.display = 'flex';
+    };
+
+    window.closePermitViewModal = function() {
+      document.getElementById('permitViewModal').style.display = 'none';
+    };
+
     // Initial Load
     calculateRPN();
     loadRAMSData();
     loadWorkerData();
+    loadProjectData();
+    loadPtwData();
   </script>
 </body>
 </html>
