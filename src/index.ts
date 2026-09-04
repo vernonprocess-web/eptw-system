@@ -588,11 +588,11 @@ app.delete('/api/workers/:id', async (c) => {
 // PROJECT DIRECTORY ROUTES & CONTROL CENTER API
 // ============================================================================
 
-// GET /api/projects - Fetch all projects
+// GET /api/projects - List all projects
 app.get('/api/projects', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
-      'SELECT * FROM Project_Directory ORDER BY start_date DESC, project_id DESC'
+      'SELECT * FROM Project_Directory ORDER BY created_at DESC'
     ).all();
     return c.json({ success: true, data: results });
   } catch (error: any) {
@@ -600,12 +600,11 @@ app.get('/api/projects', async (c) => {
   }
 });
 
-// POST /api/projects - Create a new project
+// POST /api/projects - Register a new project site
 app.post('/api/projects', async (c) => {
   try {
     const body = await c.req.json();
-    const { project_name, client_name, location, project_manager, status, start_date } = body;
-    let { project_id } = body;
+    let { project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -624,8 +623,8 @@ app.post('/api/projects', async (c) => {
     }
 
     await c.env.DB.prepare(
-      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       project_id,
       project_name,
@@ -633,7 +632,11 @@ app.post('/api/projects', async (c) => {
       location,
       project_manager || 'TBD',
       status || 'Active',
-      start_date || new Date().toISOString().split('T')[0]
+      start_date || new Date().toISOString().split('T')[0],
+      wsho_name || '',
+      wsho_email || '',
+      wsho_phone || '',
+      pm_email || ''
     ).run();
 
     return c.json({
@@ -651,7 +654,7 @@ app.put('/api/projects/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { project_name, client_name, location, project_manager, status, start_date } = body;
+    const { project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -659,7 +662,8 @@ app.put('/api/projects/:id', async (c) => {
 
     const result = await c.env.DB.prepare(
       `UPDATE Project_Directory 
-       SET project_name = ?, client_name = ?, location = ?, project_manager = ?, status = ?, start_date = ?
+       SET project_name = ?, client_name = ?, location = ?, project_manager = ?, status = ?, start_date = ?,
+           wsho_name = ?, wsho_email = ?, wsho_phone = ?, pm_email = ?
        WHERE project_id = ?`
     ).bind(
       project_name,
@@ -668,6 +672,10 @@ app.put('/api/projects/:id', async (c) => {
       project_manager || 'TBD',
       status || 'Active',
       start_date || new Date().toISOString().split('T')[0],
+      wsho_name || '',
+      wsho_email || '',
+      wsho_phone || '',
+      pm_email || '',
       id
     ).run();
 
@@ -737,7 +745,7 @@ app.get('/api/projects/:id/dashboard', async (c) => {
 app.post('/api/projects/provisional', async (c) => {
   try {
     const body = await c.req.json();
-    const { project_name, location, client_name, project_manager } = body;
+    const { project_name, location, client_name, project_manager, wsho_name, wsho_email, wsho_phone, pm_email } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Site Name and Address/Location are required.' }, 400);
@@ -747,8 +755,8 @@ app.post('/api/projects/provisional', async (c) => {
     const todayStr = new Date().toISOString().split('T')[0];
 
     await c.env.DB.prepare(
-      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       project_id,
       project_name,
@@ -756,7 +764,11 @@ app.post('/api/projects/provisional', async (c) => {
       location,
       project_manager || 'Site Supervisor',
       'Provisional',
-      todayStr
+      todayStr,
+      wsho_name || '',
+      wsho_email || '',
+      wsho_phone || '',
+      pm_email || ''
     ).run();
 
     return c.json({
@@ -771,14 +783,16 @@ app.post('/api/projects/provisional', async (c) => {
 });
 
 // ============================================================================
-// ePTW TRANSACTION ENGINE ROUTES
+// ePTW TRANSACTION ENGINE ROUTES (PHASE 1 & PHASE 2 WORKFLOW)
 // ============================================================================
 
-// GET /api/ptw - Fetch all permits joined with Project details
+// GET /api/ptw - Fetch all permits joined with Project details & Safety Officers
 app.get('/api/ptw', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
-      `SELECT p.*, prj.project_name, prj.location, prj.client_name
+      `SELECT p.*, 
+              prj.project_name, prj.location, prj.client_name,
+              prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
        ORDER BY p.created_at DESC`
@@ -789,7 +803,7 @@ app.get('/api/ptw', async (c) => {
   }
 });
 
-// POST /api/ptw - Create a new permit to work
+// POST /api/ptw - Create a new permit to work with digital applicant signature
 app.post('/api/ptw', async (c) => {
   try {
     const body = await c.req.json();
@@ -800,7 +814,8 @@ app.post('/api/ptw', async (c) => {
       assigned_workers_json,
       selected_rams_json,
       status,
-      valid_until
+      valid_until,
+      applicant_signature
     } = body;
 
     if (!project_id || !work_description) {
@@ -824,9 +839,15 @@ app.post('/api/ptw', async (c) => {
       ? selected_rams_json 
       : JSON.stringify(selected_rams_json || []);
 
+    const initialStatus = status || 'Pending Safety Vetting';
+
     await c.env.DB.prepare(
-      `INSERT INTO PTW_Records (ptw_id, project_id, ptw_type, work_description, assigned_workers_json, selected_rams_json, status, valid_until)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO PTW_Records (
+        ptw_id, project_id, ptw_type, work_description, 
+        assigned_workers_json, selected_rams_json, status, valid_until,
+        applicant_signature
+      )
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -834,13 +855,14 @@ app.post('/api/ptw', async (c) => {
       work_description,
       workersJsonStr,
       ramsJsonStr,
-      status || 'Draft',
-      expiryStr
+      initialStatus,
+      expiryStr,
+      applicant_signature || null
     ).run();
 
     return c.json({
       success: true,
-      message: 'Permit created successfully.',
+      message: `Permit ${ptw_id} created successfully with status '${initialStatus}'.`,
       ptw_id
     }, 201);
   } catch (error: any) {
@@ -848,7 +870,7 @@ app.post('/api/ptw', async (c) => {
   }
 });
 
-// PUT /api/ptw/:id - Update permit details or status transition
+// PUT /api/ptw/:id - Update permit details or workflow signatures
 app.put('/api/ptw/:id', async (c) => {
   try {
     const id = c.req.param('id');
@@ -860,7 +882,11 @@ app.put('/api/ptw/:id', async (c) => {
       assigned_workers_json,
       selected_rams_json,
       status,
-      valid_until
+      valid_until,
+      applicant_signature,
+      safety_signature,
+      pm_signature,
+      rejection_reason
     } = body;
 
     const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first();
@@ -882,10 +908,31 @@ app.put('/api/ptw/:id', async (c) => {
 
     const updatedStatus = status || existing.status;
     const updatedExpiry = valid_until || existing.valid_until;
+    const updatedApplicantSig = applicant_signature !== undefined ? applicant_signature : existing.applicant_signature;
+    const updatedSafetySig = safety_signature !== undefined ? safety_signature : existing.safety_signature;
+    const updatedPmSig = pm_signature !== undefined ? pm_signature : existing.pm_signature;
+    const updatedRejection = rejection_reason !== undefined ? rejection_reason : existing.rejection_reason;
+
+    let safetyVettedAt = existing.safety_vetted_at;
+    let pmApprovedAt = existing.pm_approved_at;
+    let closedAt = existing.closed_at;
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    if (status === 'Pending PM Approval' && !existing.safety_vetted_at) {
+      safetyVettedAt = nowStr;
+    }
+    if (status === 'Active' && !existing.pm_approved_at) {
+      pmApprovedAt = nowStr;
+    }
+    if (status === 'Closed' && !existing.closed_at) {
+      closedAt = nowStr;
+    }
 
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
-       SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?, status = ?, valid_until = ?
+       SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?,
+           status = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
+           safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, rejection_reason = ?
        WHERE ptw_id = ?`
     ).bind(
       updatedProjectId,
@@ -895,6 +942,13 @@ app.put('/api/ptw/:id', async (c) => {
       updatedRams,
       updatedStatus,
       updatedExpiry,
+      updatedApplicantSig,
+      updatedSafetySig,
+      updatedPmSig,
+      safetyVettedAt,
+      pmApprovedAt,
+      closedAt,
+      updatedRejection,
       id
     ).run();
 

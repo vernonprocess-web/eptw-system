@@ -1,9 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Master RAMS & Worker Registry Management Dashboard</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     :root {
       --bg-color: #f8fafc;
@@ -668,10 +671,25 @@
       color: #92400e;
       border: 1px solid #fde68a;
     }
+    .status-ptw-pending-safety {
+      background-color: #ffedd5;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+    .status-ptw-pending-pm {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
     .status-ptw-closed {
       background-color: #f1f5f9;
       color: #475569;
       border: 1px solid #cbd5e1;
+    }
+    .status-ptw-rejected {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
     }
     .status-ptw-revoked {
       background-color: #fee2e2;
@@ -679,9 +697,107 @@
       border: 1px solid #fca5a5;
     }
 
+    /* Workflow Stepper Bar */
+    .stepper-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+    .stepper-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+    .stepper-step.active {
+      color: #2563eb;
+    }
+    .stepper-step.completed {
+      color: #16a34a;
+    }
+    .stepper-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    .stepper-step.active .stepper-dot {
+      background: #2563eb;
+    }
+    .stepper-step.completed .stepper-dot {
+      background: #16a34a;
+    }
+    .stepper-line {
+      flex: 1;
+      height: 2px;
+      background: #e2e8f0;
+      margin: 0 8px;
+    }
+    .stepper-line.completed {
+      background: #16a34a;
+    }
+
+    /* Quick Workflow Filter Bar */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding: 4px 0;
+    }
+    .filter-pill {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-pill:hover {
+      background: #e2e8f0;
+    }
+    .filter-pill.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    /* Touch & Tablet Optimizations */
+    @media (max-width: 1024px) {
+      body {
+        padding: 12px;
+      }
+      button, input, select, textarea {
+        min-height: 44px;
+        font-size: 0.95rem;
+      }
+      .tab-btn {
+        padding: 12px 14px;
+        font-size: 0.9rem;
+      }
+      .table-card {
+        margin-bottom: 16px;
+      }
+    }
+
     /* Checkbox Selector Box */
     .checkbox-selector-box {
-      max-height: 180px;
+      max-height: 220px;
       overflow-y: auto;
       border: 1px solid var(--border-color);
       border-radius: 6px;
@@ -1068,8 +1184,28 @@
               </div>
 
               <div class="form-group">
-                <label for="project_manager_input">Project Manager</label>
+                <label for="project_manager_input">Project Manager Name</label>
                 <input type="text" id="project_manager_input" placeholder="e.g. Vernon Tan">
+              </div>
+
+              <div class="form-group">
+                <label for="pm_email_input">PM Email Address</label>
+                <input type="email" id="pm_email_input" placeholder="e.g. vernon.tan@company.com">
+              </div>
+
+              <div class="form-group">
+                <label for="wsho_name_input">Designated WSHO / Safety Officer</label>
+                <input type="text" id="wsho_name_input" placeholder="e.g. Alex Tan (WSHO)">
+              </div>
+
+              <div class="form-group">
+                <label for="wsho_email_input">WSHO Email Address</label>
+                <input type="email" id="wsho_email_input" placeholder="e.g. alex.tan@safety-wsh.sg">
+              </div>
+
+              <div class="form-group">
+                <label for="wsho_phone_input">WSHO Contact / Phone No.</label>
+                <input type="text" id="wsho_phone_input" placeholder="e.g. +65 9123 4567">
               </div>
 
               <div class="form-group">
@@ -1107,13 +1243,14 @@
               <thead>
                 <tr>
                   <th style="width: 110px;" class="sortable active" data-sort="project_id" onclick="handleProjectSort('project_id')">Project ID <span class="sort-icon">▲</span></th>
-                  <th style="width: 220px;" class="sortable" data-sort="project_name" onclick="handleProjectSort('project_name')">Project Name <span class="sort-icon">⇅</span></th>
-                  <th style="width: 180px;" class="sortable" data-sort="client_name" onclick="handleProjectSort('client_name')">Client Name <span class="sort-icon">⇅</span></th>
+                  <th style="width: 200px;" class="sortable" data-sort="project_name" onclick="handleProjectSort('project_name')">Project Name <span class="sort-icon">⇅</span></th>
+                  <th style="width: 160px;" class="sortable" data-sort="client_name" onclick="handleProjectSort('client_name')">Client Name <span class="sort-icon">⇅</span></th>
                   <th>Location / Site Address</th>
-                  <th style="width: 140px;" class="sortable" data-sort="project_manager" onclick="handleProjectSort('project_manager')">Project Manager <span class="sort-icon">⇅</span></th>
-                  <th style="width: 110px;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Start Date <span class="sort-icon">⇅</span></th>
-                  <th style="width: 110px; text-align: center;">Status</th>
-                  <th style="width: 210px; text-align: center;">Actions</th>
+                  <th style="width: 150px;" class="sortable" data-sort="project_manager" onclick="handleProjectSort('project_manager')">Project Manager <span class="sort-icon">⇅</span></th>
+                  <th style="width: 180px;">Safety Officer (WSHO)</th>
+                  <th style="width: 100px;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Start Date <span class="sort-icon">⇅</span></th>
+                  <th style="width: 100px; text-align: center;">Status</th>
+                  <th style="width: 200px; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="projectTableBody">
@@ -1252,27 +1389,52 @@
               </div>
             </div>
 
+            <!-- Touchscreen Signature Canvas for Applicant / Supervisor -->
+            <div class="form-group full-width">
+              <label>Applicant / Site Supervisor Digital Signature * (Draw on touchscreen or with stylus)</label>
+              <div style="border: 1px solid var(--border-color); border-radius: 6px; background: #ffffff; padding: 10px;">
+                <canvas id="applicantSigCanvas" width="460" height="120" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 460px; height: 120px; border: 1px dashed #cbd5e1; border-radius: 4px; background: #fff;"></canvas>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">Sign with finger, stylus, or mouse above</span>
+                  <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearSignatureCanvas('applicantSigCanvas')">Clear Signature</button>
+                </div>
+              </div>
+            </div>
+
             <div class="form-group">
-              <label for="ptw_status">Initial Permit Status</label>
+              <label for="ptw_status">Permit Submission Status</label>
               <select id="ptw_status">
-                <option value="Draft" selected>Draft 🟡</option>
-                <option value="Active">Active 🟢</option>
+                <option value="Pending Safety Vetting" selected>Pending Safety Vetting 🟠 (Standard WSH Workflow)</option>
+                <option value="Draft">Draft 🟡</option>
+                <option value="Active">Direct Active 🟢 (Bypass Review)</option>
               </select>
             </div>
           </div>
 
           <div class="form-actions">
             <button type="button" id="btnCancelPtw" class="btn-secondary" style="display: none;">Cancel Edit</button>
-            <button type="submit" id="btnSubmitPtw" class="btn-primary">Issue / Save Permit</button>
+            <button type="submit" id="btnSubmitPtw" class="btn-primary">Submit Permit for Vetting</button>
           </div>
         </form>
       </div>
 
       <!-- High-Density Permit Spreadsheet Grid -->
       <div class="table-card">
-        <div class="table-toolbar">
-          <h3>Permits to Work (ePTW) Directory</h3>
-          <input type="text" id="ptwSearchInput" class="search-input" placeholder="Search permit ID, site, work description, worker...">
+        <div class="table-toolbar" style="flex-direction: column; align-items: stretch; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Permits to Work (ePTW) Directory</h3>
+            <input type="text" id="ptwSearchInput" class="search-input" placeholder="Search permit ID, site, work description, worker...">
+          </div>
+
+          <!-- Quick Workflow Filter Pills for On-Site Tablets -->
+          <div class="filter-bar">
+            <button type="button" class="filter-pill active" data-filter="all" onclick="setFilterStatus('all')">All Permits</button>
+            <button type="button" class="filter-pill" data-filter="Pending Safety Vetting" onclick="setFilterStatus('Pending Safety Vetting')">Pending Safety Vetting 🟠</button>
+            <button type="button" class="filter-pill" data-filter="Pending PM Approval" onclick="setFilterStatus('Pending PM Approval')">Pending PM Authorization 🔵</button>
+            <button type="button" class="filter-pill" data-filter="Active" onclick="setFilterStatus('Active')">Active 🟢</button>
+            <button type="button" class="filter-pill" data-filter="Closed" onclick="setFilterStatus('Closed')">Closed ⚪</button>
+            <button type="button" class="filter-pill" data-filter="Rejected" onclick="setFilterStatus('Rejected')">Rejected 🔴</button>
+          </div>
         </div>
 
         <div class="table-container">
@@ -2215,7 +2377,78 @@
     btnCancelWorker.addEventListener('click', resetWorkerForm);
 
     // ============================================================================
-    // PROJECT DIRECTORY & CONTROL CENTER FUNCTIONS
+    // HTML5 TOUCHSCREEN SIGNATURE CANVAS HELPERS
+    // ============================================================================
+    function initSignatureCanvas(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * (canvas.width / rect.width),
+          y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+      }
+
+      function startDraw(e) {
+        isDrawing = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+
+      function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+      }
+
+      function stopDraw() {
+        isDrawing = false;
+      }
+
+      canvas.addEventListener('mousedown', startDraw);
+      canvas.addEventListener('mousemove', draw);
+      window.addEventListener('mouseup', stopDraw);
+
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      canvas.addEventListener('touchend', stopDraw);
+    }
+
+    window.clearSignatureCanvas = function(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+
+    function getSignatureDataUrl(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return '';
+      const ctx = canvas.getContext('2d');
+      const pixelBuffer = new Uint32Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+      const isBlank = !pixelBuffer.some(color => color !== 0);
+      if (isBlank) return '';
+      return canvas.toDataURL('image/png');
+    }
+
+    // Initialize Applicant Signature Canvas
+    initSignatureCanvas('applicantSigCanvas');
+
+    // ============================================================================
+    // PROJECT DIRECTORY & CONTROL CENTER FUNCTIONS (PHASE 1)
     // ============================================================================
     const projectForm = document.getElementById('projectForm');
     const projectFormTitle = document.getElementById('projectFormTitle');
@@ -2277,6 +2510,7 @@
         (item.client_name && item.client_name.toLowerCase().includes(query)) ||
         (item.location && item.location.toLowerCase().includes(query)) ||
         (item.project_manager && item.project_manager.toLowerCase().includes(query)) ||
+        (item.wsho_name && item.wsho_name.toLowerCase().includes(query)) ||
         (item.status && item.status.toLowerCase().includes(query))
       );
 
@@ -2314,7 +2548,7 @@
       if (!data || data.length === 0) {
         projectTableBody.innerHTML = `
           <tr>
-            <td colspan="8" class="empty-state">No projects found. Use the form above to register a new project.</td>
+            <td colspan="9" class="empty-state">No projects found. Use the form above to register a new project.</td>
           </tr>
         `;
         return;
@@ -2322,13 +2556,25 @@
 
       projectTableBody.innerHTML = data.map(item => {
         const statusBadge = getProjectStatusBadge(item.status);
+        const pmText = item.project_manager || 'TBD';
+        const pmEmailText = item.pm_email ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.pm_email)}</div>` : '';
+        const wshoText = item.wsho_name || 'Unassigned';
+        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone || item.wsho_email)}</div>` : '';
+
         return `
           <tr>
             <td><strong>${escapeHtml(item.project_id)}</strong></td>
             <td><strong>${escapeHtml(item.project_name)}</strong></td>
             <td>${escapeHtml(item.client_name || '-')}</td>
             <td>${escapeHtml(item.location)}</td>
-            <td>${escapeHtml(item.project_manager || 'TBD')}</td>
+            <td>
+              <strong>${escapeHtml(pmText)}</strong>
+              ${pmEmailText}
+            </td>
+            <td>
+              <strong>${escapeHtml(wshoText)}</strong>
+              ${wshoContactText}
+            </td>
             <td>${escapeHtml(item.start_date || '-')}</td>
             <td style="text-align: center;">${statusBadge}</td>
             <td style="text-align: center;">
@@ -2351,6 +2597,10 @@
         client_name: document.getElementById('client_name_input').value.trim(),
         location: document.getElementById('location_input').value.trim(),
         project_manager: document.getElementById('project_manager_input').value.trim(),
+        pm_email: document.getElementById('pm_email_input').value.trim(),
+        wsho_name: document.getElementById('wsho_name_input').value.trim(),
+        wsho_email: document.getElementById('wsho_email_input').value.trim(),
+        wsho_phone: document.getElementById('wsho_phone_input').value.trim(),
         status: document.getElementById('project_status_input').value,
         start_date: document.getElementById('start_date_input').value
       };
@@ -2396,6 +2646,10 @@
       document.getElementById('client_name_input').value = item.client_name || '';
       document.getElementById('location_input').value = item.location;
       document.getElementById('project_manager_input').value = item.project_manager || '';
+      document.getElementById('pm_email_input').value = item.pm_email || '';
+      document.getElementById('wsho_name_input').value = item.wsho_name || '';
+      document.getElementById('wsho_email_input').value = item.wsho_email || '';
+      document.getElementById('wsho_phone_input').value = item.wsho_phone || '';
       document.getElementById('project_status_input').value = item.status || 'Active';
       document.getElementById('start_date_input').value = item.start_date || '';
 
@@ -2459,7 +2713,7 @@
           document.getElementById('infoProjectId').textContent = project.project_id;
           document.getElementById('infoClientName').textContent = project.client_name || 'N/A';
           document.getElementById('infoLocation').textContent = project.location;
-          document.getElementById('infoProjectManager').textContent = project.project_manager || 'TBD';
+          document.getElementById('infoProjectManager').textContent = `${project.project_manager || 'TBD'} ${project.pm_email ? `(${project.pm_email})` : ''}`;
           document.getElementById('infoStartDate').textContent = project.start_date || 'N/A';
         } else {
           showToast(`Could not load dashboard: ${result.error}`, 'error');
@@ -2482,7 +2736,7 @@
     }
 
     // ============================================================================
-    // ePTW TRANSACTION ENGINE FUNCTIONS
+    // ePTW TRANSACTION ENGINE FUNCTIONS (PHASE 2 WORKFLOW & SIGNATURES)
     // ============================================================================
     const ptwForm = document.getElementById('ptwForm');
     const ptwFormTitle = document.getElementById('ptwFormTitle');
@@ -2500,7 +2754,8 @@
       projectData.forEach(p => {
         const option = document.createElement('option');
         option.value = p.project_id;
-        option.textContent = `📍 ${p.project_name} (${p.project_id} | ${p.location})`;
+        const wshoInfo = p.wsho_name ? ` | WSHO: ${p.wsho_name}` : '';
+        option.textContent = `📍 ${p.project_name} (${p.project_id} | ${p.location}${wshoInfo})`;
         if (p.project_id === selectedProjectId) {
           option.selected = true;
         }
@@ -2597,16 +2852,41 @@
       });
     }
 
+    let currentPtwStatusFilter = 'all';
+
+    window.setFilterStatus = function(statusFilter) {
+      currentPtwStatusFilter = statusFilter;
+      document.querySelectorAll('.filter-pill').forEach(btn => {
+        if (btn.getAttribute('data-filter') === statusFilter) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      renderProcessedPtwData();
+    };
+
     function getProcessedPtwData() {
       const query = ptwSearchInput ? ptwSearchInput.value.toLowerCase().trim() : '';
       let filtered = ptwData.filter(item => {
+        // Status filter check
+        if (currentPtwStatusFilter !== 'all') {
+          const itemStatus = (item.status || 'Draft').toLowerCase();
+          const targetStatus = currentPtwStatusFilter.toLowerCase();
+          if (itemStatus !== targetStatus) {
+            return false;
+          }
+        }
+
+        // Search query check
         if (!query) return true;
         const pId = (item.ptw_id || '').toLowerCase();
         const prjName = (item.project_name || '').toLowerCase();
         const pType = (item.ptw_type || '').toLowerCase();
         const desc = (item.work_description || '').toLowerCase();
         const status = (item.status || '').toLowerCase();
-        return pId.includes(query) || prjName.includes(query) || pType.includes(query) || desc.includes(query) || status.includes(query);
+        const wsho = (item.wsho_name || '').toLowerCase();
+        return pId.includes(query) || prjName.includes(query) || pType.includes(query) || desc.includes(query) || status.includes(query) || wsho.includes(query);
       });
 
       filtered.sort((a, b) => {
@@ -2633,9 +2913,11 @@
     function getPtwStatusBadge(status) {
       const s = (status || 'Draft').toLowerCase();
       if (s === 'active') return '<span class="status-badge status-ptw-active">ACTIVE 🟢</span>';
+      if (s === 'pending safety vetting' || s === 'pending safety') return '<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>';
+      if (s === 'pending pm approval' || s === 'pending pm') return '<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>';
       if (s === 'draft') return '<span class="status-badge status-ptw-draft">DRAFT 🟡</span>';
       if (s === 'closed') return '<span class="status-badge status-ptw-closed">CLOSED ⚪</span>';
-      if (s === 'revoked') return '<span class="status-badge status-ptw-revoked">REVOKED 🔴</span>';
+      if (s === 'rejected') return '<span class="status-badge status-ptw-rejected">REJECTED 🔴</span>';
       return `<span class="status-badge status-ptw-active">${escapeHtml(status)}</span>`;
     }
 
@@ -2678,12 +2960,25 @@
 
         const validUntilText = item.valid_until ? item.valid_until.replace('T', ' ').substring(0, 16) : '-';
 
+        // Stage Action Button
+        let stageActionBtn = '';
+        if (item.status === 'Draft') {
+          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #ffedd5; color: #c2410c;" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Pending Safety Vetting')">Submit for Vetting</button>`;
+        } else if (item.status === 'Pending Safety Vetting') {
+          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #ffedd5; color: #c2410c;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Endorse (Safety)</button>`;
+        } else if (item.status === 'Pending PM Approval') {
+          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #e0e7ff; color: #3730a3;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Authorize (PM)</button>`;
+        } else if (item.status === 'Active') {
+          stageActionBtn = `<button class="btn-action-edit" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>`;
+        }
+
         return `
           <tr>
             <td><strong>${escapeHtml(item.ptw_id)}</strong></td>
             <td>
               <strong>${escapeHtml(item.project_name || item.project_id)}</strong>
               <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.location || '')}</div>
+              ${item.wsho_name ? `<div style="font-size: 0.72rem; color: #0284c7;">🛡️ ${escapeHtml(item.wsho_name)}</div>` : ''}
             </td>
             <td><strong>${escapeHtml(item.ptw_type || 'Work at Height')}</strong></td>
             <td>${escapeHtml(item.work_description)}</td>
@@ -2693,9 +2988,8 @@
             <td style="text-align: center;">${statusBadge}</td>
             <td style="text-align: center;">
               <div class="action-btn-group">
-                <button class="btn-action-view" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ View</button>
-                ${item.status === 'Draft' ? `<button class="btn-action-dashboard" style="background-color: #dcfce7; color: #15803d;" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Active')">Activate</button>` : ''}
-                ${item.status === 'Active' ? `<button class="btn-action-edit" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>` : ''}
+                <button class="btn-action-view" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ Review</button>
+                ${stageActionBtn}
                 <button class="btn-action-edit" onclick="startEditPtw('${escapeHtml(item.ptw_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deletePtw('${escapeHtml(item.ptw_id)}')">Delete</button>
               </div>
@@ -2722,6 +3016,8 @@
         return;
       }
 
+      const applicantSig = getSignatureDataUrl('applicantSigCanvas');
+
       const payload = {
         project_id: document.getElementById('ptw_project_id').value,
         ptw_type: document.getElementById('ptw_type').value,
@@ -2729,7 +3025,8 @@
         valid_until: document.getElementById('ptw_valid_until').value,
         assigned_workers_json: selectedWorkers,
         selected_rams_json: selectedRams,
-        status: document.getElementById('ptw_status').value
+        status: document.getElementById('ptw_status').value,
+        applicant_signature: applicantSig
       };
 
       const editingId = document.getElementById('editingPtwId').value;
@@ -2751,7 +3048,7 @@
 
         const result = await response.json();
         if (result.success) {
-          showToast(editingId ? `Permit ${editingId} updated!` : `Permit ${result.ptw_id || ''} issued successfully!`);
+          showToast(editingId ? `Permit ${editingId} updated!` : `Permit ${result.ptw_id || ''} submitted successfully!`);
           resetPtwForm();
           loadPtwData();
         } else {
@@ -2762,17 +3059,19 @@
       }
     });
 
-    window.updatePtwStatus = async function(ptwId, newStatus) {
+    window.updatePtwStatus = async function(ptwId, newStatus, extraPayload = {}) {
       try {
+        const payload = { status: newStatus, ...extraPayload };
         const response = await fetch(`/api/ptw/${ptwId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus })
+          body: JSON.stringify(payload)
         });
         const result = await response.json();
         if (result.success) {
           showToast(`Permit ${ptwId} status updated to ${newStatus}.`);
           loadPtwData();
+          closePermitViewModal();
         } else {
           showToast(`Update failed: ${result.error}`, 'error');
         }
@@ -2789,7 +3088,7 @@
       populateProjectDropdown(item.project_id);
       document.getElementById('ptw_type').value = item.ptw_type || 'Work at Height';
       document.getElementById('ptw_work_description').value = item.work_description || '';
-      document.getElementById('ptw_status').value = item.status || 'Draft';
+      document.getElementById('ptw_status').value = item.status || 'Pending Safety Vetting';
       if (item.valid_until) {
         document.getElementById('ptw_valid_until').value = item.valid_until.substring(0, 16);
       }
@@ -2830,10 +3129,11 @@
     function resetPtwForm() {
       ptwForm.reset();
       document.getElementById('editingPtwId').value = '';
+      clearSignatureCanvas('applicantSigCanvas');
       isEditingPtw = false;
       ptwFormTitle.querySelector('span').textContent = 'Draft New Permit to Work (ePTW)';
       ptwEditIndicator.style.display = 'none';
-      btnSubmitPtw.textContent = 'Issue / Save Permit';
+      btnSubmitPtw.textContent = 'Submit Permit for Vetting';
       btnCancelPtw.style.display = 'none';
       
       // Set default expiry to 6:00 PM today
@@ -2888,12 +3188,12 @@
       }
     });
 
-    // PERMIT DOCUMENT SUMMARY MODAL
+    // PERMIT DOCUMENT SUMMARY & MULTI-STAGE ENDORSEMENT MODAL
     window.openPermitViewModal = function(ptwId) {
       const item = ptwData.find(p => p.ptw_id === ptwId);
       if (!item) return;
 
-      document.getElementById('permitViewTitle').textContent = `📄 Permit Document — ${item.ptw_id}`;
+      document.getElementById('permitViewTitle').textContent = `📄 Digital ePTW Audit Summary — ${item.ptw_id}`;
 
       let workerIds = [];
       try { workerIds = typeof item.assigned_workers_json === 'string' ? JSON.parse(item.assigned_workers_json) : (item.assigned_workers_json || []); } catch(e){}
@@ -2909,19 +3209,100 @@
         return r ? `[${r.activity_category}] ${r.work_activity} — Hazard: ${r.hazard} (RPN: ${r.rpn})` : `RAMS Rule #${rId}`;
       });
 
+      // Stepper progression classes
+      const s = (item.status || 'Draft').toLowerCase();
+      const step1Class = 'completed';
+      const step2Class = s === 'pending safety vetting' || s === 'pending safety' ? 'active' : (s === 'pending pm approval' || s === 'active' || s === 'closed' ? 'completed' : '');
+      const step3Class = s === 'pending pm approval' || s === 'pending pm' ? 'active' : (s === 'active' || s === 'closed' ? 'completed' : '');
+      const step4Class = s === 'active' ? 'active' : (s === 'closed' ? 'completed' : '');
+
+      const stepperHtml = `
+        <div class="stepper-bar">
+          <div class="stepper-step ${step1Class}">
+            <div class="stepper-dot">✓</div>
+            <span>1. Application</span>
+          </div>
+          <div class="stepper-line ${step2Class === 'completed' || step3Class ? 'completed' : ''}"></div>
+          <div class="stepper-step ${step2Class}">
+            <div class="stepper-dot">2</div>
+            <span>2. Safety Vetting</span>
+          </div>
+          <div class="stepper-line ${step3Class === 'completed' || step4Class ? 'completed' : ''}"></div>
+          <div class="stepper-step ${step3Class}">
+            <div class="stepper-dot">3</div>
+            <span>3. PM Authorization</span>
+          </div>
+          <div class="stepper-line ${step4Class === 'completed' ? 'completed' : ''}"></div>
+          <div class="stepper-step ${step4Class}">
+            <div class="stepper-dot">4</div>
+            <span>4. Active / Issued</span>
+          </div>
+        </div>
+      `;
+
+      const applicantSigHtml = item.applicant_signature 
+        ? `<img src="${item.applicant_signature}" style="height: 50px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">` 
+        : '<span style="color: #94a3b8; font-style: italic;">No Signature Saved</span>';
+
+      const safetySigHtml = item.safety_signature 
+        ? `<img src="${item.safety_signature}" style="height: 50px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">` 
+        : '<span style="color: #94a3b8; font-style: italic;">Pending Safety Endorsement</span>';
+
+      const pmSigHtml = item.pm_signature 
+        ? `<img src="${item.pm_signature}" style="height: 50px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;">` 
+        : '<span style="color: #94a3b8; font-style: italic;">Pending PM Authorization</span>';
+
+      // Stage endorsement panel inside modal
+      let endorsementPanelHtml = '';
+      if (s === 'pending safety vetting' || s === 'pending safety') {
+        endorsementPanelHtml = `
+          <div style="background: #fff7ed; border: 2px dashed #f97316; padding: 16px; border-radius: 8px; margin-top: 16px;">
+            <h4 style="color: #c2410c; margin-bottom: 8px;">🛡️ Safety Assessor (WSHO) Endorsement Panel</h4>
+            <p style="font-size: 0.85rem; color: #475569; margin-bottom: 10px;">
+              Target Safety Assessor: <strong>${escapeHtml(item.wsho_name || 'Designated Site WSHO')}</strong> (${escapeHtml(item.wsho_email || item.wsho_phone || 'Contact pending')})
+            </p>
+            <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 6px;">Sign below to endorse safety & RAMS compliance:</label>
+            <canvas id="modalWshoSigCanvas" width="400" height="100" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 400px; height: 100px; border: 1px dashed #f97316; border-radius: 4px; background: #fff;"></canvas>
+            <div style="margin-top: 8px; display: flex; gap: 10px;">
+              <button type="button" class="btn-primary" style="background-color: #ea580c;" onclick="submitWshoEndorsement('${escapeHtml(item.ptw_id)}')">Endorse & Forward to PM ➔</button>
+              <button type="button" class="btn-secondary" onclick="clearSignatureCanvas('modalWshoSigCanvas')">Clear</button>
+              <button type="button" class="btn-secondary" style="background-color: #fee2e2; color: #b91c1c;" onclick="rejectPermit('${escapeHtml(item.ptw_id)}')">Reject Permit</button>
+            </div>
+          </div>
+        `;
+      } else if (s === 'pending pm approval' || s === 'pending pm') {
+        endorsementPanelHtml = `
+          <div style="background: #eff6ff; border: 2px dashed #3b82f6; padding: 16px; border-radius: 8px; margin-top: 16px;">
+            <h4 style="color: #1d4ed8; margin-bottom: 8px;">👔 Project Manager Final Authorization Panel</h4>
+            <p style="font-size: 0.85rem; color: #475569; margin-bottom: 10px;">
+              Target Project Manager: <strong>${escapeHtml(item.project_manager || 'Site PM')}</strong> (${escapeHtml(item.pm_email || 'Email pending')})
+            </p>
+            <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 6px;">Sign below for final site permit issuance:</label>
+            <canvas id="modalPmSigCanvas" width="400" height="100" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 400px; height: 100px; border: 1px dashed #3b82f6; border-radius: 4px; background: #fff;"></canvas>
+            <div style="margin-top: 8px; display: flex; gap: 10px;">
+              <button type="button" class="btn-primary" style="background-color: #2563eb;" onclick="submitPmAuthorization('${escapeHtml(item.ptw_id)}')">Authorize & Issue Active Permit 🟢</button>
+              <button type="button" class="btn-secondary" onclick="clearSignatureCanvas('modalPmSigCanvas')">Clear</button>
+              <button type="button" class="btn-secondary" style="background-color: #fee2e2; color: #b91c1c;" onclick="rejectPermit('${escapeHtml(item.ptw_id)}')">Reject Permit</button>
+            </div>
+          </div>
+        `;
+      }
+
       const bodyHtml = `
+        ${stepperHtml}
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <div><strong>Permit ID:</strong> ${escapeHtml(item.ptw_id)}</div>
             <div><strong>Status:</strong> ${getPtwStatusBadge(item.status)}</div>
           </div>
           <div><strong>Site / Location:</strong> ${escapeHtml(item.project_name || item.project_id)} (${escapeHtml(item.location || '')})</div>
+          <div><strong>Designated WSHO:</strong> ${escapeHtml(item.wsho_name || 'Unassigned')} ${item.wsho_email ? `(${item.wsho_email})` : ''}</div>
           <div><strong>Permit Category:</strong> ${escapeHtml(item.ptw_type || 'Work at Height')}</div>
-          <div><strong>Validity Expiry:</strong> ${escapeHtml(item.valid_until || 'N/A')}</div>
+          <div><strong>Shift Expiry:</strong> ${escapeHtml(item.valid_until || 'N/A')}</div>
         </div>
 
         <div style="margin-bottom: 14px;">
-          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Work Description</h4>
+          <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Work Activity Description</h4>
           <p style="background: #ffffff; border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px;">${escapeHtml(item.work_description)}</p>
         </div>
 
@@ -2932,28 +3313,96 @@
           </ul>
         </div>
 
-        <div>
+        <div style="margin-bottom: 16px;">
           <h4 style="font-size: 0.95rem; margin-bottom: 4px;">Linked RAMS Safety Controls (${assignedRams.length})</h4>
           <ul style="padding-left: 20px;">
             ${assignedRams.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
           </ul>
         </div>
+
+        <!-- Digital Signatures Audit Grid -->
+        <div style="border-top: 2px solid #e2e8f0; pt-14; margin-top: 16px; padding-top: 14px;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 10px;">✍️ Digital Signatures & Authorization Audit Trail</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">1. APPLICANT / SUPERVISOR</div>
+              <div style="margin-top: 6px;">${applicantSigHtml}</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Date: ${escapeHtml(item.created_at || 'Saved')}</div>
+            </div>
+
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">2. SAFETY ASSESSOR (WSHO)</div>
+              <div style="margin-top: 6px;">${safetySigHtml}</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Vetted: ${escapeHtml(item.safety_vetted_at || 'Pending')}</div>
+            </div>
+
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">3. PROJECT MANAGER (PM)</div>
+              <div style="margin-top: 6px;">${pmSigHtml}</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Approved: ${escapeHtml(item.pm_approved_at || 'Pending')}</div>
+            </div>
+          </div>
+        </div>
+
+        ${endorsementPanelHtml}
       `;
 
       document.getElementById('permitViewBody').innerHTML = bodyHtml;
       document.getElementById('permitViewModal').style.display = 'flex';
+
+      // Initialize modal signature canvases if active
+      if (document.getElementById('modalWshoSigCanvas')) {
+        initSignatureCanvas('modalWshoSigCanvas');
+      }
+      if (document.getElementById('modalPmSigCanvas')) {
+        initSignatureCanvas('modalPmSigCanvas');
+      }
     };
 
     window.closePermitViewModal = function() {
       document.getElementById('permitViewModal').style.display = 'none';
     };
 
-    // Initial Load
+    window.submitWshoEndorsement = function(ptwId) {
+      const sigData = getSignatureDataUrl('modalWshoSigCanvas');
+      if (!sigData) {
+        showToast('Please sign on the endorsement pad before submitting.', 'error');
+        return;
+      }
+      updatePtwStatus(ptwId, 'Pending PM Approval', { safety_signature: sigData });
+    };
+
+    window.submitPmAuthorization = function(ptwId) {
+      const sigData = getSignatureDataUrl('modalPmSigCanvas');
+      if (!sigData) {
+        showToast('Please sign on the authorization pad before issuing permit.', 'error');
+        return;
+      }
+      updatePtwStatus(ptwId, 'Active', { pm_signature: sigData });
+    };
+
+    window.rejectPermit = function(ptwId) {
+      const reason = prompt('Please enter the reason for permit rejection:');
+      if (reason === null) return;
+      updatePtwStatus(ptwId, 'Rejected', { rejection_reason: reason });
+    };
+
+    // Initial Load & PWA Service Worker Registration
     calculateRPN();
     loadRAMSData();
     loadWorkerData();
     loadProjectData();
     loadPtwData();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('ePTW PWA Service Worker registered:', reg.scope);
+        }).catch((err) => {
+          console.error('Service Worker registration failed:', err);
+        });
+      });
+    }
   </script>
 </body>
 </html>
