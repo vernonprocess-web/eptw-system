@@ -1344,11 +1344,26 @@
             <div class="form-group" style="grid-column: span 2;">
               <label for="ptw_project_id">Select Project / Site Location *</label>
               <div style="display: flex; gap: 8px;">
-                <select id="ptw_project_id" required style="flex: 1;">
+                <select id="ptw_project_id" required style="flex: 1;" onchange="updateAssignedWshoDropdown()">
                   <option value="">-- Select Registered Site --</option>
                 </select>
                 <button type="button" class="btn-bypass" onclick="openProvisionalSiteModal()">[+ Add Missing Site]</button>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ptw_applicant_email">Applicant Email (for Alert Confirmations)</label>
+              <div style="display: flex; gap: 6px;">
+                <input type="email" id="ptw_applicant_email" placeholder="supervisor@company.com" style="flex: 1;">
+                <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="openTelegramPairingModal()">📲 Pair Telegram</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ptw_assigned_wsho_email">Assigned Safety Officer / Assessor *</label>
+              <select id="ptw_assigned_wsho_email">
+                <option value="safety@eptw-system.com" selected>Default WSHO Assessor (safety@eptw-system.com)</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -3017,6 +3032,8 @@
       }
 
       const applicantSig = getSignatureDataUrl('applicantSigCanvas');
+      const wshoSelect = document.getElementById('ptw_assigned_wsho_email');
+      const selectedWshoText = wshoSelect ? wshoSelect.options[wshoSelect.selectedIndex]?.text || '' : '';
 
       const payload = {
         project_id: document.getElementById('ptw_project_id').value,
@@ -3026,7 +3043,10 @@
         assigned_workers_json: selectedWorkers,
         selected_rams_json: selectedRams,
         status: document.getElementById('ptw_status').value,
-        applicant_signature: applicantSig
+        applicant_signature: applicantSig,
+        applicant_email: document.getElementById('ptw_applicant_email').value.trim(),
+        assigned_wsho_email: wshoSelect ? wshoSelect.value : '',
+        assigned_wsho_name: selectedWshoText
       };
 
       const editingId = document.getElementById('editingPtwId').value;
@@ -3387,12 +3407,83 @@
       updatePtwStatus(ptwId, 'Rejected', { rejection_reason: reason });
     };
 
+    // TELEGRAM PAIRING & DEEP LINK HELPERS
+    window.updateAssignedWshoDropdown = function() {
+      const selectedProjId = document.getElementById('ptw_project_id')?.value;
+      const select = document.getElementById('ptw_assigned_wsho_email');
+      if (!select) return;
+      select.innerHTML = '';
+      
+      const defaultOption = document.createElement('option');
+      defaultOption.value = 'safety@eptw-system.com';
+      defaultOption.textContent = 'Default WSHO Assessor (safety@eptw-system.com)';
+      select.appendChild(defaultOption);
+
+      if (selectedProjId && projectData) {
+        const proj = projectData.find(p => p.project_id === selectedProjId);
+        if (proj && proj.wsho_email) {
+          const siteOption = document.createElement('option');
+          siteOption.value = proj.wsho_email;
+          siteOption.textContent = `Site Assessor: ${proj.wsho_name || 'WSHO'} (${proj.wsho_email})`;
+          siteOption.selected = true;
+          select.appendChild(siteOption);
+        }
+      }
+    };
+
+    window.openTelegramPairingModal = function() {
+      const currentEmail = document.getElementById('ptw_applicant_email').value.trim();
+      if (currentEmail) {
+        document.getElementById('pairing_email').value = currentEmail;
+      }
+      document.getElementById('telegramPairingModal').style.display = 'flex';
+    };
+
+    window.closeTelegramPairingModal = function() {
+      document.getElementById('telegramPairingModal').style.display = 'none';
+      document.getElementById('pairingLinkResult').style.display = 'none';
+    };
+
+    window.generateTelegramPairingLink = async function() {
+      const email = document.getElementById('pairing_email').value.trim();
+      if (!email || !email.includes('@')) {
+        showToast('Please enter a valid email address.', 'error');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/telegram/pairing-link?email=${encodeURIComponent(email)}`);
+        const data = await res.json();
+        if (data.success && data.deep_link) {
+          window.open(data.deep_link, '_blank');
+          document.getElementById('pairingLinkResult').style.display = 'block';
+          document.getElementById('pairingLinkResult').innerHTML = `
+            <div style="background: #dcfce7; color: #166534; padding: 10px; border-radius: 6px; border: 1px solid #bbf7d0;">
+              Opening Telegram bot... Tap <b>START</b> in Telegram to pair notifications for <b>${escapeHtml(email)}</b>.
+            </div>
+          `;
+        }
+      } catch(e) {
+        showToast('Failed to generate pairing link', 'error');
+      }
+    };
+
     // Initial Load & PWA Service Worker Registration
     calculateRPN();
     loadRAMSData();
     loadWorkerData();
     loadProjectData();
     loadPtwData();
+
+    // Check for Deep-Link Permit URL parameter (?ptw=PTW-2026-xxx)
+    const urlParams = new URLSearchParams(window.location.search);
+    const deepPtwId = urlParams.get('ptw');
+    if (deepPtwId) {
+      setTimeout(() => {
+        const ptwTabBtn = document.querySelector('.tab-btn[onclick*="ptwTab"]');
+        if (ptwTabBtn) ptwTabBtn.click();
+        openPermitViewModal(deepPtwId);
+      }, 500);
+    }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -3404,5 +3495,30 @@
       });
     }
   </script>
+
+  <!-- TELEGRAM PAIRING MODAL -->
+  <div id="telegramPairingModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 480px; padding: 0;">
+      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.1rem; font-weight: 700;">📲 1-Tap Telegram Alert Signup</h3>
+        <button class="modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;" onclick="closeTelegramPairingModal()">×</button>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px;">
+          Receive instant permit vetting, approval, and rejection alerts directly in your Telegram app with 1 tap.
+        </p>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="pairing_email">Your Registered Email Address</label>
+          <input type="email" id="pairing_email" placeholder="e.g. supervisor@company.com">
+        </div>
+        <div style="text-align: center; margin-top: 16px;">
+          <button id="btnGeneratePairingLink" class="btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;" onclick="generateTelegramPairingLink()">
+            🔗 Open Telegram Bot & Tap Start
+          </button>
+        </div>
+        <div id="pairingLinkResult" style="margin-top: 16px; display: none; text-align: center; font-size: 0.85rem;"></div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

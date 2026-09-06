@@ -1,10 +1,20 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
+import {
+  dispatchPermitNotification,
+  decodeTelegramToken,
+  encodeTelegramToken,
+  PTWRecordForNotification
+} from './notifications';
 
 type Bindings = {
   DB: D1Database;
   CERT_BUCKET: R2Bucket;
   GEMINI_API_KEY?: string;
+  RESEND_API_KEY?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_BOT_USERNAME?: string;
+  APP_URL?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -309,7 +319,6 @@ app.get('/api/workers', async (c) => {
       'SELECT * FROM Worker_Certificates ORDER BY cert_id ASC'
     ).all();
 
-    // Map certificates to respective worker profiles
     const certsByWorkerId: Record<string, any[]> = {};
     for (const cert of certs) {
       const wId = String(cert.worker_id);
@@ -345,7 +354,6 @@ app.post('/api/workers/upload', async (c) => {
     const fileExtension = fileName.split('.').pop() || 'jpg';
     const key = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
 
-    // Upload raw file to Cloudflare R2 CERT_BUCKET
     if (c.env.CERT_BUCKET) {
       await c.env.CERT_BUCKET.put(key, arrayBuffer, {
         httpMetadata: { contentType: file.type || 'image/jpeg' },
@@ -410,8 +418,8 @@ app.post('/api/workers', async (c) => {
   try {
     const body = await c.req.json();
     const {
-      target_worker_id, // If attaching cert to existing worker
-      worker_id,        // If creating new worker
+      target_worker_id,
+      worker_id,
       name,
       ic_no,
       wp_no,
@@ -433,7 +441,6 @@ app.post('/api/workers', async (c) => {
     const finalFinNo = fin_no || '';
     const combinedIcWp = ic_wp_no || finalIcNo || finalWpNo || finalFinNo || '';
 
-    // 1. If target worker ID is not provided, create a new Worker Profile
     if (!target_worker_id) {
       if (!name) {
         return c.json({ success: false, error: 'Full name is required for new worker.' }, 400);
@@ -443,7 +450,6 @@ app.post('/api/workers', async (c) => {
         finalWorkerId = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
       }
 
-      // Check if worker profile already exists by worker_id, IC, WP, or FIN
       const existingWorker = await c.env.DB.prepare(
         `SELECT worker_id FROM Worker_Registry 
          WHERE worker_id = ? 
@@ -461,7 +467,6 @@ app.post('/api/workers', async (c) => {
         finalWorkerId = String(existingWorker.worker_id);
       }
     } else {
-      // If attaching to existing worker, update profile details if provided
       if (trade || name || finalIcNo || finalWpNo || finalFinNo) {
         await c.env.DB.prepare(
           `UPDATE Worker_Registry 
@@ -475,7 +480,6 @@ app.post('/api/workers', async (c) => {
       }
     }
 
-    // 2. Compute Certificate Validity
     let isValid = 1;
     if (cert_expiry) {
       const today = new Date().toISOString().split('T')[0];
@@ -484,7 +488,6 @@ app.post('/api/workers', async (c) => {
       isValid = cert_valid ? 1 : 0;
     }
 
-    // 3. Insert Certificate into Worker_Certificates
     const certTypeFinal = cert_type || 'General Certificate';
     const certResult = await c.env.DB.prepare(
       `INSERT INTO Worker_Certificates 
@@ -719,7 +722,6 @@ app.get('/api/projects/:id/dashboard', async (c) => {
       return c.json({ success: false, error: 'Project not found.' }, 404);
     }
 
-    // Dynamic / Mock KPI metrics for Project Control Center
     const isTuas = id === 'PRJ-002';
     const isUpcoming = project.status === 'Upcoming';
 
@@ -783,7 +785,75 @@ app.post('/api/projects/provisional', async (c) => {
 });
 
 // ============================================================================
-// ePTW TRANSACTION ENGINE ROUTES (PHASE 1 & PHASE 2 WORKFLOW)
+// PHASE 4 TELEGRAM WEBHOOK & ACCOUNT PAIRING
+// ============================================================================
+
+// POST /api/telegram/webhook - Telegram Bot Webhook endpoint for 1-tap user account binding
+app.post('/api/telegram/webhook', async (c) => {
+  try {
+    const body = await c.req.json();
+    const message = body.message;
+
+    if (message && message.text && message.chat && message.chat.id) {
+      const chatId = String(message.chat.id);
+      const text = message.text.trim();
+      const senderName = [message.from?.first_name, message.from?.last_name].filter(Boolean).join(' ') || 'User';
+
+      if (text.startsWith('/start')) {
+        const parts = text.split(' ');
+        if (parts.length > 1) {
+          const token = parts[1].trim();
+          try {
+            const email = decodeTelegramToken(token);
+            if (email && email.includes('@')) {
+              await c.env.DB.prepare(
+                `INSERT INTO Telegram_Users (email, telegram_chat_id, full_name)
+                 VALUES (?, ?, ?)
+                 ON CONFLICT(email) DO UPDATE SET telegram_chat_id = excluded.telegram_chat_id, full_name = excluded.full_name`
+              ).bind(email.toLowerCase(), chatId, senderName).run();
+
+              const confirmText = `<b>✅ Telegram Notifications Paired Successfully!</b>\n\nWelcome, <b>${senderName}</b>!\nYour Telegram account is bound to: <b>${email}</b>.\nYou will receive instant permit alerts & sign-off links here.`;
+              
+              const botToken = c.env.TELEGRAM_BOT_TOKEN;
+              if (botToken) {
+                await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    text: confirmText,
+                    parse_mode: 'HTML'
+                  })
+                });
+              }
+            }
+          } catch (tokenErr) {
+            console.error('[Telegram Webhook Token Error]', tokenErr);
+          }
+        }
+      }
+    }
+    return c.json({ ok: true });
+  } catch (error: any) {
+    console.error('[Telegram Webhook Error]', error);
+    return c.json({ ok: true }); // Always return 200 OK to Telegram webhook
+  }
+});
+
+// GET /api/telegram/pairing-link?email=... - Generate 1-tap Telegram deep link
+app.get('/api/telegram/pairing-link', (c) => {
+  const email = c.req.query('email');
+  if (!email) {
+    return c.json({ success: false, error: 'Email query parameter required.' }, 400);
+  }
+  const botUsername = c.env.TELEGRAM_BOT_USERNAME || 'unified_eptw_bot';
+  const token = encodeTelegramToken(email);
+  const deepLink = `https://t.me/${botUsername}?start=${token}`;
+  return c.json({ success: true, email, deep_link: deepLink });
+});
+
+// ============================================================================
+// ePTW TRANSACTION ENGINE ROUTES (PHASE 1, PHASE 2, PHASE 4 WORKFLOW)
 // ============================================================================
 
 // GET /api/ptw - Fetch all permits joined with Project details & Safety Officers
@@ -803,7 +873,29 @@ app.get('/api/ptw', async (c) => {
   }
 });
 
-// POST /api/ptw - Create a new permit to work with digital applicant signature
+// GET /api/ptw/:id - Fetch single permit by ID for deep-link direct loading
+app.get('/api/ptw/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const record = await c.env.DB.prepare(
+      `SELECT p.*, 
+              prj.project_name, prj.location, prj.client_name,
+              prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ? OR p.id = ?`
+    ).bind(id, id).first();
+
+    if (!record) {
+      return c.json({ success: false, error: 'Permit not found' }, 404);
+    }
+    return c.json({ success: true, data: record });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw - Create a new permit to work with digital applicant signature & trigger notifications
 app.post('/api/ptw', async (c) => {
   try {
     const body = await c.req.json();
@@ -815,7 +907,10 @@ app.post('/api/ptw', async (c) => {
       selected_rams_json,
       status,
       valid_until,
-      applicant_signature
+      applicant_signature,
+      applicant_email,
+      assigned_wsho_name,
+      assigned_wsho_email
     } = body;
 
     if (!project_id || !work_description) {
@@ -828,7 +923,7 @@ app.post('/api/ptw', async (c) => {
     }
 
     const defaultExpiry = new Date();
-    defaultExpiry.setHours(18, 0, 0, 0); // Default to 6:00 PM today
+    defaultExpiry.setHours(18, 0, 0, 0);
     const expiryStr = valid_until || defaultExpiry.toISOString().replace('T', ' ').substring(0, 19);
 
     const workersJsonStr = typeof assigned_workers_json === 'string' 
@@ -841,13 +936,21 @@ app.post('/api/ptw', async (c) => {
 
     const initialStatus = status || 'Pending Safety Vetting';
 
+    // Fetch project details for notifications
+    const project = await c.env.DB.prepare(
+      'SELECT project_name, wsho_name, wsho_email, pm_email FROM Project_Directory WHERE project_id = ?'
+    ).bind(project_id).first<{ project_name: string; wsho_name: string; wsho_email: string; pm_email: string }>();
+
+    const finalWshoName = assigned_wsho_name || project?.wsho_name || 'Safety Assessor';
+    const finalWshoEmail = assigned_wsho_email || project?.wsho_email || 'safety@eptw-system.com';
+
     await c.env.DB.prepare(
       `INSERT INTO PTW_Records (
         ptw_id, project_id, ptw_type, work_description, 
         assigned_workers_json, selected_rams_json, status, valid_until,
-        applicant_signature
+        applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -857,14 +960,176 @@ app.post('/api/ptw', async (c) => {
       ramsJsonStr,
       initialStatus,
       expiryStr,
-      applicant_signature || null
+      applicant_signature || null,
+      applicant_email || null,
+      finalWshoName,
+      finalWshoEmail
     ).run();
+
+    // Trigger Non-Blocking Background Notification Dispatcher
+    const ptwNotificationData: PTWRecordForNotification = {
+      id: ptw_id,
+      ptw_number: ptw_id,
+      project_name: project?.project_name || 'Site Facility',
+      work_description,
+      applicant_name: 'Site Supervisor',
+      applicant_email: applicant_email || undefined,
+      assigned_wsho_name: finalWshoName,
+      assigned_wsho_email: finalWshoEmail,
+      status: initialStatus
+    };
+
+    c.executionCtx.waitUntil(
+      dispatchPermitNotification(c.env, c.env.DB, ptwNotificationData, 'PERMIT_SUBMITTED')
+    );
 
     return c.json({
       success: true,
       message: `Permit ${ptw_id} created successfully with status '${initialStatus}'.`,
       ptw_id
     }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw/:id/vet - Safety Officer Sign-Off & Vetting
+app.post('/api/ptw/:id/vet', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { safety_signature, safety_officer_name } = body;
+
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*, prj.project_name, prj.pm_email
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ? OR p.id = ?`
+    ).bind(id, id).first<any>();
+
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records 
+       SET status = 'Pending PM Approval', safety_signature = ?, safety_vetted_at = ?
+       WHERE ptw_id = ? OR id = ?`
+    ).bind(safety_signature || 'VET_SIGNED', nowStr, id, id).run();
+
+    const notificationData: PTWRecordForNotification = {
+      id: existing.ptw_id,
+      ptw_number: existing.ptw_id,
+      project_name: existing.project_name || 'Site Facility',
+      work_description: existing.work_description,
+      applicant_name: 'Site Supervisor',
+      applicant_email: existing.applicant_email,
+      assigned_wsho_name: safety_officer_name || existing.assigned_wsho_name || 'WSHO Assessor',
+      assigned_wsho_email: existing.pm_email || existing.assigned_wsho_email,
+      status: 'Pending PM Approval'
+    };
+
+    c.executionCtx.waitUntil(
+      dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_VETTED')
+    );
+
+    return c.json({ success: true, message: `Permit ${existing.ptw_id} vetted by WSHO. Pending PM Approval.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw/:id/approve - Project Manager Final Authorization
+app.post('/api/ptw/:id/approve', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { pm_signature } = body;
+
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*, prj.project_name
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ? OR p.id = ?`
+    ).bind(id, id).first<any>();
+
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records 
+       SET status = 'Active', pm_signature = ?, pm_approved_at = ?
+       WHERE ptw_id = ? OR id = ?`
+    ).bind(pm_signature || 'PM_SIGNED', nowStr, id, id).run();
+
+    const notificationData: PTWRecordForNotification = {
+      id: existing.ptw_id,
+      ptw_number: existing.ptw_id,
+      project_name: existing.project_name || 'Site Facility',
+      work_description: existing.work_description,
+      applicant_name: 'Site Supervisor',
+      applicant_email: existing.applicant_email,
+      assigned_wsho_name: existing.assigned_wsho_name,
+      assigned_wsho_email: existing.assigned_wsho_email,
+      status: 'Active'
+    };
+
+    c.executionCtx.waitUntil(
+      dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_APPROVED')
+    );
+
+    return c.json({ success: true, message: `Permit ${existing.ptw_id} approved and is now ACTIVE.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw/:id/reject - Rejection Handler
+app.post('/api/ptw/:id/reject', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { rejection_reason } = body;
+
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*, prj.project_name
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ? OR p.id = ?`
+    ).bind(id, id).first<any>();
+
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    const reason = rejection_reason || 'Safety requirements incomplete.';
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records 
+       SET status = 'Rejected', rejection_reason = ?
+       WHERE ptw_id = ? OR id = ?`
+    ).bind(reason, id, id).run();
+
+    const notificationData: PTWRecordForNotification = {
+      id: existing.ptw_id,
+      ptw_number: existing.ptw_id,
+      project_name: existing.project_name || 'Site Facility',
+      work_description: existing.work_description,
+      applicant_name: 'Site Supervisor',
+      applicant_email: existing.applicant_email,
+      assigned_wsho_name: existing.assigned_wsho_name,
+      assigned_wsho_email: existing.assigned_wsho_email,
+      status: 'Rejected',
+      rejection_reason: reason
+    };
+
+    c.executionCtx.waitUntil(
+      dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_REJECTED')
+    );
+
+    return c.json({ success: true, message: `Permit ${existing.ptw_id} has been rejected.` });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -886,10 +1151,13 @@ app.put('/api/ptw/:id', async (c) => {
       applicant_signature,
       safety_signature,
       pm_signature,
-      rejection_reason
+      rejection_reason,
+      applicant_email,
+      assigned_wsho_name,
+      assigned_wsho_email
     } = body;
 
-    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first();
+    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ? OR id = ?').bind(id, id).first<any>();
     if (!existing) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
     }
@@ -912,6 +1180,9 @@ app.put('/api/ptw/:id', async (c) => {
     const updatedSafetySig = safety_signature !== undefined ? safety_signature : existing.safety_signature;
     const updatedPmSig = pm_signature !== undefined ? pm_signature : existing.pm_signature;
     const updatedRejection = rejection_reason !== undefined ? rejection_reason : existing.rejection_reason;
+    const updatedApplicantEmail = applicant_email !== undefined ? applicant_email : existing.applicant_email;
+    const updatedWshoName = assigned_wsho_name !== undefined ? assigned_wsho_name : existing.assigned_wsho_name;
+    const updatedWshoEmail = assigned_wsho_email !== undefined ? assigned_wsho_email : existing.assigned_wsho_email;
 
     let safetyVettedAt = existing.safety_vetted_at;
     let pmApprovedAt = existing.pm_approved_at;
@@ -932,8 +1203,9 @@ app.put('/api/ptw/:id', async (c) => {
       `UPDATE PTW_Records 
        SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?,
            status = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
-           safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, rejection_reason = ?
-       WHERE ptw_id = ?`
+           safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, rejection_reason = ?,
+           applicant_email = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
+       WHERE ptw_id = ? OR id = ?`
     ).bind(
       updatedProjectId,
       updatedType,
@@ -949,6 +1221,10 @@ app.put('/api/ptw/:id', async (c) => {
       pmApprovedAt,
       closedAt,
       updatedRejection,
+      updatedApplicantEmail,
+      updatedWshoName,
+      updatedWshoEmail,
+      id,
       id
     ).run();
 
@@ -962,7 +1238,7 @@ app.put('/api/ptw/:id', async (c) => {
 app.delete('/api/ptw/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ?').bind(id).run();
+    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ? OR id = ?').bind(id, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
@@ -978,5 +1254,3 @@ app.delete('/api/ptw/:id', async (c) => {
 app.use('/*', serveStatic({ root: './' }));
 
 export default app;
-
-
