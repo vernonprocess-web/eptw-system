@@ -3306,7 +3306,7 @@
           <div style="background: #eff6ff; border: 2px dashed #3b82f6; padding: 16px; border-radius: 8px; margin-top: 16px;">
             <h4 style="color: #1d4ed8; margin-bottom: 8px;">👔 Project Manager Final Authorization Panel</h4>
             <p style="font-size: 0.85rem; color: #475569; margin-bottom: 10px;">
-              Target Project Manager: <strong>${escapeHtml(item.project_manager || 'Site PM')}</strong> (${escapeHtml(item.pm_email || 'Email pending')})
+              Target Project Manager: <strong>${escapeHtml(item.assigned_pm_name || item.project_manager || 'Site PM')}</strong> (${escapeHtml(item.assigned_pm_email || item.pm_email || 'Email pending')})
             </p>
             <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 6px;">Sign below for final site permit issuance:</label>
             <canvas id="modalPmSigCanvas" width="400" height="100" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 400px; height: 100px; border: 1px dashed #3b82f6; border-radius: 4px; background: #fff;"></canvas>
