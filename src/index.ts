@@ -886,20 +886,50 @@ app.get('/api/ptw/:id', async (c) => {
        WHERE p.ptw_id = ?`
     ).bind(id).first();
 
-    if (!record) {
-      return c.json({ success: false, error: 'Permit not found' }, 404);
-    }
     return c.json({ success: true, data: record });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
+// POST /api/users - Create new system user
+app.post('/api/users', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { name, email, phone, role } = body;
+    if (!name || !email || !role) {
+      return c.json({ success: false, error: 'Name, email, and role are required.' }, 400);
+    }
+    const userId = `usr_${role.toLowerCase().slice(0, 3)}_${Math.floor(100 + Math.random() * 900)}`;
+    await c.env.DB.prepare(
+      'INSERT INTO users (id, name, email, phone, role) VALUES (?, ?, ?, ?, ?)'
+    ).bind(userId, name, email, phone || null, role).run();
+    return c.json({ success: true, message: 'User created successfully', id: userId }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
 
-// POST /api/ptw - Create a new permit to work with digital applicant signature & trigger notifications
+// PUT /api/users/:id - Update user profile
+app.put('/api/users/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { name, email, phone, role, status } = body;
+    await c.env.DB.prepare(
+      'UPDATE users SET name = ?, email = ?, phone = ?, role = ?, status = ? WHERE id = ?'
+    ).bind(name, email, phone || null, role, status || 'ACTIVE', id).run();
+    return c.json({ success: true, message: 'User updated successfully' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw - Create a new permit with idempotency check
 app.post('/api/ptw', async (c) => {
   try {
     const body = await c.req.json();
     const {
+      client_id,
       project_id,
       ptw_type,
       work_description,
@@ -912,11 +942,27 @@ app.post('/api/ptw', async (c) => {
       assigned_wsho_name,
       assigned_wsho_email,
       assigned_pm_name,
-      assigned_pm_email
+      assigned_pm_email,
+      pm_user_id,
+      assessor_user_id
     } = body;
 
     if (!project_id || !work_description) {
       return c.json({ success: false, error: 'Project Site and Work Description are required.' }, 400);
+    }
+
+    // Idempotency Check: if client_id already exists, return existing record
+    if (client_id) {
+      const existingClient = await c.env.DB.prepare(
+        'SELECT ptw_id, status FROM PTW_Records WHERE client_id = ?'
+      ).bind(client_id).first<any>();
+      if (existingClient) {
+        return c.json({
+          success: true,
+          message: `Permit ${existingClient.ptw_id} already created (Idempotent).`,
+          ptw_id: existingClient.ptw_id
+        }, 200);
+      }
     }
 
     let { ptw_id } = body;
@@ -953,9 +999,9 @@ app.post('/api/ptw', async (c) => {
         ptw_id, project_id, ptw_type, work_description, 
         assigned_workers_json, selected_rams_json, status, valid_until,
         applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email,
-        assigned_pm_name, assigned_pm_email
+        assigned_pm_name, assigned_pm_email, client_id, pm_user_id, assessor_user_id
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -970,7 +1016,10 @@ app.post('/api/ptw', async (c) => {
       finalWshoName,
       finalWshoEmail,
       finalPmName,
-      finalPmEmail
+      finalPmEmail,
+      client_id || null,
+      pm_user_id || null,
+      assessor_user_id || null
     ).run();
 
     // Trigger Non-Blocking Background Notification Dispatcher
@@ -1002,12 +1051,12 @@ app.post('/api/ptw', async (c) => {
   }
 });
 
-// POST /api/ptw/:id/vet - Safety Officer Sign-Off & Vetting
+// POST /api/ptw/:id/vet - Safety Officer Sign-Off & Vetting (Idempotent)
 app.post('/api/ptw/:id/vet', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { safety_signature, safety_officer_name } = body;
+    const { safety_signature, safety_officer_name, action_transaction_id } = body;
 
     const existing = await c.env.DB.prepare(
       `SELECT p.*, prj.project_name, prj.pm_email
@@ -1020,12 +1069,17 @@ app.post('/api/ptw/:id/vet', async (c) => {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
     }
 
+    // Idempotency check for vetting action
+    if (action_transaction_id && existing.action_transaction_id === action_transaction_id) {
+      return c.json({ success: true, message: `Permit ${existing.ptw_id} already vetted (Idempotent).` });
+    }
+
     const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
-       SET status = 'Pending PM Approval', safety_signature = ?, safety_vetted_at = ?
+       SET status = 'Pending PM Approval', safety_signature = ?, safety_vetted_at = ?, action_transaction_id = ?
        WHERE ptw_id = ?`
-    ).bind(safety_signature || 'VET_SIGNED', nowStr, id).run();
+    ).bind(safety_signature || 'VET_SIGNED', nowStr, action_transaction_id || null, id).run();
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1051,12 +1105,12 @@ app.post('/api/ptw/:id/vet', async (c) => {
   }
 });
 
-// POST /api/ptw/:id/approve - Project Manager Final Authorization
+// POST /api/ptw/:id/approve - Project Manager Final Authorization (Idempotent)
 app.post('/api/ptw/:id/approve', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { pm_signature } = body;
+    const { pm_signature, action_transaction_id } = body;
 
     const existing = await c.env.DB.prepare(
       `SELECT p.*, prj.project_name
@@ -1069,12 +1123,17 @@ app.post('/api/ptw/:id/approve', async (c) => {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
     }
 
+    // Idempotency check for approval action
+    if (action_transaction_id && existing.action_transaction_id === action_transaction_id) {
+      return c.json({ success: true, message: `Permit ${existing.ptw_id} already approved (Idempotent).` });
+    }
+
     const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
-       SET status = 'Active', pm_signature = ?, pm_approved_at = ?
+       SET status = 'Active', pm_signature = ?, pm_approved_at = ?, action_transaction_id = ?
        WHERE ptw_id = ?`
-    ).bind(pm_signature || 'PM_SIGNED', nowStr, id).run();
+    ).bind(pm_signature || 'PM_SIGNED', nowStr, action_transaction_id || null, id).run();
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,

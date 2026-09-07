@@ -3,7 +3,15 @@ const CACHE_NAME = 'eptw-system-cache-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/css/theme.css',
+  '/assets/js/api.js',
+  '/assets/js/db.js',
+  '/assets/js/signature.js',
+  '/assets/js/ocr.js',
+  '/assets/js/rams.js',
+  '/assets/js/ptw.js',
+  '/assets/js/app.js'
 ];
 
 self.addEventListener('install', (event) => {
