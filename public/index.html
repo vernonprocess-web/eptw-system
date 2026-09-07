@@ -3394,28 +3394,76 @@
       document.getElementById('permitViewModal').style.display = 'none';
     };
 
-    window.submitWshoEndorsement = function(ptwId) {
+    window.submitWshoEndorsement = async function(ptwId) {
       const sigData = getSignatureDataUrl('modalWshoSigCanvas');
       if (!sigData) {
         showToast('Please sign on the endorsement pad before submitting.', 'error');
         return;
       }
-      updatePtwStatus(ptwId, 'Pending PM Approval', { safety_signature: sigData });
+      try {
+        const response = await fetch(`/api/ptw/${ptwId}/vet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ safety_signature: sigData })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} vetted by WSHO. PM authorization email sent!`);
+          loadPtwData();
+          closePermitViewModal();
+        } else {
+          showToast(`Vetting failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
     };
 
-    window.submitPmAuthorization = function(ptwId) {
+    window.submitPmAuthorization = async function(ptwId) {
       const sigData = getSignatureDataUrl('modalPmSigCanvas');
       if (!sigData) {
         showToast('Please sign on the authorization pad before issuing permit.', 'error');
         return;
       }
-      updatePtwStatus(ptwId, 'Active', { pm_signature: sigData });
+      try {
+        const response = await fetch(`/api/ptw/${ptwId}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pm_signature: sigData })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} approved and is now ACTIVE! Approval emails sent.`);
+          loadPtwData();
+          closePermitViewModal();
+        } else {
+          showToast(`Authorization failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
     };
 
-    window.rejectPermit = function(ptwId) {
+    window.rejectPermit = async function(ptwId) {
       const reason = prompt('Please enter the reason for permit rejection:');
       if (reason === null) return;
-      updatePtwStatus(ptwId, 'Rejected', { rejection_reason: reason });
+      try {
+        const response = await fetch(`/api/ptw/${ptwId}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rejection_reason: reason })
+        });
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} rejected. Rejection notification email sent.`);
+          loadPtwData();
+          closePermitViewModal();
+        } else {
+          showToast(`Rejection failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
     };
 
     // TELEGRAM PAIRING & DEEP LINK HELPERS
