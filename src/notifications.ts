@@ -62,7 +62,7 @@ export async function sendResendEmail(params: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                from: 'Unified ePTW System <onboarding@resend.dev>',
+                from: 'Unified ePTW System <notifications@unified-as.com>',
                 to: [params.to],
                 subject: params.subject,
                 html: params.htmlContent

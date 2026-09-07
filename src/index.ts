@@ -883,8 +883,8 @@ app.get('/api/ptw/:id', async (c) => {
               prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
-       WHERE p.ptw_id = ? OR p.id = ?`
-    ).bind(id, id).first();
+       WHERE p.ptw_id = ?`
+    ).bind(id).first();
 
     if (!record) {
       return c.json({ success: false, error: 'Permit not found' }, 404);
@@ -1004,8 +1004,8 @@ app.post('/api/ptw/:id/vet', async (c) => {
       `SELECT p.*, prj.project_name, prj.pm_email
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
-       WHERE p.ptw_id = ? OR p.id = ?`
-    ).bind(id, id).first<any>();
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
 
     if (!existing) {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
@@ -1015,8 +1015,8 @@ app.post('/api/ptw/:id/vet', async (c) => {
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
        SET status = 'Pending PM Approval', safety_signature = ?, safety_vetted_at = ?
-       WHERE ptw_id = ? OR id = ?`
-    ).bind(safety_signature || 'VET_SIGNED', nowStr, id, id).run();
+       WHERE ptw_id = ?`
+    ).bind(safety_signature || 'VET_SIGNED', nowStr, id).run();
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1051,8 +1051,8 @@ app.post('/api/ptw/:id/approve', async (c) => {
       `SELECT p.*, prj.project_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
-       WHERE p.ptw_id = ? OR p.id = ?`
-    ).bind(id, id).first<any>();
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
 
     if (!existing) {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
@@ -1062,8 +1062,8 @@ app.post('/api/ptw/:id/approve', async (c) => {
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
        SET status = 'Active', pm_signature = ?, pm_approved_at = ?
-       WHERE ptw_id = ? OR id = ?`
-    ).bind(pm_signature || 'PM_SIGNED', nowStr, id, id).run();
+       WHERE ptw_id = ?`
+    ).bind(pm_signature || 'PM_SIGNED', nowStr, id).run();
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1098,8 +1098,8 @@ app.post('/api/ptw/:id/reject', async (c) => {
       `SELECT p.*, prj.project_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
-       WHERE p.ptw_id = ? OR p.id = ?`
-    ).bind(id, id).first<any>();
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
 
     if (!existing) {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
@@ -1109,8 +1109,8 @@ app.post('/api/ptw/:id/reject', async (c) => {
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
        SET status = 'Rejected', rejection_reason = ?
-       WHERE ptw_id = ? OR id = ?`
-    ).bind(reason, id, id).run();
+       WHERE ptw_id = ?`
+    ).bind(reason, id).run();
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1157,7 +1157,7 @@ app.put('/api/ptw/:id', async (c) => {
       assigned_wsho_email
     } = body;
 
-    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ? OR id = ?').bind(id, id).first<any>();
+    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
     if (!existing) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
     }
@@ -1205,7 +1205,7 @@ app.put('/api/ptw/:id', async (c) => {
            status = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
            safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, rejection_reason = ?,
            applicant_email = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
-       WHERE ptw_id = ? OR id = ?`
+       WHERE ptw_id = ?`
     ).bind(
       updatedProjectId,
       updatedType,
@@ -1224,7 +1224,6 @@ app.put('/api/ptw/:id', async (c) => {
       updatedApplicantEmail,
       updatedWshoName,
       updatedWshoEmail,
-      id,
       id
     ).run();
 
@@ -1238,7 +1237,7 @@ app.put('/api/ptw/:id', async (c) => {
 app.delete('/api/ptw/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ? OR id = ?').bind(id, id).run();
+    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ?').bind(id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
