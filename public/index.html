@@ -2286,6 +2286,7 @@
         if (result.success) {
           showToast(`Permit ${ptwId} deleted successfully.`);
           loadPtwData();
+          if (typeof window.loadPTWs === 'function') window.loadPTWs('ptwTableBody');
         } else {
           showToast(`Delete failed: ${result.error}`, 'error');
         }

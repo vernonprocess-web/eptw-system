@@ -60,35 +60,54 @@ export function renderPTWTable(tableBodyId, query = '') {
     return;
   }
 
-  tbody.innerHTML = filtered.map(item => `
-    <tr>
-      <td><strong>${escapeHtml(item.ptw_id)}</strong></td>
-      <td>${escapeHtml(item.project_name || item.project_id || 'Facility Site')}</td>
-      <td><span class="badge-tag">${escapeHtml(item.ptw_type || 'General Work')}</span></td>
-      <td>${escapeHtml(item.work_description || '')}</td>
-      <td><small>${formatWorkers(item.assigned_workers_json)}</small></td>
-      <td><small>${formatRAMS(item.selected_rams_json)}</small></td>
-      <td><small>${formatDate(item.valid_until)}</small></td>
-      <td style="text-align: center;">${getStatusBadgeHTML(item.status)}</td>
-      <td style="text-align: center;">
-        <div class="action-btn-group">
-          <button type="button" class="btn-action-view" onclick="window.viewPermitDocument('${item.ptw_id}')">View</button>
-          ${renderActionButtons(item)}
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = filtered.map(item => {
+    let stageActionBtn = '';
+    if (item.status === 'Pending Safety Vetting') {
+      stageActionBtn = `<button type="button" class="btn-bypass" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">🛡️ Vet</button>`;
+    } else if (item.status === 'Pending PM Approval') {
+      stageActionBtn = `<button type="button" class="btn-action-dashboard" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Approve</button>`;
+    } else if (item.status === 'Active') {
+      stageActionBtn = `<button type="button" class="btn-action-edit" onclick="window.updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>`;
+    }
+
+    const wshoName = item.assigned_wsho_name || item.wsho_name;
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(item.ptw_id)}</strong></td>
+        <td>
+          <strong>${escapeHtml(item.project_name || item.project_id || 'Facility Site')}</strong>
+          <div style="font-size: 0.75rem; color: #64748b;">${escapeHtml(item.location || '')}</div>
+          ${wshoName ? `<div style="font-size: 0.72rem; color: #0284c7;">🛡️ ${escapeHtml(wshoName)}</div>` : ''}
+        </td>
+        <td><span class="badge-tag">${escapeHtml(item.ptw_type || 'General Work')}</span></td>
+        <td>${escapeHtml(item.work_description || '')}</td>
+        <td><small>${formatWorkers(item.assigned_workers_json)}</small></td>
+        <td><small>${formatRAMS(item.selected_rams_json)}</small></td>
+        <td><small>${formatDate(item.valid_until)}</small></td>
+        <td style="text-align: center;">${getStatusBadgeHTML(item.status)}</td>
+        <td style="text-align: center;">
+          <div class="action-btn-group">
+            <button type="button" class="btn-action-view" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ Review</button>
+            ${stageActionBtn}
+            <button type="button" class="btn-action-edit" onclick="window.startEditPtw('${escapeHtml(item.ptw_id)}')">Edit</button>
+            <button type="button" class="btn-action-delete" onclick="window.deletePtw('${escapeHtml(item.ptw_id)}')">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
-function renderActionButtons(item) {
-  if (item.status === 'Pending Safety Vetting') {
-    return `<button type="button" class="btn-bypass" onclick="window.vetPermit('${item.ptw_id}')">Vet (Safety)</button>`;
-  }
-  if (item.status === 'Pending PM Approval') {
-    return `<button type="button" class="btn-action-dashboard" onclick="window.approvePermit('${item.ptw_id}')">Approve (PM)</button>`;
-  }
-  return '';
-}
+window.viewPermitDocument = function(ptwId) {
+  if (typeof window.openPermitViewModal === 'function') window.openPermitViewModal(ptwId);
+};
+window.vetPermit = function(ptwId) {
+  if (typeof window.openPermitViewModal === 'function') window.openPermitViewModal(ptwId);
+};
+window.approvePermit = function(ptwId) {
+  if (typeof window.openPermitViewModal === 'function') window.openPermitViewModal(ptwId);
+};
 
 function formatWorkers(workersJson) {
   try {
@@ -116,3 +135,6 @@ function formatDate(dateStr) {
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+window.loadPTWs = loadPTWs;
+window.reloadPTWTable = function() { loadPTWs('ptwTableBody'); };

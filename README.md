@@ -37,6 +37,8 @@ npx wrangler d1 execute master-rams-db --local --file=./schema.sql
 npx wrangler d1 execute master-rams-db --local --file=./add_workers.sql
 npx wrangler d1 execute master-rams-db --local --file=./add_projects.sql
 npx wrangler d1 execute master-rams-db --local --file=./add_ptw.sql
+npx wrangler d1 execute master-rams-db --local --file=./update_schema_phase1_phase2.sql
+npx wrangler d1 execute master-rams-db --local --file=./update_schema_phase4.sql
 ```
 
 ### 3. Run Development Server

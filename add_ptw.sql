@@ -10,6 +10,16 @@ CREATE TABLE IF NOT EXISTS PTW_Records (
     selected_rams_json TEXT, 
     status TEXT DEFAULT 'Draft', 
     valid_until DATETIME,
+    applicant_signature TEXT,
+    safety_signature TEXT,
+    pm_signature TEXT,
+    safety_vetted_at DATETIME,
+    pm_approved_at DATETIME,
+    closed_at DATETIME,
+    rejection_reason TEXT,
+    applicant_email TEXT,
+    assigned_wsho_name TEXT,
+    assigned_wsho_email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES Project_Directory(project_id) ON DELETE CASCADE
 );
