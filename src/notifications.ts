@@ -16,6 +16,8 @@ export interface PTWRecordForNotification {
     applicant_email?: string;
     assigned_wsho_name?: string;
     assigned_wsho_email?: string;
+    assigned_pm_name?: string;
+    assigned_pm_email?: string;
     status: string;
     rejection_reason?: string;
 }
@@ -188,8 +190,9 @@ export async function dispatchPermitNotification(
     } else if (eventType === 'PERMIT_VETTED') {
         subject = `📋 [ePTW] PM Authorization Required: ${ptw.ptw_number}`;
         // PM notification
-        if (ptw.assigned_wsho_email) {
-            recipients.push({ email: ptw.assigned_wsho_email, name: 'Project Manager', role: 'PM' });
+        const pmEmail = ptw.assigned_pm_email || ptw.assigned_wsho_email;
+        if (pmEmail) {
+            recipients.push({ email: pmEmail, name: ptw.assigned_pm_name || 'Project Manager', role: 'PM' });
         }
 
         emailHtml = `

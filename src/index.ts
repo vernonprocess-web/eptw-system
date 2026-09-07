@@ -910,7 +910,9 @@ app.post('/api/ptw', async (c) => {
       applicant_signature,
       applicant_email,
       assigned_wsho_name,
-      assigned_wsho_email
+      assigned_wsho_email,
+      assigned_pm_name,
+      assigned_pm_email
     } = body;
 
     if (!project_id || !work_description) {
@@ -938,19 +940,22 @@ app.post('/api/ptw', async (c) => {
 
     // Fetch project details for notifications
     const project = await c.env.DB.prepare(
-      'SELECT project_name, wsho_name, wsho_email, pm_email FROM Project_Directory WHERE project_id = ?'
-    ).bind(project_id).first<{ project_name: string; wsho_name: string; wsho_email: string; pm_email: string }>();
+      'SELECT project_name, project_manager, wsho_name, wsho_email, pm_email FROM Project_Directory WHERE project_id = ?'
+    ).bind(project_id).first<{ project_name: string; project_manager: string; wsho_name: string; wsho_email: string; pm_email: string }>();
 
     const finalWshoName = assigned_wsho_name || project?.wsho_name || 'Safety Assessor';
     const finalWshoEmail = assigned_wsho_email || project?.wsho_email || 'safety@eptw-system.com';
+    const finalPmName = assigned_pm_name || project?.project_manager || 'Project Manager';
+    const finalPmEmail = assigned_pm_email || project?.pm_email || 'pm@eptw-system.com';
 
     await c.env.DB.prepare(
       `INSERT INTO PTW_Records (
         ptw_id, project_id, ptw_type, work_description, 
         assigned_workers_json, selected_rams_json, status, valid_until,
-        applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email
+        applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email,
+        assigned_pm_name, assigned_pm_email
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -963,7 +968,9 @@ app.post('/api/ptw', async (c) => {
       applicant_signature || null,
       applicant_email || null,
       finalWshoName,
-      finalWshoEmail
+      finalWshoEmail,
+      finalPmName,
+      finalPmEmail
     ).run();
 
     // Trigger Non-Blocking Background Notification Dispatcher
@@ -976,6 +983,8 @@ app.post('/api/ptw', async (c) => {
       applicant_email: applicant_email || undefined,
       assigned_wsho_name: finalWshoName,
       assigned_wsho_email: finalWshoEmail,
+      assigned_pm_name: finalPmName,
+      assigned_pm_email: finalPmEmail,
       status: initialStatus
     };
 
@@ -1026,7 +1035,9 @@ app.post('/api/ptw/:id/vet', async (c) => {
       applicant_name: 'Site Supervisor',
       applicant_email: existing.applicant_email,
       assigned_wsho_name: safety_officer_name || existing.assigned_wsho_name || 'WSHO Assessor',
-      assigned_wsho_email: existing.pm_email || existing.assigned_wsho_email,
+      assigned_wsho_email: existing.assigned_wsho_email,
+      assigned_pm_name: existing.assigned_pm_name || existing.project_manager || 'Project Manager',
+      assigned_pm_email: existing.assigned_pm_email || existing.pm_email,
       status: 'Pending PM Approval'
     };
 

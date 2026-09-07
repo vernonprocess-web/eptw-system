@@ -1367,6 +1367,13 @@
             </div>
 
             <div class="form-group">
+              <label for="ptw_assigned_pm_email">Assigned Project Manager / Authorizer *</label>
+              <select id="ptw_assigned_pm_email">
+                <option value="pm@eptw-system.com" selected>Default Project Manager (pm@eptw-system.com)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label for="ptw_type">High-Risk Permit Category *</label>
               <select id="ptw_type" required>
                 <option value="Work at Height" selected>🔴 Work at Height (WAH)</option>
@@ -3034,6 +3041,8 @@
       const applicantSig = getSignatureDataUrl('applicantSigCanvas');
       const wshoSelect = document.getElementById('ptw_assigned_wsho_email');
       const selectedWshoText = wshoSelect ? wshoSelect.options[wshoSelect.selectedIndex]?.text || '' : '';
+      const pmSelect = document.getElementById('ptw_assigned_pm_email');
+      const selectedPmText = pmSelect ? pmSelect.options[pmSelect.selectedIndex]?.text || '' : '';
 
       const payload = {
         project_id: document.getElementById('ptw_project_id').value,
@@ -3046,7 +3055,9 @@
         applicant_signature: applicantSig,
         applicant_email: document.getElementById('ptw_applicant_email').value.trim(),
         assigned_wsho_email: wshoSelect ? wshoSelect.value : '',
-        assigned_wsho_name: selectedWshoText
+        assigned_wsho_name: selectedWshoText,
+        assigned_pm_email: pmSelect ? pmSelect.value : '',
+        assigned_pm_name: selectedPmText
       };
 
       const editingId = document.getElementById('editingPtwId').value;
@@ -3410,23 +3421,43 @@
     // TELEGRAM PAIRING & DEEP LINK HELPERS
     window.updateAssignedWshoDropdown = function() {
       const selectedProjId = document.getElementById('ptw_project_id')?.value;
-      const select = document.getElementById('ptw_assigned_wsho_email');
-      if (!select) return;
-      select.innerHTML = '';
+      const wshoSelect = document.getElementById('ptw_assigned_wsho_email');
+      const pmSelect = document.getElementById('ptw_assigned_pm_email');
       
-      const defaultOption = document.createElement('option');
-      defaultOption.value = 'safety@eptw-system.com';
-      defaultOption.textContent = 'Default WSHO Assessor (safety@eptw-system.com)';
-      select.appendChild(defaultOption);
+      if (wshoSelect) {
+        wshoSelect.innerHTML = '';
+        const defaultWsho = document.createElement('option');
+        defaultWsho.value = 'safety@eptw-system.com';
+        defaultWsho.textContent = 'Default WSHO Assessor (safety@eptw-system.com)';
+        wshoSelect.appendChild(defaultWsho);
+      }
+
+      if (pmSelect) {
+        pmSelect.innerHTML = '';
+        const defaultPm = document.createElement('option');
+        defaultPm.value = 'pm@eptw-system.com';
+        defaultPm.textContent = 'Default Project Manager (pm@eptw-system.com)';
+        pmSelect.appendChild(defaultPm);
+      }
 
       if (selectedProjId && projectData) {
         const proj = projectData.find(p => p.project_id === selectedProjId);
-        if (proj && proj.wsho_email) {
-          const siteOption = document.createElement('option');
-          siteOption.value = proj.wsho_email;
-          siteOption.textContent = `Site Assessor: ${proj.wsho_name || 'WSHO'} (${proj.wsho_email})`;
-          siteOption.selected = true;
-          select.appendChild(siteOption);
+        if (proj) {
+          if (wshoSelect && proj.wsho_email) {
+            const siteWsho = document.createElement('option');
+            siteWsho.value = proj.wsho_email;
+            siteWsho.textContent = `Site Assessor: ${proj.wsho_name || 'WSHO'} (${proj.wsho_email})`;
+            siteWsho.selected = true;
+            wshoSelect.appendChild(siteWsho);
+          }
+
+          if (pmSelect && proj.pm_email) {
+            const sitePm = document.createElement('option');
+            sitePm.value = proj.pm_email;
+            sitePm.textContent = `Site PM: ${proj.project_manager || 'PM'} (${proj.pm_email})`;
+            sitePm.selected = true;
+            pmSelect.appendChild(sitePm);
+          }
         }
       }
     };
