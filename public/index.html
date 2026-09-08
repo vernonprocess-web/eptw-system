@@ -214,7 +214,17 @@
 
             <div class="form-group">
               <label for="trade">Trade / Designation *</label>
-              <input type="text" id="trade" required placeholder="e.g. CONSTRUCTION / Solar Installer">
+              <input type="text" id="trade" required placeholder="e.g. CONSTRUCTION / Solar Installer / Site Supervisor">
+            </div>
+
+            <div class="form-group">
+              <label for="worker_email">Email Address</label>
+              <input type="email" id="worker_email" placeholder="e.g. supervisor@company.com">
+            </div>
+
+            <div class="form-group">
+              <label for="worker_phone">Contact / Phone No.</label>
+              <input type="text" id="worker_phone" placeholder="e.g. +65 9123 4567">
             </div>
 
             <!-- Certificate Details -->
@@ -320,14 +330,28 @@
                 <input type="text" id="location_input" required placeholder="e.g. 10 Sakra Road, Jurong Island">
               </div>
 
-              <div class="form-group">
-                <label for="project_manager_input">Project Manager Name</label>
-                <input type="text" id="project_manager_input" placeholder="e.g. Vernon Tan">
+              <div class="form-group" style="grid-column: span 2; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
+                <label for="pm_select_input" style="color: #0369a1; font-weight: 700;">👤 Select Registered Project Manager (PM)</label>
+                <select id="pm_select_input" onchange="handlePmDropdownChange(this)">
+                  <option value="">-- Select PM to Auto-Fill Details (or type manually below) --</option>
+                </select>
               </div>
 
               <div class="form-group">
-                <label for="pm_email_input">PM Email Address</label>
-                <input type="email" id="pm_email_input" placeholder="e.g. vernon.tan@company.com">
+                <label for="project_manager_input">Project Manager Name *</label>
+                <input type="text" id="project_manager_input" required placeholder="e.g. Vernon Tan">
+              </div>
+
+              <div class="form-group">
+                <label for="pm_email_input">PM Email Address *</label>
+                <input type="email" id="pm_email_input" required placeholder="e.g. vernon.tan@company.com">
+              </div>
+
+              <div class="form-group" style="grid-column: span 2; background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <label for="wsho_select_input" style="color: #15803d; font-weight: 700;">🛡️ Select Designated WSHO / Safety Assessor</label>
+                <select id="wsho_select_input" onchange="handleWshoDropdownChange(this)">
+                  <option value="">-- Select WSHO to Auto-Fill Details (or type manually below) --</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -343,6 +367,13 @@
               <div class="form-group">
                 <label for="wsho_phone_input">WSHO Contact / Phone No.</label>
                 <input type="text" id="wsho_phone_input" placeholder="e.g. +65 9123 4567">
+              </div>
+
+              <div class="form-group" style="grid-column: span 2; background: #fff7ed; padding: 12px; border-radius: 8px; border: 1px solid #fed7aa;">
+                <label for="supervisor_select_input" style="color: #c2410c; font-weight: 700;">👷 Select Site Supervisor (From Worker Registry)</label>
+                <select id="supervisor_select_input" onchange="handleSupervisorDropdownChange(this)">
+                  <option value="">-- Select Site Supervisor --</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -671,6 +702,7 @@
     let workerData = [];
     let projectData = [];
     let ptwData = [];
+    let systemUserData = [];
     let expandedWorkers = new Set(); // Track expanded drawer rows
     
     // RAMS State
@@ -1136,6 +1168,7 @@
           populateTargetWorkerDropdown();
           updateWorkerSortHeaderIcons();
           renderProcessedWorkerData();
+          populateProjectUserDropdowns();
         } else {
           showToast(`Error fetching worker records: ${result.error}`, 'error');
         }
@@ -1416,6 +1449,9 @@
       e.preventDefault();
 
       const targetId = targetWorkerSelect.value;
+      const emailEl = document.getElementById('worker_email');
+      const phoneEl = document.getElementById('worker_phone');
+
       const payload = {
         target_worker_id: targetId || null,
         worker_id: document.getElementById('worker_id').value.trim(),
@@ -1424,6 +1460,8 @@
         wp_no: document.getElementById('wp_no').value.trim(),
         fin_no: document.getElementById('fin_no').value.trim(),
         trade: document.getElementById('trade').value.trim(),
+        email: emailEl ? emailEl.value.trim() : '',
+        phone: phoneEl ? phoneEl.value.trim() : '',
         cert_type: document.getElementById('cert_type').value.trim(),
         cert_no: document.getElementById('cert_no').value.trim(),
         issuer: document.getElementById('issuer').value.trim(),
@@ -1443,7 +1481,9 @@
               ic_no: payload.ic_no,
               wp_no: payload.wp_no,
               fin_no: payload.fin_no,
-              trade: payload.trade
+              trade: payload.trade,
+              email: payload.email,
+              phone: payload.phone
             })
           });
         } else {
@@ -1479,6 +1519,11 @@
       document.getElementById('wp_no').value = item.wp_no || '';
       document.getElementById('fin_no').value = item.fin_no || '';
       document.getElementById('trade').value = item.trade;
+
+      const emailEl = document.getElementById('worker_email');
+      const phoneEl = document.getElementById('worker_phone');
+      if (emailEl) emailEl.value = item.email || '';
+      if (phoneEl) phoneEl.value = item.phone || '';
 
       isEditingWorkerProfile = true;
       workerFormTitle.querySelector('span').textContent = 'Edit Worker Profile';
@@ -1617,6 +1662,110 @@
     const btnCancelProject = document.getElementById('btnCancelProject');
     const projectTableBody = document.getElementById('projectTableBody');
 
+    async function loadSystemUserData() {
+      try {
+        const response = await fetch('/api/users');
+        const result = await response.json();
+        if (result.success) {
+          systemUserData = result.data || [];
+          populateProjectUserDropdowns();
+        }
+      } catch (err) {
+        console.error('Failed to load system users:', err);
+      }
+    }
+
+    function populateProjectUserDropdowns() {
+      const pmSelect = document.getElementById('pm_select_input');
+      const wshoSelect = document.getElementById('wsho_select_input');
+      const supervisorSelect = document.getElementById('supervisor_select_input');
+
+      if (pmSelect) {
+        pmSelect.innerHTML = '<option value="">-- Select PM to Auto-Fill Details (or type manually below) --</option>';
+        const pms = systemUserData.filter(u => u.role === 'PROJECT_MANAGER' || u.role === 'ADMIN');
+        pms.forEach(pm => {
+          const opt = document.createElement('option');
+          opt.value = pm.id;
+          opt.textContent = `👔 ${pm.name} (${pm.email})`;
+          opt.dataset.name = pm.name;
+          opt.dataset.email = pm.email;
+          opt.dataset.phone = pm.phone || '';
+          pmSelect.appendChild(opt);
+        });
+      }
+
+      if (wshoSelect) {
+        wshoSelect.innerHTML = '<option value="">-- Select WSHO to Auto-Fill Details (or type manually below) --</option>';
+        const wshos = systemUserData.filter(u => u.role === 'WSHO' || u.role === 'SAFETY_ASSESSOR');
+        wshos.forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = w.id;
+          opt.textContent = `🛡️ ${w.name} - ${w.role} (${w.email})`;
+          opt.dataset.name = w.name;
+          opt.dataset.email = w.email;
+          opt.dataset.phone = w.phone || '';
+          wshoSelect.appendChild(opt);
+        });
+        (workerData || []).forEach(w => {
+          if (w.trade && (w.trade.toLowerCase().includes('wsho') || w.trade.toLowerCase().includes('safety') || w.trade.toLowerCase().includes('officer'))) {
+            const opt = document.createElement('option');
+            opt.value = `wrk_${w.worker_id}`;
+            opt.textContent = `👷 ${w.name} - ${w.trade} (${w.email || w.phone || w.worker_id})`;
+            opt.dataset.name = w.name;
+            opt.dataset.email = w.email || '';
+            opt.dataset.phone = w.phone || '';
+            wshoSelect.appendChild(opt);
+          }
+        });
+      }
+
+      if (supervisorSelect) {
+        supervisorSelect.innerHTML = '<option value="">-- Select Site Supervisor --</option>';
+        (workerData || []).forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = w.worker_id;
+          opt.textContent = `👷 ${w.name} [${w.trade}] ${w.phone ? '☎️ ' + w.phone : ''} ${w.email ? '✉️ ' + w.email : ''}`;
+          opt.dataset.name = w.name;
+          opt.dataset.email = w.email || '';
+          opt.dataset.phone = w.phone || '';
+          supervisorSelect.appendChild(opt);
+        });
+      }
+    }
+
+    window.handlePmDropdownChange = function(selectEl) {
+      const selectedOpt = selectEl.options[selectEl.selectedIndex];
+      if (selectedOpt && selectedOpt.dataset.name) {
+        document.getElementById('project_manager_input').value = selectedOpt.dataset.name;
+        document.getElementById('pm_email_input').value = selectedOpt.dataset.email || '';
+        showToast(`Auto-filled PM details for ${selectedOpt.dataset.name}`);
+      }
+    };
+
+    window.handleWshoDropdownChange = function(selectEl) {
+      const selectedOpt = selectEl.options[selectEl.selectedIndex];
+      if (selectedOpt && selectedOpt.dataset.name) {
+        document.getElementById('wsho_name_input').value = selectedOpt.dataset.name;
+        document.getElementById('wsho_email_input').value = selectedOpt.dataset.email || '';
+        if (selectedOpt.dataset.phone) {
+          document.getElementById('wsho_phone_input').value = selectedOpt.dataset.phone;
+        }
+        showToast(`Auto-filled WSHO details for ${selectedOpt.dataset.name}`);
+      }
+    };
+
+    window.handleSupervisorDropdownChange = function(selectEl) {
+      const selectedOpt = selectEl.options[selectEl.selectedIndex];
+      if (selectedOpt && selectedOpt.dataset.name) {
+        showToast(`Selected Site Supervisor: ${selectedOpt.dataset.name}`);
+        if (!document.getElementById('wsho_name_input').value) {
+          document.getElementById('wsho_name_input').value = selectedOpt.dataset.name + ' (Supervisor)';
+          if (selectedOpt.dataset.email) document.getElementById('wsho_email_input').value = selectedOpt.dataset.email;
+          if (selectedOpt.dataset.phone) document.getElementById('wsho_phone_input').value = selectedOpt.dataset.phone;
+        }
+      }
+    };
+
     async function loadProjectData() {
       try {
         const response = await fetch('/api/projects');
@@ -1625,6 +1774,7 @@
           projectData = result.data || [];
           updateProjectSortHeaderIcons();
           renderProcessedProjectData();
+          populateProjectUserDropdowns();
         } else {
           showToast(`Error fetching project data: ${result.error}`, 'error');
         }
@@ -1922,7 +2072,7 @@
       });
     }
 
-    // Populate Worker Multi-Select Checkboxes
+    // Populate Worker Multi-Select Checkboxes with Expired Cert Safeguard
     function populateWorkerChecklist(selectedWorkerIds = []) {
       const box = document.getElementById('workerCheckboxList');
       if (!box) return;
@@ -1931,14 +2081,26 @@
         return;
       }
 
+      const todayStr = new Date().toISOString().split('T')[0];
+
       box.innerHTML = workerData.map(w => {
         const isChecked = selectedWorkerIds.includes(w.worker_id) ? 'checked' : '';
-        const certCount = (w.certificates || []).length;
+        const certs = w.certificates || [];
+        const certCount = certs.length;
         const mainId = w.ic_no || w.wp_no || w.fin_no || w.worker_id;
+
+        const expiredCert = certs.find(c => c.cert_expiry && c.cert_expiry < todayStr);
+        const expiredBadge = expiredCert 
+          ? `<span style="background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; margin-left: 6px;">⛔ EXPIRED: ${escapeHtml(expiredCert.cert_type)}</span>` 
+          : '';
+
         return `
-          <label class="checkbox-item">
-            <input type="checkbox" name="ptw_workers" value="${escapeHtml(w.worker_id)}" ${isChecked}>
-            <span><strong>${escapeHtml(w.name)}</strong> (${escapeHtml(w.trade)} | ID: ${escapeHtml(mainId)} | 📜 ${certCount} Certs)</span>
+          <label class="checkbox-item" style="${expiredCert ? 'background: #fff1f2; padding: 6px 10px; border-radius: 6px; border: 1px solid #fecdd3;' : ''}">
+            <input type="checkbox" name="ptw_workers" value="${escapeHtml(w.worker_id)}" ${isChecked} data-has-expired-cert="${expiredCert ? 'true' : 'false'}" data-worker-name="${escapeHtml(w.name)}">
+            <span>
+              <strong>${escapeHtml(w.name)}</strong> (${escapeHtml(w.trade)} | ID: ${escapeHtml(mainId)})
+              ${expiredBadge}
+            </span>
           </label>
         `;
       }).join('');
@@ -2069,16 +2231,45 @@
       ptwSearchInput.addEventListener('input', renderProcessedPtwData);
     }
 
-    function getPtwStatusBadge(status) {
+    function getPtwStatusBadge(status, validUntil) {
       const s = (status || 'Draft').toLowerCase();
-      if (s === 'active') return '<span class="status-badge status-ptw-active">ACTIVE 🟢</span>';
-      if (s === 'pending safety vetting' || s === 'pending safety') return '<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>';
-      if (s === 'pending pm approval' || s === 'pending pm') return '<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>';
-      if (s === 'draft') return '<span class="status-badge status-ptw-draft">DRAFT 🟡</span>';
-      if (s === 'closed') return '<span class="status-badge status-ptw-closed">CLOSED ⚪</span>';
-      if (s === 'rejected') return '<span class="status-badge status-ptw-rejected">REJECTED 🔴</span>';
-      return `<span class="status-badge status-ptw-active">${escapeHtml(status)}</span>`;
+
+      let expiryBadge = '';
+      if (validUntil && (s === 'active' || s === 'pending safety vetting' || s === 'pending pm approval' || s === 'draft')) {
+        const dateClean = validUntil.replace(' ', 'T');
+        const expiryTime = new Date(dateClean).getTime();
+        const now = Date.now();
+        const diffMs = expiryTime - now;
+
+        if (diffMs <= 0) {
+          return '<span class="status-badge status-ptw-rejected" style="background: #fee2e2; color: #b91c1c;">EXPIRED 🔴</span>';
+        } else if (diffMs < 3600000) { // Less than 1 hr
+          const mins = Math.max(1, Math.floor(diffMs / 60000));
+          expiryBadge = `<div style="font-size: 0.72rem; color: #d97706; font-weight: 800; margin-top: 3px;">⏳ Expiring Soon (${mins}m left) 🟡</div>`;
+        } else {
+          const hours = Math.floor(diffMs / 3600000);
+          const mins = Math.floor((diffMs % 3600000) / 60000);
+          expiryBadge = `<div style="font-size: 0.72rem; color: #15803d; font-weight: 700; margin-top: 3px;">⏱️ ${hours}h ${mins}m left</div>`;
+        }
+      }
+
+      let baseBadge = `<span class="status-badge status-ptw-active">${escapeHtml(status)}</span>`;
+      if (s === 'active') baseBadge = '<span class="status-badge status-ptw-active">ACTIVE 🟢</span>';
+      else if (s === 'pending safety vetting' || s === 'pending safety') baseBadge = '<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>';
+      else if (s === 'pending pm approval' || s === 'pending pm') baseBadge = '<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>';
+      else if (s === 'draft') baseBadge = '<span class="status-badge status-ptw-draft">DRAFT 🟡</span>';
+      else if (s === 'closed') baseBadge = '<span class="status-badge status-ptw-closed">CLOSED ⚪</span>';
+      else if (s === 'rejected') baseBadge = '<span class="status-badge status-ptw-rejected">REJECTED 🔴</span>';
+
+      return `${baseBadge}${expiryBadge}`;
     }
+
+    // 30-Second Real-Time Expiry Countdown Ticker
+    setInterval(() => {
+      if (document.getElementById('ptwTab')?.classList.contains('active')) {
+        renderProcessedPtwData();
+      }
+    }, 30000);
 
     function renderPtwTable(data) {
       if (!data || data.length === 0) {
@@ -2091,7 +2282,7 @@
       }
 
       ptwTableBody.innerHTML = data.map(item => {
-        const statusBadge = getPtwStatusBadge(item.status);
+        const statusBadge = getPtwStatusBadge(item.status, item.valid_until);
 
         // Parse workers JSON
         let workerIds = [];
@@ -2162,11 +2353,20 @@
     ptwForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const selectedWorkers = Array.from(document.querySelectorAll('input[name="ptw_workers"]:checked')).map(cb => cb.value);
+      const selectedWorkerCheckboxes = Array.from(document.querySelectorAll('input[name="ptw_workers"]:checked'));
+      const selectedWorkers = selectedWorkerCheckboxes.map(cb => cb.value);
       const selectedRams = Array.from(document.querySelectorAll('input[name="ptw_rams"]:checked')).map(cb => cb.value);
 
       if (selectedWorkers.length === 0) {
         showToast('Please select at least one worker for this permit.', 'error');
+        return;
+      }
+
+      // Expired Certificate Safeguard Check
+      const expiredWorker = selectedWorkerCheckboxes.find(cb => cb.dataset.hasExpiredCert === 'true');
+      if (expiredWorker) {
+        const workerName = expiredWorker.dataset.workerName || 'Assigned worker';
+        showToast(`⛔ Safety Safeguard: Cannot submit permit! ${workerName} has an EXPIRED safety certificate!`, 'error');
         return;
       }
 
@@ -2457,12 +2657,24 @@
         `;
       }
 
+      const qrUrl = encodeURIComponent(window.location.origin + '/?ptw=' + item.ptw_id);
+
       const bodyHtml = `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; color: #ffffff; padding: 14px 18px; border-radius: 8px; margin-bottom: 16px;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; color: #38bdf8;">OFFICIAL PERMIT TO WORK (ePTW)</h3>
+            <div style="font-size: 0.8rem; color: #94a3b8;">Singapore Site Safety Compliance Document | Ref: <strong>${escapeHtml(item.ptw_id)}</strong></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${qrUrl}" alt="ePTW QR" style="width: 54px; height: 54px; border-radius: 4px; border: 1px solid #ffffff; background: #ffffff; padding: 2px;">
+            <button type="button" class="btn-secondary no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer;">🖨️ Print Pass</button>
+          </div>
+        </div>
         ${stepperHtml}
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <div><strong>Permit ID:</strong> ${escapeHtml(item.ptw_id)}</div>
-            <div><strong>Status:</strong> ${getPtwStatusBadge(item.status)}</div>
+            <div><strong>Status:</strong> ${getPtwStatusBadge(item.status, item.valid_until)}</div>
           </div>
           <div><strong>Site / Location:</strong> ${escapeHtml(item.project_name || item.project_id)} (${escapeHtml(item.location || '')})</div>
           <div><strong>Designated WSHO:</strong> ${escapeHtml(item.wsho_name || 'Unassigned')} ${item.wsho_email ? `(${item.wsho_email})` : ''}</div>
@@ -2684,10 +2896,31 @@
       }
     };
 
+    window.triggerTestAlert = async function() {
+      const emailInput = document.getElementById('pairing_email');
+      const email = (emailInput && emailInput.value.trim()) || 'vernon.process@gmail.com';
+      try {
+        const res = await fetch('/api/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message);
+        } else {
+          showToast(`Test alert error: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
     // Initial Load & PWA Service Worker Registration
     calculateRPN();
     loadRAMSData();
     loadWorkerData();
+    loadSystemUserData();
     loadProjectData();
     loadPtwData();
 
@@ -2728,9 +2961,12 @@
           <label for="pairing_email">Your Registered Email Address</label>
           <input type="email" id="pairing_email" placeholder="e.g. supervisor@company.com">
         </div>
-        <div style="text-align: center; margin-top: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
           <button id="btnGeneratePairingLink" class="btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;" onclick="generateTelegramPairingLink()">
             🔗 Open Telegram Bot & Tap Start
+          </button>
+          <button type="button" class="btn-secondary" style="width: 100%; padding: 10px; font-size: 0.9rem; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;" onclick="triggerTestAlert()">
+            📲 Send 1-Click Test Alert Notification
           </button>
         </div>
         <div id="pairingLinkResult" style="margin-top: 16px; display: none; text-align: center; font-size: 0.85rem;"></div>

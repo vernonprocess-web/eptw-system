@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS PTW_Records (
     applicant_email TEXT,
     assigned_wsho_name TEXT,
     assigned_wsho_email TEXT,
+    assigned_pm_name TEXT,
+    assigned_pm_email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES Project_Directory(project_id) ON DELETE CASCADE
 );

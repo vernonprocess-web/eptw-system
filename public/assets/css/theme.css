@@ -886,3 +886,46 @@ tr.drawer-row td {
   text-align: center;
   color: var(--text-muted);
 }
+
+/* Official Singapore ePTW Print Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  header, .nav-tabs, .form-card, .table-card, .upload-card, #toast, .action-btn-group, button, .modal-header button {
+    display: none !important;
+  }
+
+  .modal-backdrop {
+    position: static !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .modal-card {
+    max-width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+.print-only {
+  display: none;
+}
+

@@ -19,6 +19,15 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+function safeWaitUntil(c: any, promise: Promise<any>) {
+  if (c && c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+    c.executionCtx.waitUntil(promise);
+  } else {
+    promise.catch((err: any) => console.error('Background notification error:', err));
+  }
+}
+
+
 // ============================================================================
 // GEMINI VISION OCR HELPER
 // ============================================================================
@@ -426,6 +435,8 @@ app.post('/api/workers', async (c) => {
       fin_no,
       ic_wp_no,
       trade,
+      email,
+      phone,
       cert_type,
       cert_no,
       issuer,
@@ -440,6 +451,8 @@ app.post('/api/workers', async (c) => {
     const finalWpNo = wp_no || '';
     const finalFinNo = fin_no || '';
     const combinedIcWp = ic_wp_no || finalIcNo || finalWpNo || finalFinNo || '';
+    const finalEmail = email || '';
+    const finalPhone = phone || '';
 
     if (!target_worker_id) {
       if (!name) {
@@ -460,23 +473,25 @@ app.post('/api/workers', async (c) => {
 
       if (!existingWorker) {
         await c.env.DB.prepare(
-          `INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, ic_wp_no, trade)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker').run();
+          `INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, ic_wp_no, trade, email, phone)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker', finalEmail, finalPhone).run();
       } else {
         finalWorkerId = String(existingWorker.worker_id);
       }
     } else {
-      if (trade || name || finalIcNo || finalWpNo || finalFinNo) {
+      if (trade || name || finalIcNo || finalWpNo || finalFinNo || finalEmail || finalPhone) {
         await c.env.DB.prepare(
           `UPDATE Worker_Registry 
            SET name = COALESCE(NULLIF(?, ''), name),
                ic_no = COALESCE(NULLIF(?, ''), ic_no),
                wp_no = COALESCE(NULLIF(?, ''), wp_no),
                fin_no = COALESCE(NULLIF(?, ''), fin_no),
-               trade = COALESCE(NULLIF(?, ''), trade)
+               trade = COALESCE(NULLIF(?, ''), trade),
+               email = COALESCE(NULLIF(?, ''), email),
+               phone = COALESCE(NULLIF(?, ''), phone)
            WHERE worker_id = ?`
-        ).bind(name || '', finalIcNo, finalWpNo, finalFinNo, trade || '', target_worker_id).run();
+        ).bind(name || '', finalIcNo, finalWpNo, finalFinNo, trade || '', finalEmail, finalPhone, target_worker_id).run();
       }
     }
 
@@ -525,7 +540,7 @@ app.put('/api/workers/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { name, ic_no, wp_no, fin_no, trade } = body;
+    const { name, ic_no, wp_no, fin_no, trade, email, phone } = body;
 
     if (!name || !trade) {
       return c.json(
@@ -536,10 +551,10 @@ app.put('/api/workers/:id', async (c) => {
 
     const result = await c.env.DB.prepare(
       `UPDATE Worker_Registry 
-       SET name = ?, ic_no = ?, wp_no = ?, fin_no = ?, trade = ?
+       SET name = ?, ic_no = ?, wp_no = ?, fin_no = ?, trade = ?, email = ?, phone = ?
        WHERE worker_id = ?`
     )
-      .bind(name, ic_no || '', wp_no || '', fin_no || '', trade, id)
+      .bind(name, ic_no || '', wp_no || '', fin_no || '', trade, email || '', phone || '', id)
       .run();
 
     if (result.meta.changes === 0) {
@@ -891,6 +906,18 @@ app.get('/api/ptw/:id', async (c) => {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
+// GET /api/users - Fetch all system users (PMs, WSHOs, Assessors)
+app.get('/api/users', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, name, email, phone, role, status FROM users ORDER BY name ASC'
+    ).all();
+    return c.json({ success: true, data: results });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // POST /api/users - Create new system user
 app.post('/api/users', async (c) => {
   try {
@@ -1037,7 +1064,8 @@ app.post('/api/ptw', async (c) => {
       status: initialStatus
     };
 
-    c.executionCtx.waitUntil(
+    safeWaitUntil(
+      c,
       dispatchPermitNotification(c.env, c.env.DB, ptwNotificationData, 'PERMIT_SUBMITTED')
     );
 
@@ -1095,7 +1123,8 @@ app.post('/api/ptw/:id/vet', async (c) => {
       status: 'Pending PM Approval'
     };
 
-    c.executionCtx.waitUntil(
+    safeWaitUntil(
+      c,
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_VETTED')
     );
 
@@ -1147,7 +1176,8 @@ app.post('/api/ptw/:id/approve', async (c) => {
       status: 'Active'
     };
 
-    c.executionCtx.waitUntil(
+    safeWaitUntil(
+      c,
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_APPROVED')
     );
 
@@ -1195,7 +1225,8 @@ app.post('/api/ptw/:id/reject', async (c) => {
       rejection_reason: reason
     };
 
-    c.executionCtx.waitUntil(
+    safeWaitUntil(
+      c,
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_REJECTED')
     );
 
@@ -1314,6 +1345,39 @@ app.delete('/api/ptw/:id', async (c) => {
     }
 
     return c.json({ success: true, message: 'Permit deleted successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/notifications/test - Trigger 1-Click Test Alert (Telegram & Email)
+app.post('/api/notifications/test', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const email = body.email || 'vernon.process@gmail.com';
+    const testRecord: PTWRecordForNotification = {
+      id: 'TEST-PERMIT-001',
+      ptw_number: 'PTW-2026-TEST',
+      project_name: 'System Test Facility',
+      work_description: '1-Click System Alert Test Notification',
+      applicant_name: 'Site Safety Officer',
+      applicant_email: email,
+      assigned_wsho_name: 'David Wong (WSHO)',
+      assigned_wsho_email: email,
+      assigned_pm_name: 'Alex Tan (PM)',
+      assigned_pm_email: email,
+      status: 'TEST_ALERT'
+    };
+
+    safeWaitUntil(
+      c,
+      dispatchPermitNotification(c.env, c.env.DB, testRecord, 'PERMIT_SUBMITTED')
+    );
+
+    return c.json({
+      success: true,
+      message: `Test alert dispatched to ${email}. Check your Telegram bot and inbox!`
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
