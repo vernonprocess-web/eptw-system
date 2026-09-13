@@ -1,5 +1,5 @@
 // ePTW System Service Worker for PWA Offline Caching & Shell Support
-const CACHE_NAME = 'eptw-system-cache-v3';
+const CACHE_NAME = 'eptw-system-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -52,12 +52,12 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request, { ignoreSearch: true });
       })
     );
   } else {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
+      caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) {
           return cachedResponse;
         }
