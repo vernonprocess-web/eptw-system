@@ -511,32 +511,32 @@
           <div class="form-grid">
             <div class="form-group" style="grid-column: span 2;">
               <label for="ptw_project_id">Select Project / Site Location *</label>
-              <div style="display: flex; gap: 8px;">
-                <select id="ptw_project_id" required style="flex: 1;" onchange="updateAssignedWshoDropdown()">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="ptw_project_id" required style="flex: 1; min-width: 0;" onchange="updateAssignedWshoDropdown()">
                   <option value="">-- Select Registered Site --</option>
                 </select>
-                <button type="button" class="btn-bypass" onclick="openProvisionalSiteModal()">[+ Add Missing Site]</button>
+                <button type="button" class="btn-bypass" style="white-space: nowrap; flex-shrink: 0;" onclick="openProvisionalSiteModal()">[+ Add Missing Site]</button>
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="grid-column: span 2;">
               <label for="ptw_applicant_email">Applicant Email (for Alert Confirmations)</label>
-              <div style="display: flex; gap: 6px;">
-                <input type="email" id="ptw_applicant_email" placeholder="supervisor@company.com" style="flex: 1;">
-                <button type="button" class="btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="openTelegramPairingModal()">📲 Pair Telegram</button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="email" id="ptw_applicant_email" placeholder="supervisor@company.com" style="flex: 1; min-width: 0;">
+                <button type="button" class="btn-secondary" style="padding: 8px 12px; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" onclick="openTelegramPairingModal()">📲 Pair Telegram</button>
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="grid-column: span 2;">
               <label for="ptw_assigned_wsho_email">Assigned Safety Officer / Assessor *</label>
-              <select id="ptw_assigned_wsho_email">
+              <select id="ptw_assigned_wsho_email" style="width: 100%;">
                 <option value="safety@eptw-system.com" selected>Default WSHO Assessor (safety@eptw-system.com)</option>
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="grid-column: span 2;">
               <label for="ptw_assigned_pm_email">Assigned Project Manager / Authorizer *</label>
-              <select id="ptw_assigned_pm_email">
+              <select id="ptw_assigned_pm_email" style="width: 100%;">
                 <option value="pm@eptw-system.com" selected>Default Project Manager (pm@eptw-system.com)</option>
               </select>
             </div>
@@ -752,6 +752,7 @@
         populateProjectDropdown();
         populateWorkerChecklist();
         populateRamsChecklist();
+        initSignatureCanvas('applicantSigCanvas');
       }
     };
 
@@ -886,6 +887,7 @@
           ramsData = result.data || [];
           updateSortHeaderIcons();
           renderProcessedData();
+          populateRamsChecklist();
         } else {
           showToast(`Error fetching RAMS data: ${result.error}`, 'error');
         }
@@ -1169,6 +1171,7 @@
           updateWorkerSortHeaderIcons();
           renderProcessedWorkerData();
           populateProjectUserDropdowns();
+          populateWorkerChecklist();
         } else {
           showToast(`Error fetching worker records: ${result.error}`, 'error');
         }
@@ -1586,49 +1589,110 @@
     function initSignatureCanvas(canvasId) {
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
+
+      if (canvas.dataset.sigInitialized === 'true') {
+        // Re-ensure dimensions if tab changed to visible
+        const r = canvas.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && (canvas.width === 0 || canvas.width !== Math.floor(r.width))) {
+          canvas.width = Math.floor(r.width);
+          canvas.height = Math.floor(r.height);
+        }
+        return;
+      }
+      canvas.dataset.sigInitialized = 'true';
+
       const ctx = canvas.getContext('2d');
       let isDrawing = false;
 
-      function getPos(e) {
+      function ensureCanvasDimensions() {
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        if (rect.width > 0 && rect.height > 0) {
+          if (canvas.width !== Math.floor(rect.width) || canvas.height !== Math.floor(rect.height) || canvas.width === 0) {
+            let data = null;
+            if (canvas.width > 0 && canvas.height > 0) {
+              data = canvas.toDataURL();
+            }
+            canvas.width = Math.floor(rect.width);
+            canvas.height = Math.floor(rect.height);
+            if (data) {
+              const img = new Image();
+              img.onload = () => ctx.drawImage(img, 0, 0);
+              img.src = data;
+            }
+          }
+        }
+      }
+
+      function getPos(e) {
+        ensureCanvasDimensions();
+        const rect = canvas.getBoundingClientRect();
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+
+        if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+          clientX = e.changedTouches[0].clientX;
+          clientY = e.changedTouches[0].clientY;
+        }
+
+        const rw = rect.width > 0 ? rect.width : 1;
+        const rh = rect.height > 0 ? rect.height : 1;
+
         return {
-          x: (clientX - rect.left) * (canvas.width / rect.width),
-          y: (clientY - rect.top) * (canvas.height / rect.height)
+          x: (clientX - rect.left) * (canvas.width / rw),
+          y: (clientY - rect.top) * (canvas.height / rh)
         };
       }
 
       function startDraw(e) {
+        if (e.cancelable) e.preventDefault();
         isDrawing = true;
+        ensureCanvasDimensions();
         const pos = getPos(e);
         ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        ctx.moveTo(pos.x, pos.y);
+        ctx.lineTo(pos.x + 0.1, pos.y + 0.1);
+        ctx.stroke();
       }
 
       function draw(e) {
         if (!isDrawing) return;
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         const pos = getPos(e);
         ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
       }
 
-      function stopDraw() {
-        isDrawing = false;
+      function stopDraw(e) {
+        if (isDrawing) {
+          if (e && e.cancelable) e.preventDefault();
+          isDrawing = false;
+        }
       }
 
+      // Pointer events for modern Touchscreen, Stylus Pen, and Mouse
+      canvas.addEventListener('pointerdown', startDraw);
+      canvas.addEventListener('pointermove', draw);
+      window.addEventListener('pointerup', stopDraw);
+      canvas.addEventListener('pointercancel', stopDraw);
+
+      // Mobile Touch event fallbacks
+      canvas.addEventListener('touchstart', startDraw, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      canvas.addEventListener('touchend', stopDraw);
+
+      // Desktop Mouse event fallbacks
       canvas.addEventListener('mousedown', startDraw);
       canvas.addEventListener('mousemove', draw);
       window.addEventListener('mouseup', stopDraw);
 
-      canvas.addEventListener('touchstart', startDraw, { passive: false });
-      canvas.addEventListener('touchmove', draw, { passive: false });
-      canvas.addEventListener('touchend', stopDraw);
+      ensureCanvasDimensions();
     }
 
     window.clearSignatureCanvas = function(canvasId) {
@@ -1775,6 +1839,7 @@
           updateProjectSortHeaderIcons();
           renderProcessedProjectData();
           populateProjectUserDropdowns();
+          populateProjectDropdown();
         } else {
           showToast(`Error fetching project data: ${result.error}`, 'error');
         }
