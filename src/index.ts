@@ -1383,7 +1383,179 @@ app.post('/api/notifications/test', async (c) => {
   }
 });
 
+// ============================================================================
+// TBM (TOOLBOX MEETINGS & SAFETY BRIEFINGS) API ENDPOINTS
+// ============================================================================
+
+// GET /api/tbm - List TBM records with site, date range, status & search filters
+app.get('/api/tbm', async (c) => {
+  try {
+    const projectId = c.req.query('project_id');
+    const startDate = c.req.query('start_date');
+    const endDate = c.req.query('end_date');
+    const status = c.req.query('status');
+    const search = c.req.query('search');
+
+    let sql = `
+      SELECT t.*, prj.project_name, prj.location as project_location, p.ptw_type, p.work_description
+      FROM TBM_Records t
+      LEFT JOIN Project_Directory prj ON t.project_id = prj.project_id
+      LEFT JOIN PTW_Records p ON t.ptw_id = p.ptw_id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    if (projectId && projectId !== 'ALL') {
+      sql += ' AND t.project_id = ?';
+      params.push(projectId);
+    }
+    if (status && status !== 'ALL') {
+      sql += ' AND t.status = ?';
+      params.push(status);
+    }
+    if (startDate) {
+      sql += ' AND DATE(t.conducted_at) >= DATE(?)';
+      params.push(startDate);
+    }
+    if (endDate) {
+      sql += ' AND DATE(t.conducted_at) <= DATE(?)';
+      params.push(endDate);
+    }
+    if (search) {
+      sql += ' AND (t.tbm_id LIKE ? OR t.ptw_id LIKE ? OR t.supervisor_name LIKE ? OR prj.project_name LIKE ? OR t.hazard_summary LIKE ?)';
+      const term = `%${search}%`;
+      params.push(term, term, term, term, term);
+    }
+
+    sql += ' ORDER BY t.conducted_at DESC';
+
+    const { results } = await c.env.DB.prepare(sql).bind(...params).all();
+    return c.json({ success: true, data: results });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/tbm/:id - Fetch single TBM details with parent PTW & worker signature manifest
+app.get('/api/tbm/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const record = await c.env.DB.prepare(
+      `SELECT t.*, prj.project_name, prj.location as project_location, prj.client_name,
+              p.ptw_type, p.work_description, p.assigned_workers_json
+       FROM TBM_Records t
+       LEFT JOIN Project_Directory prj ON t.project_id = prj.project_id
+       LEFT JOIN PTW_Records p ON t.ptw_id = p.ptw_id
+       WHERE t.tbm_id = ?`
+    ).bind(id).first<any>();
+
+    if (!record) {
+      return c.json({ success: false, error: 'TBM record not found.' }, 404);
+    }
+
+    return c.json({ success: true, data: record });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/tbm - Create or initialize a new TBM Briefing Record
+app.post('/api/tbm', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, hazard_summary } = body;
+
+    if (!ptw_id || !project_id || !supervisor_name) {
+      return c.json({ success: false, error: 'PTW ID, Project ID, and Supervisor Name are required.' }, 400);
+    }
+
+    const tbmId = `TBM-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+
+    let taskHazards = hazard_summary;
+    if (!taskHazards) {
+      // Auto-extract task hazards from parent PTW if available
+      const ptw = await c.env.DB.prepare(
+        'SELECT ptw_type, work_description, selected_rams_json FROM PTW_Records WHERE ptw_id = ?'
+      ).bind(ptw_id).first<any>();
+
+      if (ptw) {
+        taskHazards = `• Work Type: ${ptw.ptw_type || 'General Work'}\n• Description: ${ptw.work_description || 'N/A'}`;
+      } else {
+        taskHazards = '• General site safety procedures, mandatory PPE, emergency escape route awareness.';
+      }
+    }
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+    await c.env.DB.prepare(
+      `INSERT INTO TBM_Records (tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, conducted_at, status, hazard_summary, attendance_count, worker_signatures)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING_BRIEFING', ?, 0, '[]')`
+    ).bind(
+      tbmId,
+      ptw_id,
+      project_id,
+      supervisor_name,
+      supervisor_role || 'Site Supervisor',
+      supervisor_phone || null,
+      nowStr,
+      taskHazards
+    ).run();
+
+    return c.json({ success: true, message: 'TBM Briefing created successfully', id: tbmId }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/tbm/:id/sign - Submit worker attendance & signatures, locking briefing as COMPLETED
+app.post('/api/tbm/:id/sign', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { supervisor_sig, worker_signatures } = body;
+
+    if (!Array.isArray(worker_signatures)) {
+      return c.json({ success: false, error: 'Worker signatures must be an array.' }, 400);
+    }
+
+    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const count = worker_signatures.length;
+    const signaturesJson = JSON.stringify(worker_signatures);
+
+    const result = await c.env.DB.prepare(
+      `UPDATE TBM_Records 
+       SET status = 'COMPLETED', supervisor_sig = ?, worker_signatures = ?, attendance_count = ?, conducted_at = ?
+       WHERE tbm_id = ?`
+    ).bind(supervisor_sig || null, signaturesJson, count, nowStr, id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'TBM record not found.' }, 404);
+    }
+
+    return c.json({ success: true, message: `TBM Briefing ${id} signed and locked as COMPLETED.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// DELETE /api/tbm/:id - Delete a TBM record
+app.delete('/api/tbm/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const result = await c.env.DB.prepare('DELETE FROM TBM_Records WHERE tbm_id = ?').bind(id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'TBM record not found.' }, 404);
+    }
+
+    return c.json({ success: true, message: 'TBM record deleted successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // Serve static assets from public folder
 app.use('/*', serveStatic({ root: './' }));
 
 export default app;
+

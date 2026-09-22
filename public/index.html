@@ -38,6 +38,9 @@
       <button class="tab-btn" onclick="switchTab('ptwTab')">
         📄 Active PTWs (ePTW)
       </button>
+      <button class="tab-btn" onclick="switchTab('tbmTab')">
+        🗣️ TBM & Safety Briefings Log
+      </button>
     </div>
 
     <div id="toast"></div>
@@ -646,6 +649,124 @@
               <!-- Dynamic content loaded via JS -->
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: TOOLBOX MEETINGS & SAFETY BRIEFINGS LOG -->
+    <div id="tbmTab" class="tab-content">
+      <div class="table-card">
+        <div class="table-toolbar" style="flex-direction: column; align-items: stretch; gap: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="margin: 0;">🗣️ Toolbox Meetings (TBM) & Safety Briefings Ledger</h3>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">MOM Audit Compliance • Daily Pre-Work Briefing Logs & Worker Signatures</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <input type="text" id="tbmSearchInput" class="search-input" placeholder="Search TBM ref, PTW ID, supervisor, site..." oninput="fetchTbmRecords()">
+            </div>
+          </div>
+
+          <!-- Multi-Parameter Filter Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div>
+              <label for="tbmSiteFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">🏢 Per-Site Filter:</label>
+              <select id="tbmSiteFilter" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" onchange="fetchTbmRecords()">
+                <option value="ALL">🏢 All Sites / Projects</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="tbmStatusFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">📌 Briefing Status:</label>
+              <select id="tbmStatusFilter" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" onchange="fetchTbmRecords()">
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING_BRIEFING">🟡 PENDING BRIEFING</option>
+                <option value="COMPLETED">🟢 COMPLETED & SIGNED</option>
+                <option value="CLOSED">⚪ CLOSED / ARCHIVED</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">📅 Date Range:</label>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="date" id="tbmStartDate" style="padding: 4px 6px; font-size: 0.8rem; flex: 1;" onchange="fetchTbmRecords()">
+                <span style="font-size: 0.75rem;">to</span>
+                <input type="date" id="tbmEndDate" style="padding: 4px 6px; font-size: 0.8rem; flex: 1;" onchange="fetchTbmRecords()">
+              </div>
+            </div>
+
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">⚡ Quick Range Presets:</label>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="setTbmDateRange('TODAY')">Today</button>
+                <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="setTbmDateRange('WEEK')">This Week</button>
+                <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="setTbmDateRange('MONTH')">This Month</button>
+                <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; color: #ef4444;" onclick="setTbmDateRange('CLEAR')">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table id="tbmTable">
+            <thead>
+              <tr>
+                <th style="width: 140px;">TBM Ref / PTW</th>
+                <th style="width: 220px;">Project / Location</th>
+                <th style="width: 200px;">Supervisor / Conductor</th>
+                <th style="width: 160px;">Date & Time (SGT)</th>
+                <th style="width: 140px; text-align: center;">Attendance</th>
+                <th style="width: 160px; text-align: center;">Briefing Status</th>
+                <th style="width: 170px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbmTableBody">
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: TBM BRIEFING SHEET & WORKER SIGNATURES -->
+    <div id="tbmModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <div>
+            <h3 id="tbmModalTitle" style="margin: 0; font-size: 1.15rem; color: #0f172a;">🗣️ Safety Briefing Sheet</h3>
+            <div id="tbmModalSub" style="font-size: 0.8rem; color: #0284c7; font-weight: 600;"></div>
+          </div>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeTbmModal()">✕</button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding-right: 4px;">
+          <!-- Metadata Summary Box -->
+          <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 14px; font-size: 0.85rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div><strong>👤 Conductor:</strong> <span id="tbmModalConductor"></span></div>
+              <div><strong>📍 Location:</strong> <span id="tbmModalLocation"></span></div>
+              <div style="grid-column: span 2;"><strong>⏱️ Date & Time (SGT):</strong> <span id="tbmModalDateTime"></span></div>
+            </div>
+          </div>
+
+          <!-- Task-Specific Hazards -->
+          <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 6px 0; font-size: 0.9rem; color: #0369a1;">⚠️ Task-Specific Hazards & RAMS Controls Discussed:</h4>
+            <div id="tbmModalHazards" style="background: #fff; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px; font-size: 0.85rem; white-space: pre-wrap; color: #1e293b; max-height: 120px; overflow-y: auto;"></div>
+          </div>
+
+          <!-- Worker Attendance Roster & Signatures -->
+          <div>
+            <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #0f172a;">👥 Attending Worker Sign-off Manifest (MOM Identity Binding):</h4>
+            <div id="tbmWorkerRoster">
+              <!-- Loaded dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+          <button type="button" class="btn-secondary" onclick="closeTbmModal()">Close Window</button>
+          <button type="button" class="btn-primary" onclick="submitTbmBriefingSignatures()">🔒 Save & Complete Briefing</button>
         </div>
       </div>
     </div>

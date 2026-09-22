@@ -7,6 +7,7 @@ import { loadRAMS, renderRAMSTable, setRAMSSort, calculateRPN, getRPNBadgeHTML }
 import { loadPTWs, renderPTWTable, setPTWFilter } from './ptw.js';
 import { setupOCRScanner } from './ocr.js';
 import { initSignaturePad } from './signature.js';
+import { initTbmTab, fetchTbmRecords } from './tbm.js';
 
 let applicantSigPad = null;
 
@@ -44,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-btn')[3].classList.add('active');
       document.getElementById('ptwTab').classList.add('active');
       loadPTWs('ptwTableBody');
+    } else if (tabId === 'tbmTab') {
+      document.querySelectorAll('.tab-btn')[4].classList.add('active');
+      document.getElementById('tbmTab').classList.add('active');
+      initTbmTab();
     }
   };
 
