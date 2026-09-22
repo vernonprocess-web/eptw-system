@@ -67,7 +67,10 @@ export function renderPTWTable(tableBodyId, query = '') {
     } else if (item.status === 'Pending PM Approval') {
       stageActionBtn = `<button type="button" class="btn-action-dashboard" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Approve</button>`;
     } else if (item.status === 'Active') {
-      stageActionBtn = `<button type="button" class="btn-action-edit" onclick="window.updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>`;
+      stageActionBtn = `
+        <button type="button" class="btn-action-view" style="background: #0284c7; color: #ffffff; border: none; font-weight: 600;" onclick="switchTab('tbmTab'); if (typeof fetchTbmRecords === 'function') fetchTbmRecords();" title="Open Site Shift TBM Briefing Sheet">🗣️ TBM Sheet</button>
+        <button type="button" class="btn-action-edit" onclick="window.updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>
+      `;
     }
 
     const wshoName = item.assigned_wsho_name || item.wsho_name;

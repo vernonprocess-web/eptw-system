@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS TBM_Records (
     conducted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'PENDING_BRIEFING' CHECK(status IN ('PENDING_BRIEFING', 'COMPLETED', 'CLOSED')),
     hazard_summary TEXT NOT NULL,                  -- Dynamic task-specific hazards & controls from PTW/RAMS
+    worker_concerns_raised TEXT DEFAULT 'Nil / No concerns raised', -- 2-Way communication & worker safety concerns
     attendance_count INTEGER DEFAULT 0,
     worker_signatures JSON DEFAULT '[]',           -- Array of { worker_id, full_name, ic_wp_fin_last4, trade, signature_base64, signed_at }
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP

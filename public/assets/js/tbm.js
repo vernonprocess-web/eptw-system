@@ -183,6 +183,13 @@ window.openTbmModal = async function(tbmId) {
     // Task-Specific Hazards
     document.getElementById('tbmModalHazards').textContent = tbm.hazard_summary || 'Task-specific hazards and control measures discussed.';
 
+    // MOM 2-Way Communication: Worker Concerns
+    const concernsEl = document.getElementById('tbmModalConcerns');
+    if (concernsEl) {
+      concernsEl.value = tbm.worker_concerns_raised || 'Nil / No concerns raised';
+      concernsEl.disabled = (tbm.status === 'COMPLETED');
+    }
+
     // Populate Worker Signatures Manifest
     let existingSignatures = [];
     try {
@@ -210,6 +217,103 @@ window.openTbmModal = async function(tbmId) {
 window.closeTbmModal = function() {
   const modal = document.getElementById('tbmModal');
   if (modal) modal.style.display = 'none';
+};
+
+// ============================================================================
+// MANUAL SHIFT TBM CREATION MODAL (GATED STRICTLY TO ACTIVE PERMITS)
+// ============================================================================
+let activePermitsCache = [];
+
+window.openCreateTbmModal = async function() {
+  const modal = document.getElementById('createTbmModal');
+  const select = document.getElementById('createTbmPtwSelect');
+  if (!modal || !select) return;
+
+  select.innerHTML = '<option value="">⏳ Loading Active Permits...</option>';
+  modal.style.display = 'flex';
+
+  try {
+    const res = await fetch('/api/ptw');
+    const result = await res.json();
+    if (result.success) {
+      // Filter strictly for Active permits (MOM State Gating)
+      activePermitsCache = (result.data || []).filter(p => p.status === 'Active');
+      if (activePermitsCache.length === 0) {
+        select.innerHTML = '<option value="">⚠️ No Active Permits Found (Approval Required)</option>';
+        return;
+      }
+
+      select.innerHTML = '<option value="">-- Select an Active Permit --</option>' + activePermitsCache.map(p => `
+        <option value="${p.ptw_id}">
+          ${p.ptw_id} - ${escapeHtml(p.project_name || p.project_id)} (${escapeHtml(p.ptw_type)})
+        </option>
+      `).join('');
+    } else {
+      select.innerHTML = '<option value="">Error loading active permits</option>';
+    }
+  } catch (err) {
+    console.error('Failed to load active permits for TBM modal:', err);
+    select.innerHTML = '<option value="">Failed to load active permits</option>';
+  }
+};
+
+window.closeCreateTbmModal = function() {
+  const modal = document.getElementById('createTbmModal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.onTbmPtwSelectChange = function() {
+  const ptwId = document.getElementById('createTbmPtwSelect')?.value;
+  if (!ptwId) return;
+
+  const ptw = activePermitsCache.find(p => p.ptw_id === ptwId);
+  if (ptw) {
+    if (ptw.assigned_pm_name) {
+      document.getElementById('createTbmSupervisor').value = ptw.assigned_pm_name;
+    }
+  }
+};
+
+window.handleCreateTbmSubmit = async function(event) {
+  event.preventDefault();
+  const ptwId = document.getElementById('createTbmPtwSelect')?.value;
+  const supervisorName = document.getElementById('createTbmSupervisor')?.value?.trim();
+  const supervisorRole = document.getElementById('createTbmRole')?.value?.trim() || 'Site Supervisor';
+  const customHazards = document.getElementById('createTbmHazards')?.value?.trim();
+
+  if (!ptwId || !supervisorName) {
+    alert('Please select an active permit and enter the supervisor name.');
+    return;
+  }
+
+  const ptw = activePermitsCache.find(p => p.ptw_id === ptwId);
+  const projectId = ptw ? ptw.project_id : 'PRJ-001';
+
+  try {
+    const res = await fetch('/api/tbm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ptw_id: ptwId,
+        project_id: projectId,
+        supervisor_name: supervisorName,
+        supervisor_role: supervisorRole,
+        hazard_summary: customHazards || undefined
+      })
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      alert(`✅ Shift TBM Briefing ${result.id} initialized successfully!`);
+      closeCreateTbmModal();
+      fetchTbmRecords();
+    } else {
+      alert(`Error initializing TBM: ${result.error}`);
+    }
+  } catch (err) {
+    console.error('Error creating TBM:', err);
+    alert('Failed to initialize shift TBM briefing.');
+  }
 };
 
 // Render Worker Attendance & Interactive Signature Roster
@@ -399,12 +503,15 @@ window.submitTbmBriefingSignatures = async function() {
       }
     }
 
+    const concernsValue = document.getElementById('tbmModalConcerns')?.value?.trim() || 'Nil / No concerns raised';
+
     const saveRes = await fetch(`/api/tbm/${activeTbmModalId}/sign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         supervisor_sig: tbm.supervisor_sig || 'SUPERVISOR_VERIFIED',
-        worker_signatures: updatedSignatures
+        worker_signatures: updatedSignatures,
+        worker_concerns_raised: concernsValue
       })
     });
 
@@ -474,6 +581,7 @@ window.printTbmPdf = async function(tbmId) {
           .meta-item label { font-weight: bold; color: #0369a1; display: block; font-size: 11px; text-transform: uppercase; }
           .section-title { font-size: 14px; font-weight: bold; background: #e2e8f0; padding: 6px 10px; border-left: 4px solid #0284c7; margin-top: 20px; margin-bottom: 10px; }
           .hazard-box { background: #fff; border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; white-space: pre-wrap; font-size: 12px; }
+          .concerns-box { background: #f0fdf4; border: 1px solid #86efac; padding: 12px; border-radius: 6px; white-space: pre-wrap; font-size: 12px; color: #166534; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 12px; }
           th { background: #f1f5f9; color: #0f172a; font-weight: bold; }
@@ -524,6 +632,9 @@ window.printTbmPdf = async function(tbmId) {
 
         <div class="section-title">⚠️ Task-Specific RAMS Hazards & Safety Controls Briefed</div>
         <div class="hazard-box">${escapeHtml(tbm.hazard_summary || 'N/A')}</div>
+
+        <div class="section-title">🗣️ Worker Feedback & Safety Concerns Raised (MOM 2-Way Briefing)</div>
+        <div class="concerns-box">${escapeHtml(tbm.worker_concerns_raised || 'Nil / No concerns raised')}</div>
 
         <div class="section-title">👥 Attending Workers Digital Signature Roster (${signatures.length} Workers Verified)</div>
         <table>

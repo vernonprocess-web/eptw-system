@@ -664,6 +664,7 @@
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <input type="text" id="tbmSearchInput" class="search-input" placeholder="Search TBM ref, PTW ID, supervisor, site..." oninput="fetchTbmRecords()">
+              <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openCreateTbmModal()">➕ Create Shift TBM</button>
             </div>
           </div>
 
@@ -750,9 +751,16 @@
           </div>
 
           <!-- Task-Specific Hazards -->
-          <div style="margin-bottom: 16px;">
+          <div style="margin-bottom: 14px;">
             <h4 style="margin: 0 0 6px 0; font-size: 0.9rem; color: #0369a1;">⚠️ Task-Specific Hazards & RAMS Controls Discussed:</h4>
             <div id="tbmModalHazards" style="background: #fff; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px; font-size: 0.85rem; white-space: pre-wrap; color: #1e293b; max-height: 120px; overflow-y: auto;"></div>
+          </div>
+
+          <!-- MOM 2-Way Communication: Worker Concerns Raised -->
+          <div style="margin-bottom: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 6px;">
+            <h4 style="margin: 0 0 4px 0; font-size: 0.88rem; color: #15803d;">🗣️ Worker Feedback & Safety Concerns Raised (MOM 2-Way Communication):</h4>
+            <div style="font-size: 0.75rem; color: #166534; margin-bottom: 6px;">Document any worker observations, equipment replacement requests, or site hazard feedback raised during the briefing.</div>
+            <textarea id="tbmModalConcerns" style="width: 100%; box-sizing: border-box; height: 60px; padding: 8px; border: 1px solid #86efac; border-radius: 6px; font-size: 0.85rem; background: #ffffff;" placeholder="Enter worker feedback or type 'Nil / No concerns raised'..."></textarea>
           </div>
 
           <!-- Worker Attendance Roster & Signatures -->
@@ -768,6 +776,40 @@
           <button type="button" class="btn-secondary" onclick="closeTbmModal()">Close Window</button>
           <button type="button" class="btn-primary" onclick="submitTbmBriefingSignatures()">🔒 Save & Complete Briefing</button>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL: MANUAL CREATE SHIFT TBM (STATE GATED TO ACTIVE PERMITS) -->
+    <div id="createTbmModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 520px;">
+        <div class="modal-header">
+          <h3>➕ Create Shift Toolbox Meeting (TBM)</h3>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeCreateTbmModal()">✕</button>
+        </div>
+        <form id="createTbmForm" onsubmit="handleCreateTbmSubmit(event)">
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">Select Active Parent Permit (Required):</label>
+            <select id="createTbmPtwSelect" style="width: 100%; padding: 8px; font-size: 0.85rem;" required onchange="onTbmPtwSelectChange()">
+              <option value="">Loading Active Permits...</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Supervisor / Conductor Name:</label>
+            <input type="text" id="createTbmSupervisor" style="width: 100%; padding: 8px; font-size: 0.85rem;" required placeholder="e.g. Alex Tan">
+          </div>
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Supervisor Role:</label>
+            <input type="text" id="createTbmRole" style="width: 100%; padding: 8px; font-size: 0.85rem;" value="Site Supervisor">
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Custom Shift Hazard Summary (Optional):</label>
+            <textarea id="createTbmHazards" style="width: 100%; height: 70px; padding: 8px; font-size: 0.82rem;" placeholder="Leave blank to auto-extract RAMS hazard controls from parent permit..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" onclick="closeCreateTbmModal()">Cancel</button>
+            <button type="submit" class="btn-primary">🚀 Initialize Shift Briefing</button>
+          </div>
+        </form>
       </div>
     </div>
 

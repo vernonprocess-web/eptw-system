@@ -27,6 +27,79 @@ function safeWaitUntil(c: any, promise: Promise<any>) {
   }
 }
 
+// Singapore SGT (UTC+8) Timezone Helpers
+function getSingaporeTimestamp(): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(now);
+  const getVal = (type: string) => parts.find(p => p.type === type)?.value || '00';
+  return `${getVal('year')}-${getVal('month')}-${getVal('day')} ${getVal('hour')}:${getVal('minute')}:${getVal('second')}`;
+}
+
+function getSingaporeDateOnly(): string {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  return formatter.format(now);
+}
+
+// Auto-create TBM Briefing Sheet for Active Permits (Idempotent per shift date)
+async function autoCreateTbmForPermit(db: D1Database, ptw: any) {
+  const todaySgtDate = getSingaporeDateOnly();
+  const existing = await db.prepare(
+    `SELECT tbm_id FROM TBM_Records WHERE ptw_id = ? AND DATE(conducted_at) = DATE(?)`
+  ).bind(ptw.ptw_id, todaySgtDate).first<any>();
+
+  if (existing) {
+    return existing.tbm_id;
+  }
+
+  const tbmId = `TBM-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+  
+  let taskHazards = '';
+  if (ptw.selected_rams_json) {
+    try {
+      const ramsList = typeof ptw.selected_rams_json === 'string' ? JSON.parse(ptw.selected_rams_json) : ptw.selected_rams_json;
+      if (Array.isArray(ramsList) && ramsList.length > 0) {
+        taskHazards = ramsList.map((r: any) => `• ${r.work_activity || r.activity_category || 'Work Activity'}: ${r.control_measures || r.hazard || 'Mandatory safety controls apply'}`).join('\n');
+      }
+    } catch (e) {}
+  }
+  if (!taskHazards) {
+    taskHazards = `• Work Type: ${ptw.ptw_type || 'General Work'}\n• Description: ${ptw.work_description || 'N/A'}\n• Mandatory PPE: Safety Helmet, Harness with Double Lanyard, Safety Boots, High-Vis Vest.`;
+  }
+
+  const nowSgt = getSingaporeTimestamp();
+  const supervisorName = ptw.assigned_pm_name || 'Site Supervisor';
+
+  await db.prepare(
+    `INSERT INTO TBM_Records (tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, conducted_at, status, hazard_summary, worker_concerns_raised, attendance_count, worker_signatures)
+     VALUES (?, ?, ?, ?, 'Site Supervisor', null, ?, 'PENDING_BRIEFING', ?, 'Nil / No concerns raised', 0, '[]')`
+  ).bind(
+    tbmId,
+    ptw.ptw_id,
+    ptw.project_id,
+    supervisorName,
+    nowSgt,
+    taskHazards
+  ).run();
+
+  return tbmId;
+}
+
 
 // ============================================================================
 // GEMINI VISION OCR HELPER
@@ -1157,12 +1230,25 @@ app.post('/api/ptw/:id/approve', async (c) => {
       return c.json({ success: true, message: `Permit ${existing.ptw_id} already approved (Idempotent).` });
     }
 
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const nowStr = getSingaporeTimestamp();
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
        SET status = 'Active', pm_signature = ?, pm_approved_at = ?, action_transaction_id = ?
        WHERE ptw_id = ?`
     ).bind(pm_signature || 'PM_SIGNED', nowStr, action_transaction_id || null, id).run();
+
+    // Auto-create initial TBM Briefing Sheet for this approved Active permit
+    let createdTbmId = null;
+    try {
+      const activePtw = await c.env.DB.prepare(
+        `SELECT * FROM PTW_Records WHERE ptw_id = ?`
+      ).bind(id).first<any>();
+      if (activePtw) {
+        createdTbmId = await autoCreateTbmForPermit(c.env.DB, activePtw);
+      }
+    } catch (tbmErr: any) {
+      console.error('Failed to auto-create TBM upon permit approval:', tbmErr);
+    }
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1181,7 +1267,11 @@ app.post('/api/ptw/:id/approve', async (c) => {
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_APPROVED')
     );
 
-    return c.json({ success: true, message: `Permit ${existing.ptw_id} approved and is now ACTIVE.` });
+    return c.json({
+      success: true,
+      message: `Permit ${existing.ptw_id} approved and is now ACTIVE.`,
+      tbm_id: createdTbmId
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -1459,37 +1549,51 @@ app.get('/api/tbm/:id', async (c) => {
   }
 });
 
-// POST /api/tbm - Create or initialize a new TBM Briefing Record
+// POST /api/tbm - Create or initialize a new TBM Briefing Record (Gated to Active Permits)
 app.post('/api/tbm', async (c) => {
   try {
     const body = await c.req.json();
-    const { ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, hazard_summary } = body;
+    const { ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, hazard_summary, worker_concerns_raised } = body;
 
     if (!ptw_id || !project_id || !supervisor_name) {
       return c.json({ success: false, error: 'PTW ID, Project ID, and Supervisor Name are required.' }, 400);
+    }
+
+    // Permit State Gating Check: TBM can only be created for ACTIVE permits under MOM regulations
+    const ptw = await c.env.DB.prepare(
+      'SELECT status, ptw_type, work_description, selected_rams_json FROM PTW_Records WHERE ptw_id = ?'
+    ).bind(ptw_id).first<any>();
+
+    if (!ptw) {
+      return c.json({ success: false, error: 'Parent Permit-to-Work not found.' }, 404);
+    }
+
+    if (ptw.status !== 'Active') {
+      return c.json({ success: false, error: `TBM Briefings can only be created for Active permits (Current status: '${ptw.status}').` }, 400);
     }
 
     const tbmId = `TBM-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
 
     let taskHazards = hazard_summary;
     if (!taskHazards) {
-      // Auto-extract task hazards from parent PTW if available
-      const ptw = await c.env.DB.prepare(
-        'SELECT ptw_type, work_description, selected_rams_json FROM PTW_Records WHERE ptw_id = ?'
-      ).bind(ptw_id).first<any>();
-
-      if (ptw) {
+      if (ptw.selected_rams_json) {
+        try {
+          const ramsList = typeof ptw.selected_rams_json === 'string' ? JSON.parse(ptw.selected_rams_json) : ptw.selected_rams_json;
+          if (Array.isArray(ramsList) && ramsList.length > 0) {
+            taskHazards = ramsList.map((r: any) => `• [${r.activity_category || 'Hazard'}] ${r.work_activity}: ${r.control_measures || r.hazard}`).join('\n');
+          }
+        } catch (e) {}
+      }
+      if (!taskHazards) {
         taskHazards = `• Work Type: ${ptw.ptw_type || 'General Work'}\n• Description: ${ptw.work_description || 'N/A'}`;
-      } else {
-        taskHazards = '• General site safety procedures, mandatory PPE, emergency escape route awareness.';
       }
     }
 
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const nowStr = getSingaporeTimestamp();
 
     await c.env.DB.prepare(
-      `INSERT INTO TBM_Records (tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, conducted_at, status, hazard_summary, attendance_count, worker_signatures)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING_BRIEFING', ?, 0, '[]')`
+      `INSERT INTO TBM_Records (tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, conducted_at, status, hazard_summary, worker_concerns_raised, attendance_count, worker_signatures)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING_BRIEFING', ?, ?, 0, '[]')`
     ).bind(
       tbmId,
       ptw_id,
@@ -1498,10 +1602,33 @@ app.post('/api/tbm', async (c) => {
       supervisor_role || 'Site Supervisor',
       supervisor_phone || null,
       nowStr,
-      taskHazards
+      taskHazards,
+      worker_concerns_raised || 'Nil / No concerns raised'
     ).run();
 
     return c.json({ success: true, message: 'TBM Briefing created successfully', id: tbmId }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/tbm/backfill - Auto-backfill missing TBM records for all active permits (e.g. PTW-2026-261)
+app.post('/api/tbm/backfill', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare("SELECT * FROM PTW_Records WHERE status = 'Active'").all();
+    const createdIds: string[] = [];
+
+    for (const ptw of (results || [])) {
+      const createdId = await autoCreateTbmForPermit(c.env.DB, ptw);
+      if (createdId) createdIds.push(createdId);
+    }
+
+    return c.json({
+      success: true,
+      message: `Backfill completed. Active permits checked and TBM briefing records updated.`,
+      active_permits_count: (results || []).length,
+      created_tbm_ids: createdIds
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -1512,21 +1639,22 @@ app.post('/api/tbm/:id/sign', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { supervisor_sig, worker_signatures } = body;
+    const { supervisor_sig, worker_signatures, worker_concerns_raised } = body;
 
     if (!Array.isArray(worker_signatures)) {
       return c.json({ success: false, error: 'Worker signatures must be an array.' }, 400);
     }
 
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const nowStr = getSingaporeTimestamp();
     const count = worker_signatures.length;
     const signaturesJson = JSON.stringify(worker_signatures);
+    const concerns = worker_concerns_raised !== undefined ? worker_concerns_raised : 'Nil / No concerns raised';
 
     const result = await c.env.DB.prepare(
       `UPDATE TBM_Records 
-       SET status = 'COMPLETED', supervisor_sig = ?, worker_signatures = ?, attendance_count = ?, conducted_at = ?
+       SET status = 'COMPLETED', supervisor_sig = ?, worker_signatures = ?, attendance_count = ?, conducted_at = ?, worker_concerns_raised = ?
        WHERE tbm_id = ?`
-    ).bind(supervisor_sig || null, signaturesJson, count, nowStr, id).run();
+    ).bind(supervisor_sig || null, signaturesJson, count, nowStr, concerns, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'TBM record not found.' }, 404);
