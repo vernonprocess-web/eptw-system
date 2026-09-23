@@ -1562,6 +1562,42 @@ app.get('/api/tbm/:id', async (c) => {
       return c.json({ success: false, error: 'TBM record not found.' }, 404);
     }
 
+    // Hydrate worker details if assigned_workers_json contains IDs
+    let assignedWorkersDetails: any[] = [];
+    if (record.assigned_workers_json) {
+      try {
+        const parsed = typeof record.assigned_workers_json === 'string' 
+          ? JSON.parse(record.assigned_workers_json) 
+          : record.assigned_workers_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const isStringIds = parsed.every((item: any) => typeof item === 'string');
+          if (isStringIds) {
+            const placeholders = parsed.map(() => '?').join(',');
+            const { results: workers } = await c.env.DB.prepare(
+              `SELECT worker_id, name, trade, ic_no, wp_no, fin_no, ic_wp_no FROM Worker_Registry WHERE worker_id IN (${placeholders})`
+            ).bind(...parsed).all();
+
+            assignedWorkersDetails = parsed.map((idStr: string) => {
+              const found = (workers || []).find((w: any) => w.worker_id === idStr);
+              if (found) {
+                return {
+                  worker_id: found.worker_id,
+                  name: found.name,
+                  trade: found.trade || 'General Worker',
+                  ic_wp_fin: found.fin_no || found.wp_no || found.ic_no || found.ic_wp_no || found.worker_id
+                };
+              }
+              return { worker_id: idStr, name: idStr, trade: 'General Worker', ic_wp_fin: 'N/A' };
+            });
+          } else {
+            assignedWorkersDetails = parsed;
+          }
+        }
+      } catch (e) {}
+    }
+
+    record.assigned_workers_details = assignedWorkersDetails;
+
     return c.json({ success: true, data: record });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);

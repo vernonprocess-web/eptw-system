@@ -198,12 +198,17 @@ window.openTbmModal = async function(tbmId) {
       existingSignatures = [];
     }
 
-    // Load assigned workers from parent PTW if available
-    let assignedWorkers = [];
-    try {
-      assignedWorkers = typeof tbm.assigned_workers_json === 'string' ? JSON.parse(tbm.assigned_workers_json) : (tbm.assigned_workers_json || []);
-    } catch (e) {
-      assignedWorkers = [];
+    // Load assigned workers from parent PTW (prefer backend-hydrated assigned_workers_details)
+    let assignedWorkers = tbm.assigned_workers_details || [];
+    if (!assignedWorkers || assignedWorkers.length === 0) {
+      try {
+        const raw = typeof tbm.assigned_workers_json === 'string' ? JSON.parse(tbm.assigned_workers_json) : (tbm.assigned_workers_json || []);
+        if (Array.isArray(raw)) {
+          assignedWorkers = raw.map(w => typeof w === 'string' ? { worker_id: w, name: w, trade: 'General Worker', ic_wp_fin: 'N/A' } : w);
+        }
+      } catch (e) {
+        assignedWorkers = [];
+      }
     }
 
     renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, tbm.status === 'COMPLETED');
@@ -332,16 +337,30 @@ function renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, isLoc
   }
 
   rosterContainer.innerHTML = assignedWorkers.map((w, index) => {
-    const existing = existingSignatures.find(s => s.worker_id === w.worker_id || s.full_name === (w.name || w.worker_name));
+    const workerObj = typeof w === 'string' 
+      ? { worker_id: w, name: w, trade: 'General Worker', ic_wp_fin: 'N/A' } 
+      : w;
+
+    const workerId = workerObj.worker_id || `WRK-${index}`;
+    const workerName = workerObj.name || workerObj.worker_name || 'Worker';
+    const workerTrade = workerObj.trade || 'General Worker';
+    const workerFin = workerObj.ic_wp_fin || workerObj.fin_no || workerObj.ic_no || workerObj.wp_no || workerId;
+
+    const existing = existingSignatures.find((s, idx) => 
+      s.worker_id === workerId || 
+      (s.full_name && s.full_name !== 'Worker' && s.full_name === workerName) ||
+      idx === index
+    );
+
     const isSigned = !!(existing && existing.signature_base64);
 
     return `
       <div class="worker-sig-card" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div>
-            <strong style="color: #0f172a; font-size: 0.95rem;">👷 ${escapeHtml(w.name || w.worker_name || 'Worker')}</strong>
-            <span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">[Trade: ${escapeHtml(w.trade || 'General Worker')}]</span>
-            <div style="font-size: 0.75rem; color: #64748b;">ID/FIN: <strong>${escapeHtml(w.ic_wp_fin || w.worker_id || 'N/A')}</strong></div>
+            <strong style="color: #0f172a; font-size: 0.95rem;">👷 ${escapeHtml(workerName)}</strong>
+            <span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">[Trade: ${escapeHtml(workerTrade)}]</span>
+            <div style="font-size: 0.75rem; color: #64748b;">ID/FIN: <strong>${escapeHtml(workerFin)}</strong></div>
           </div>
           <div>
             ${isSigned 
@@ -374,7 +393,14 @@ function renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, isLoc
   // Attach touch & mouse canvas listeners if not locked
   if (!isLocked) {
     assignedWorkers.forEach((w, index) => {
-      const existing = existingSignatures.find(s => s.worker_id === w.worker_id || s.full_name === (w.name || w.worker_name));
+      const workerObj = typeof w === 'string' ? { worker_id: w, name: w } : w;
+      const workerId = workerObj.worker_id || `WRK-${index}`;
+      const workerName = workerObj.name || workerObj.worker_name || 'Worker';
+      const existing = existingSignatures.find((s, idx) => 
+        s.worker_id === workerId || 
+        (s.full_name && s.full_name !== 'Worker' && s.full_name === workerName) ||
+        idx === index
+      );
       if (!existing || !existing.signature_base64) {
         initTbmCanvas(`tbm_canvas_${index}`);
       }
@@ -452,11 +478,16 @@ window.submitTbmBriefingSignatures = async function() {
     if (!result.success || !result.data) return;
 
     const tbm = result.data;
-    let assignedWorkers = [];
-    try {
-      assignedWorkers = typeof tbm.assigned_workers_json === 'string' ? JSON.parse(tbm.assigned_workers_json) : (tbm.assigned_workers_json || []);
-    } catch (e) {
-      assignedWorkers = [];
+    let assignedWorkers = tbm.assigned_workers_details || [];
+    if (!assignedWorkers || assignedWorkers.length === 0) {
+      try {
+        const raw = typeof tbm.assigned_workers_json === 'string' ? JSON.parse(tbm.assigned_workers_json) : (tbm.assigned_workers_json || []);
+        if (Array.isArray(raw)) {
+          assignedWorkers = raw.map(w => typeof w === 'string' ? { worker_id: w, name: w, trade: 'General Worker', ic_wp_fin: 'N/A' } : w);
+        }
+      } catch (e) {
+        assignedWorkers = [];
+      }
     }
 
     let existingSignatures = [];
@@ -470,10 +501,26 @@ window.submitTbmBriefingSignatures = async function() {
     const nowTimestamp = new Date().toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' });
 
     assignedWorkers.forEach((w, index) => {
-      const existing = existingSignatures.find(s => s.worker_id === w.worker_id || s.full_name === (w.name || w.worker_name));
+      const workerObj = typeof w === 'string' ? { worker_id: w, name: w } : w;
+      const workerId = workerObj.worker_id || `WRK-${index}`;
+      const workerName = workerObj.name || workerObj.worker_name || 'Worker';
+      const workerTrade = workerObj.trade || 'General Worker';
+      const workerFin = workerObj.ic_wp_fin || workerObj.fin_no || workerObj.ic_no || workerObj.wp_no || workerId;
+
+      const existing = existingSignatures.find((s, idx) => 
+        s.worker_id === workerId || 
+        (s.full_name && s.full_name !== 'Worker' && s.full_name === workerName) ||
+        idx === index
+      );
       
       if (existing && existing.signature_base64) {
-        updatedSignatures.push(existing);
+        updatedSignatures.push({
+          ...existing,
+          worker_id: workerId,
+          full_name: (existing.full_name && existing.full_name !== 'Worker') ? existing.full_name : workerName,
+          ic_wp_fin_last4: (existing.ic_wp_fin_last4 && existing.ic_wp_fin_last4 !== 'N/A') ? existing.ic_wp_fin_last4 : (workerFin ? maskFin(workerFin) : 'N/A'),
+          trade: (existing.trade && existing.trade !== 'General Worker') ? existing.trade : workerTrade
+        });
       } else {
         const canvas = document.getElementById(`tbm_canvas_${index}`);
         let sigData = '';
@@ -486,10 +533,10 @@ window.submitTbmBriefingSignatures = async function() {
 
         if (sigData) {
           updatedSignatures.push({
-            worker_id: w.worker_id || `WRK-${index}`,
-            full_name: w.name || w.worker_name || 'Worker',
-            ic_wp_fin_last4: w.ic_wp_fin ? maskFin(w.ic_wp_fin) : 'N/A',
-            trade: w.trade || 'General Worker',
+            worker_id: workerId,
+            full_name: workerName,
+            ic_wp_fin_last4: workerFin ? maskFin(workerFin) : 'N/A',
+            trade: workerTrade,
             signed_at: nowTimestamp,
             signature_base64: sigData
           });
@@ -551,13 +598,32 @@ window.printTbmPdf = async function(tbmId) {
       return;
     }
 
-    const tbm = result.data;
+    let assignedWorkers = tbm.assigned_workers_details || [];
+    if (!assignedWorkers || assignedWorkers.length === 0) {
+      try {
+        const raw = typeof tbm.assigned_workers_json === 'string' ? JSON.parse(tbm.assigned_workers_json) : (tbm.assigned_workers_json || []);
+        if (Array.isArray(raw)) {
+          assignedWorkers = raw.map(w => typeof w === 'string' ? { worker_id: w, name: w, trade: 'General Worker', ic_wp_fin: 'N/A' } : w);
+        }
+      } catch (e) {}
+    }
+
     let signatures = [];
     try {
       signatures = typeof tbm.worker_signatures === 'string' ? JSON.parse(tbm.worker_signatures) : (tbm.worker_signatures || []);
     } catch (e) {
       signatures = [];
     }
+
+    signatures = signatures.map((s, idx) => {
+      const matched = assignedWorkers[idx] || assignedWorkers.find(w => w.worker_id === s.worker_id);
+      return {
+        ...s,
+        full_name: (s.full_name && s.full_name !== 'Worker') ? s.full_name : (matched ? matched.name : (s.full_name || 'Worker')),
+        trade: (s.trade && s.trade !== 'General Worker') ? s.trade : (matched ? matched.trade : (s.trade || 'Worker')),
+        ic_wp_fin_last4: (s.ic_wp_fin_last4 && s.ic_wp_fin_last4 !== 'N/A') ? s.ic_wp_fin_last4 : (matched ? (matched.ic_wp_fin || matched.worker_id) : (s.worker_id || 'N/A'))
+      };
+    });
 
     const formattedDate = tbm.conducted_at ? new Date(tbm.conducted_at.replace(' ', 'T')).toLocaleString('en-SG', { dateStyle: 'full', timeStyle: 'short' }) : 'N/A';
 
