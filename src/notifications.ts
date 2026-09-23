@@ -20,6 +20,7 @@ export interface PTWRecordForNotification {
     assigned_pm_email?: string;
     status: string;
     rejection_reason?: string;
+    tbm_id?: string;
 }
 
 /**
@@ -215,28 +216,35 @@ export async function dispatchPermitNotification(
 👉 <a href="${permitLink}">Authorize Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_APPROVED') {
-        subject = `✅ [ePTW] Permit APPROVED: ${ptw.ptw_number}`;
-        if (ptw.applicant_email) recipients.push({ email: ptw.applicant_email, name: ptw.applicant_name, role: 'Applicant' });
+        const tbmLink = ptw.tbm_id ? `${appUrl}/?tbm=${encodeURIComponent(ptw.tbm_id)}` : permitLink;
+        subject = `✅ [ePTW] Permit APPROVED: ${ptw.ptw_number}${ptw.tbm_id ? ` — TBM Briefing ${ptw.tbm_id} Ready` : ''}`;
+        if (ptw.applicant_email) recipients.push({ email: ptw.applicant_email, name: ptw.applicant_name, role: 'Site Supervisor' });
         if (ptw.assigned_wsho_email) recipients.push({ email: ptw.assigned_wsho_email, name: ptw.assigned_wsho_name, role: 'WSHO' });
 
         emailHtml = `
-            <h2>Permit Status: ACTIVE & APPROVED</h2>
-            <p>Permit <b>${ptw.ptw_number}</b> has been authorized by Project Manager. High-risk work may safely commence.</p>
+            <h2>Permit Status: ACTIVE & APPROVED 🟢</h2>
+            <p>Permit <b>${ptw.ptw_number}</b> has been authorized by Project Manager. High-risk work may safely commence once mandatory Toolbox Meeting (TBM) briefing is completed.</p>
             <ul>
                 <li><b>Permit No:</b> ${ptw.ptw_number}</li>
                 <li><b>Project:</b> ${ptw.project_name}</li>
                 <li><b>Status:</b> ACTIVE</li>
+                ${ptw.tbm_id ? `<li><b>Toolbox Meeting (TBM) Form Ref:</b> <code>${ptw.tbm_id}</code></li>` : ''}
             </ul>
-            <p><a href="${permitLink}" style="background:#16a34a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block;">View Approved Permit</a></p>
+            <div style="margin-top: 20px;">
+                ${ptw.tbm_id ? `<a href="${tbmLink}" style="background:#0284c7;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;margin-right:10px;">🗣️ Open TBM Briefing Sheet</a>` : ''}
+                <a href="${permitLink}" style="background:#16a34a;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;">View Approved Permit</a>
+            </div>
         `;
 
         telegramHtml = `
 <b>✅ Permit APPROVED & ACTIVE</b>
 <b>Permit:</b> ${ptw.ptw_number}
 <b>Project:</b> ${ptw.project_name}
-<b>Status:</b> ACTIVE (Work may commence)
+<b>Status:</b> ACTIVE
+${ptw.tbm_id ? `<b>TBM Form Ref:</b> <code>${ptw.tbm_id}</code>\n` : ''}
+⚠️ <i>Site Supervisor must conduct TBM Briefing before work commences.</i>
 
-👉 <a href="${permitLink}">View Approved Permit</a>
+${ptw.tbm_id ? `👉 <a href="${tbmLink}">🗣️ Conduct TBM Briefing (${ptw.tbm_id})</a>\n` : ''}👉 <a href="${permitLink}">View Approved Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_REJECTED') {
         subject = `❌ [ePTW] Permit REJECTED: ${ptw.ptw_number}`;

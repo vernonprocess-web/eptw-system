@@ -74,16 +74,34 @@ async function autoCreateTbmForPermit(db: D1Database, ptw: any) {
     try {
       const ramsList = typeof ptw.selected_rams_json === 'string' ? JSON.parse(ptw.selected_rams_json) : ptw.selected_rams_json;
       if (Array.isArray(ramsList) && ramsList.length > 0) {
-        taskHazards = ramsList.map((r: any) => `• ${r.work_activity || r.activity_category || 'Work Activity'}: ${r.control_measures || r.hazard || 'Mandatory safety controls apply'}`).join('\n');
+        const isIdList = ramsList.every((r: any) => typeof r === 'number' || (typeof r === 'string' && !isNaN(Number(r))));
+        if (isIdList) {
+          const placeholders = ramsList.map(() => '?').join(',');
+          const { results: ramsRecords } = await db.prepare(
+            `SELECT activity_category, work_activity, hazard, control_measures FROM Master_RAMS_Library WHERE id IN (${placeholders})`
+          ).bind(...ramsList).all();
+
+          if (ramsRecords && ramsRecords.length > 0) {
+            taskHazards = ramsRecords.map((r: any) => `• [${r.activity_category || 'Hazard'}] ${r.work_activity}: ${r.control_measures || r.hazard}`).join('\n');
+          }
+        } else {
+          taskHazards = ramsList.map((r: any) => {
+            if (typeof r === 'object' && r) {
+              return `• [${r.activity_category || 'Hazard'}] ${r.work_activity || 'Work Activity'}: ${r.control_measures || r.hazard || 'Mandatory safety controls apply'}`;
+            }
+            return `• Work Activity #${r}: Mandatory safety controls apply`;
+          }).join('\n');
+        }
       }
     } catch (e) {}
   }
+
   if (!taskHazards) {
     taskHazards = `• Work Type: ${ptw.ptw_type || 'General Work'}\n• Description: ${ptw.work_description || 'N/A'}\n• Mandatory PPE: Safety Helmet, Harness with Double Lanyard, Safety Boots, High-Vis Vest.`;
   }
 
   const nowSgt = getSingaporeTimestamp();
-  const supervisorName = ptw.assigned_pm_name || 'Site Supervisor';
+  const supervisorName = ptw.applicant_name || (ptw.applicant_email ? ptw.applicant_email.split('@')[0] : null) || 'Site Supervisor';
 
   await db.prepare(
     `INSERT INTO TBM_Records (tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, supervisor_phone, conducted_at, status, hazard_summary, worker_concerns_raised, attendance_count, worker_signatures)
@@ -1259,7 +1277,8 @@ app.post('/api/ptw/:id/approve', async (c) => {
       applicant_email: existing.applicant_email,
       assigned_wsho_name: existing.assigned_wsho_name,
       assigned_wsho_email: existing.assigned_wsho_email,
-      status: 'Active'
+      status: 'Active',
+      tbm_id: createdTbmId || undefined
     };
 
     safeWaitUntil(

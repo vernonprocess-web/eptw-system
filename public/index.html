@@ -3011,8 +3011,10 @@
         });
         const result = await response.json();
         if (result.success) {
-          showToast(`Permit ${ptwId} approved and is now ACTIVE! Approval emails sent.`);
+          const tbmMsg = result.tbm_id ? ` (TBM Briefing Sheet ${result.tbm_id} generated & dispatched to Site Supervisor!)` : '';
+          showToast(`Permit ${ptwId} approved & ACTIVE!${tbmMsg}`);
           loadPtwData();
+          if (typeof fetchTbmRecords === 'function') fetchTbmRecords();
           closePermitViewModal();
         } else {
           showToast(`Authorization failed: ${result.error}`, 'error');
@@ -3152,15 +3154,24 @@
     loadProjectData();
     loadPtwData();
 
-    // Check for Deep-Link Permit URL parameter (?ptw=PTW-2026-xxx)
+    // Check for Deep-Link URL parameters (?ptw=PTW-2026-xxx or ?tbm=TBM-2026-xxx)
     const urlParams = new URLSearchParams(window.location.search);
     const deepPtwId = urlParams.get('ptw');
+    const deepTbmId = urlParams.get('tbm');
+
     if (deepPtwId) {
       setTimeout(() => {
         const ptwTabBtn = document.querySelector('.tab-btn[onclick*="ptwTab"]');
         if (ptwTabBtn) ptwTabBtn.click();
         openPermitViewModal(deepPtwId);
       }, 500);
+    } else if (deepTbmId) {
+      setTimeout(() => {
+        const tbmTabBtn = document.querySelector('.tab-btn[onclick*="tbmTab"]');
+        if (tbmTabBtn) tbmTabBtn.click();
+        if (typeof fetchTbmRecords === 'function') fetchTbmRecords();
+        if (typeof openTbmSignModal === 'function') openTbmSignModal(deepTbmId);
+      }, 600);
     }
 
     if ('serviceWorker' in navigator) {
