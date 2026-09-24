@@ -56,6 +56,45 @@ function getSingaporeDateOnly(): string {
   return formatter.format(now);
 }
 
+// Immutable Audit Logging Helper (Singapore SGT Timezone & Non-Repudiable User Attribution)
+async function logAuditEvent(
+  c: any,
+  action: string,
+  targetTable: string,
+  targetId: string,
+  details?: string,
+  userOverride?: { email: string; role: string }
+) {
+  try {
+    let email = userOverride?.email;
+    let role = userOverride?.role;
+
+    if (!email || !role) {
+      email = c.req.header('x-user-email') || c.req.header('X-User-Email');
+      role = c.req.header('x-user-role') || c.req.header('X-User-Role');
+    }
+
+    if (!email && c.req.method !== 'GET') {
+      try {
+        const body = await c.req.raw.clone().json();
+        email = body.user_email || body.applicant_email || body.email;
+        role = body.user_role || body.role;
+      } catch (e) {}
+    }
+
+    if (!email) email = 'system';
+    if (!role) role = 'SYSTEM';
+
+    const timestamp = getSingaporeTimestamp();
+
+    await c.env.DB.prepare(
+      `INSERT INTO Audit_Logs (user_email, user_role, action, target_table, target_id, details, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(email, role, action, targetTable, targetId, details || '', timestamp).run();
+  } catch (err) {
+    console.error('Audit logging error:', err);
+  }
+}
+
 // Auto-create TBM Briefing Sheet for Active Permits (Idempotent per shift date)
 async function autoCreateTbmForPermit(db: D1Database, ptw: any) {
   const todaySgtDate = getSingaporeDateOnly();
@@ -412,7 +451,7 @@ app.get('/api/certs/:key{.+}', async (c) => {
 app.get('/api/workers', async (c) => {
   try {
     const { results: workers } = await c.env.DB.prepare(
-      'SELECT * FROM Worker_Registry ORDER BY name ASC'
+      'SELECT * FROM Worker_Registry WHERE deleted_at IS NULL ORDER BY name ASC'
     ).all();
 
     const { results: certs } = await c.env.DB.prepare(
@@ -676,18 +715,20 @@ app.delete('/api/certs/:cert_id', async (c) => {
   }
 });
 
-// DELETE /api/workers/:id - Delete worker profile and all certificates
+// DELETE /api/workers/:id - Archive worker profile and certificates (Soft Delete)
 app.delete('/api/workers/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    await c.env.DB.prepare('DELETE FROM Worker_Certificates WHERE worker_id = ?').bind(id).run();
-    const result = await c.env.DB.prepare('DELETE FROM Worker_Registry WHERE worker_id = ?').bind(id).run();
+    const nowSgt = getSingaporeTimestamp();
+    const result = await c.env.DB.prepare('UPDATE Worker_Registry SET deleted_at = ? WHERE worker_id = ?').bind(nowSgt, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'Worker record not found.' }, 404);
     }
 
-    return c.json({ success: true, message: 'Worker profile and all associated certificates deleted.' });
+    await logAuditEvent(c, 'ARCHIVE_WORKER', 'Worker_Registry', id, 'Archived worker profile');
+
+    return c.json({ success: true, message: 'Worker profile safely archived.' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -697,12 +738,14 @@ app.delete('/api/workers/:id', async (c) => {
 // PROJECT DIRECTORY ROUTES & CONTROL CENTER API
 // ============================================================================
 
-// GET /api/projects - List all projects
+// GET /api/projects - List all projects (excluding soft-deleted / archived by default)
 app.get('/api/projects', async (c) => {
   try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT * FROM Project_Directory ORDER BY created_at DESC'
-    ).all();
+    const includeArchived = c.req.query('include_archived') === 'true';
+    const sql = includeArchived
+      ? 'SELECT * FROM Project_Directory ORDER BY created_at DESC'
+      : "SELECT * FROM Project_Directory WHERE (deleted_at IS NULL AND (status IS NULL OR status != 'Archived')) ORDER BY created_at DESC";
+    const { results } = await c.env.DB.prepare(sql).all();
     return c.json({ success: true, data: results });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -748,6 +791,8 @@ app.post('/api/projects', async (c) => {
       pm_email || ''
     ).run();
 
+    await logAuditEvent(c, 'CREATE_PROJECT', 'Project_Directory', project_id, `Created site: ${project_name} (${location})`);
+
     return c.json({
       success: true,
       message: 'Project created successfully.',
@@ -792,25 +837,61 @@ app.put('/api/projects/:id', async (c) => {
       return c.json({ success: false, error: 'Project record not found.' }, 404);
     }
 
+    await logAuditEvent(c, 'UPDATE_PROJECT', 'Project_Directory', id, `Updated site details: ${project_name}`);
+
     return c.json({ success: true, message: 'Project updated successfully.' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
 
-// DELETE /api/projects/:id - Remove a project
+// DELETE /api/projects/:id - Smart Conditional Deletion & Archival for Sites
 app.delete('/api/projects/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await c.env.DB.prepare(
-      'DELETE FROM Project_Directory WHERE project_id = ?'
-    ).bind(id).run();
 
-    if (result.meta.changes === 0) {
-      return c.json({ success: false, error: 'Project record not found.' }, 404);
+    // 1. Check count of linked PTWs and TBMs
+    const ptwCountRes = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM PTW_Records WHERE project_id = ?'
+    ).bind(id).first<any>();
+
+    const tbmCountRes = await c.env.DB.prepare(
+      'SELECT COUNT(*) as count FROM TBM_Records WHERE project_id = ?'
+    ).bind(id).first<any>();
+
+    const totalRecords = (ptwCountRes?.count || 0) + (tbmCountRes?.count || 0);
+    const nowSgt = getSingaporeTimestamp();
+
+    if (totalRecords === 0) {
+      // Empty site created in error -> Hard Delete
+      const result = await c.env.DB.prepare(
+        'DELETE FROM Project_Directory WHERE project_id = ?'
+      ).bind(id).run();
+
+      if (result.meta.changes === 0) {
+        return c.json({ success: false, error: 'Project record not found.' }, 404);
+      }
+
+      await logAuditEvent(c, 'DELETE_EMPTY_PROJECT', 'Project_Directory', id, 'Permanently deleted empty site created in error');
+      return c.json({ success: true, message: 'Empty site deleted permanently.', action: 'DELETED' });
+    } else {
+      // Site with history -> Soft Delete / Archive + Auto-cancel non-closed permits
+      await c.env.DB.batch([
+        c.env.DB.prepare(
+          `UPDATE Project_Directory SET status = 'Archived', deleted_at = ? WHERE project_id = ?`
+        ).bind(nowSgt, id),
+        c.env.DB.prepare(
+          `UPDATE PTW_Records SET status = 'Cancelled', rejection_reason = 'Site Archived' WHERE project_id = ? AND (status IN ('Draft', 'Pending', 'Vetted', 'Active', 'Pending Safety Vetting', 'Pending PM Approval') OR status IS NULL)`
+        ).bind(id)
+      ]);
+
+      await logAuditEvent(c, 'ARCHIVE_PROJECT', 'Project_Directory', id, `Archived site with ${totalRecords} linked compliance record(s). Auto-cancelled unclosed permits.`);
+      return c.json({ 
+        success: true, 
+        message: `Site safely archived to preserve WSH compliance history (${totalRecords} linked safety record(s) protected). Active/pending permits cancelled.`,
+        action: 'ARCHIVED'
+      });
     }
-
-    return c.json({ success: true, message: 'Project deleted successfully.' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -962,7 +1043,7 @@ app.get('/api/telegram/pairing-link', (c) => {
 // ePTW TRANSACTION ENGINE ROUTES (PHASE 1, PHASE 2, PHASE 4 WORKFLOW)
 // ============================================================================
 
-// GET /api/ptw - Fetch all permits joined with Project details & Safety Officers
+// GET /api/ptw - Fetch all permits joined with Project details & Safety Officers (excluding deleted)
 app.get('/api/ptw', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
@@ -971,6 +1052,7 @@ app.get('/api/ptw', async (c) => {
               prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.deleted_at IS NULL
        ORDER BY p.created_at DESC`
     ).all();
     return c.json({ success: true, data: results });
@@ -1102,10 +1184,14 @@ app.post('/api/ptw', async (c) => {
 
     const initialStatus = status || 'Pending Safety Vetting';
 
-    // Fetch project details for notifications
+    // Fetch project details for validation and notifications
     const project = await c.env.DB.prepare(
-      'SELECT project_name, project_manager, wsho_name, wsho_email, pm_email FROM Project_Directory WHERE project_id = ?'
-    ).bind(project_id).first<{ project_name: string; project_manager: string; wsho_name: string; wsho_email: string; pm_email: string }>();
+      'SELECT project_name, project_manager, wsho_name, wsho_email, pm_email, status, deleted_at FROM Project_Directory WHERE project_id = ?'
+    ).bind(project_id).first<any>();
+
+    if (!project || project.status === 'Archived' || project.deleted_at) {
+      return c.json({ success: false, error: 'Cannot issue a permit for an archived or inactive site.' }, 400);
+    }
 
     const finalWshoName = assigned_wsho_name || project?.wsho_name || 'Safety Assessor';
     const finalWshoEmail = assigned_wsho_email || project?.wsho_email || 'safety@eptw-system.com';
@@ -1437,23 +1523,67 @@ app.put('/api/ptw/:id', async (c) => {
       id
     ).run();
 
+    await logAuditEvent(c, 'UPDATE_PTW', 'PTW_Records', id, `Updated permit details. Status: ${updatedStatus}`);
+
     return c.json({ success: true, message: `Permit ${id} updated successfully.` });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
 
-// DELETE /api/ptw/:id - Delete a permit
+// DELETE /api/ptw/:id - Compliance Lock & Permit Archival Handler
 app.delete('/api/ptw/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ?').bind(id).run();
+    const existing = await c.env.DB.prepare('SELECT ptw_id, status, project_id FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
 
-    if (result.meta.changes === 0) {
+    if (!existing) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
     }
 
-    return c.json({ success: true, message: 'Permit deleted successfully.' });
+    const tbmCountRes = await c.env.DB.prepare('SELECT COUNT(*) as count FROM TBM_Records WHERE ptw_id = ?').bind(id).first<any>();
+    const tbmCount = tbmCountRes?.count || 0;
+
+    // Check if permit is an unused Draft with 0 TBMs attached -> Hard Delete
+    if (existing.status === 'Draft' && tbmCount === 0) {
+      await c.env.DB.prepare('DELETE FROM PTW_Records WHERE ptw_id = ?').bind(id).run();
+      await logAuditEvent(c, 'DELETE_DRAFT_PTW', 'PTW_Records', id, 'Permanently deleted unused draft permit');
+      return c.json({ success: true, message: 'Draft permit deleted permanently.', action: 'DELETED' });
+    }
+
+    const isForceArchive = c.req.query('archive') === 'true';
+
+    if (!isForceArchive && ['Active', 'Pending PM Approval', 'Pending Safety Vetting', 'Vetted', 'Closed', 'Approved'].includes(existing.status)) {
+      return c.json({
+        success: false,
+        error: `COMPLIANCE LOCK: Permit ${id} is in '${existing.status}' status with WSH legal history and cannot be permanently deleted. Archive it instead if authorized.`
+      }, 403);
+    }
+
+    // Perform soft-delete / archival
+    const nowSgt = getSingaporeTimestamp();
+    await c.env.DB.batch([
+      c.env.DB.prepare('UPDATE TBM_Records SET deleted_at = ? WHERE ptw_id = ?').bind(nowSgt, id),
+      c.env.DB.prepare(`UPDATE PTW_Records SET status = 'Cancelled', deleted_at = ? WHERE ptw_id = ?`).bind(nowSgt, id)
+    ]);
+
+    await logAuditEvent(c, 'ARCHIVE_PTW', 'PTW_Records', id, `Archived permit record (${existing.status}) to preserve MOM audit compliance.`);
+
+    return c.json({ success: true, message: 'Permit safely archived to maintain WSH audit compliance.', action: 'ARCHIVED' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/audit-logs - Read-only Audit Log Ledger for WSH Officers & Auditors
+app.get('/api/audit-logs', async (c) => {
+  try {
+    const limit = c.req.query('limit') || '100';
+    const { results } = await c.env.DB.prepare(
+      'SELECT * FROM Audit_Logs ORDER BY log_id DESC LIMIT ?'
+    ).bind(Number(limit)).all();
+
+    return c.json({ success: true, data: results });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -1510,7 +1640,7 @@ app.get('/api/tbm', async (c) => {
       FROM TBM_Records t
       LEFT JOIN Project_Directory prj ON t.project_id = prj.project_id
       LEFT JOIN PTW_Records p ON t.ptw_id = p.ptw_id
-      WHERE 1=1
+      WHERE t.deleted_at IS NULL
     `;
     const params: any[] = [];
 
@@ -1721,17 +1851,22 @@ app.post('/api/tbm/:id/sign', async (c) => {
   }
 });
 
-// DELETE /api/tbm/:id - Delete a TBM record
+// DELETE /api/tbm/:id - Archive a TBM record
 app.delete('/api/tbm/:id', async (c) => {
   try {
     const id = c.req.param('id');
-    const result = await c.env.DB.prepare('DELETE FROM TBM_Records WHERE tbm_id = ?').bind(id).run();
+    const nowSgt = getSingaporeTimestamp();
+    const result = await c.env.DB.prepare(
+      "UPDATE TBM_Records SET status = 'CLOSED', deleted_at = ? WHERE tbm_id = ?"
+    ).bind(nowSgt, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'TBM record not found.' }, 404);
     }
 
-    return c.json({ success: true, message: 'TBM record deleted successfully.' });
+    await logAuditEvent(c, 'ARCHIVE_TBM', 'TBM_Records', id, 'Archived TBM briefing record');
+
+    return c.json({ success: true, message: 'TBM record archived successfully.' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }

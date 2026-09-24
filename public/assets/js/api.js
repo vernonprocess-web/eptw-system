@@ -7,6 +7,14 @@ import { saveToOutbox, generateUUID } from './db.js';
 export async function fetchAPI(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   
+  options.headers = options.headers || {};
+  if (!options.headers['X-User-Email'] && !options.headers['x-user-email']) {
+    const activeUser = localStorage.getItem('active_user_email') || 'vernon.process@gmail.com';
+    const activeRole = localStorage.getItem('active_user_role') || 'PROJECT_MANAGER';
+    options.headers['X-User-Email'] = activeUser;
+    options.headers['X-User-Role'] = activeRole;
+  }
+
   if (!navigator.onLine && method !== 'GET') {
     let payload = {};
     try {

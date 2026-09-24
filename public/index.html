@@ -41,6 +41,9 @@
       <button class="tab-btn" onclick="switchTab('tbmTab')">
         🗣️ TBM & Safety Briefings Log
       </button>
+      <button class="tab-btn" onclick="switchTab('auditTab')">
+        📜 Audit Logs & WSH History
+      </button>
     </div>
 
     <div id="toast"></div>
@@ -729,6 +732,38 @@
       </div>
     </div>
 
+    <!-- TAB 6: IMMUTABLE AUDIT LOGS LEDGER -->
+    <div id="auditTab" class="tab-content">
+      <div class="table-card">
+        <div class="table-toolbar" style="justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="margin: 0;">📜 Immutable WSH Audit Log Ledger</h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Non-Repudiable Event History • SGT (UTC+8) Incident & Operational Timestamps</div>
+          </div>
+          <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="loadAuditLogs()">🔄 Refresh Audit Logs</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">Log ID</th>
+                <th style="width: 160px;">Timestamp (SGT)</th>
+                <th style="width: 180px;">Action Event</th>
+                <th style="width: 200px;">Target Resource</th>
+                <th style="width: 200px;">User Identity</th>
+                <th>Audit Details & Context</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 20px; color: #888;">Select tab to view audit logs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL 3: TBM BRIEFING SHEET & WORKER SIGNATURES -->
     <div id="tbmModal" class="modal-backdrop" style="display: none;">
       <div class="modal-card" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
@@ -916,6 +951,14 @@
         populateWorkerChecklist();
         populateRamsChecklist();
         initSignatureCanvas('applicantSigCanvas');
+      } else if (tabId === 'tbmTab') {
+        document.querySelectorAll('.tab-btn')[4].classList.add('active');
+        document.getElementById('tbmTab').classList.add('active');
+        if (typeof window.fetchTbmRecords === 'function') window.fetchTbmRecords();
+      } else if (tabId === 'auditTab') {
+        document.querySelectorAll('.tab-btn')[5].classList.add('active');
+        document.getElementById('auditTab').classList.add('active');
+        window.loadAuditLogs();
       }
     };
 
@@ -2200,15 +2243,23 @@
     };
 
     window.deleteProject = async function(projectId) {
-      if (!confirm(`Are you sure you want to delete project ${projectId}?`)) return;
+      if (!confirm(`Are you sure you want to delete/archive site ${projectId}?\n\n• If this site has 0 safety records, it will be deleted permanently.\n• If it has linked safety permits or TBMs, it will be safely archived to preserve WSH compliance history.`)) return;
       try {
-        const response = await fetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+        const activeUser = localStorage.getItem('active_user_email') || 'vernon.process@gmail.com';
+        const activeRole = localStorage.getItem('active_user_role') || 'PROJECT_MANAGER';
+        const response = await fetch(`/api/projects/${projectId}`, { 
+          method: 'DELETE',
+          headers: {
+            'X-User-Email': activeUser,
+            'X-User-Role': activeRole
+          }
+        });
         const result = await response.json();
         if (result.success) {
-          showToast(`Project ${projectId} deleted successfully.`);
+          showToast(result.message || `Project ${projectId} processed successfully.`);
           loadProjectData();
         } else {
-          showToast(`Delete failed: ${result.error}`, 'error');
+          showToast(`Action failed: ${result.error}`, 'error');
         }
       } catch (err) {
         showToast(`Network error: ${err.message}`, 'error');
@@ -2707,19 +2758,53 @@
     };
 
     window.deletePtw = async function(ptwId) {
-      if (!confirm(`Are you sure you want to delete permit ${ptwId}?`)) return;
+      if (!confirm(`Are you sure you want to delete/archive permit ${ptwId}?\n\n• Unused Draft permits will be permanently deleted.\n• Approved, Vetted, or Active permits are protected by WSH Compliance Lock and will be safely archived.`)) return;
       try {
-        const response = await fetch(`/api/ptw/${ptwId}`, { method: 'DELETE' });
+        const activeUser = localStorage.getItem('active_user_email') || 'vernon.process@gmail.com';
+        const activeRole = localStorage.getItem('active_user_role') || 'PROJECT_MANAGER';
+        const response = await fetch(`/api/ptw/${ptwId}`, { 
+          method: 'DELETE',
+          headers: {
+            'X-User-Email': activeUser,
+            'X-User-Role': activeRole
+          }
+        });
         const result = await response.json();
         if (result.success) {
-          showToast(`Permit ${ptwId} deleted successfully.`);
+          showToast(result.message || `Permit ${ptwId} processed successfully.`);
           loadPtwData();
           if (typeof window.loadPTWs === 'function') window.loadPTWs('ptwTableBody');
         } else {
-          showToast(`Delete failed: ${result.error}`, 'error');
+          showToast(`Action failed: ${result.error}`, 'error');
         }
       } catch (err) {
         showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    window.loadAuditLogs = async function() {
+      const container = document.getElementById('auditLogTableBody');
+      if (!container) return;
+      container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Loading audit logs...</td></tr>`;
+      try {
+        const res = await fetch('/api/audit-logs?limit=100');
+        const json = await res.json();
+        if (!json.success || !json.data || json.data.length === 0) {
+          container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">No audit logs recorded yet.</td></tr>`;
+          return;
+        }
+        container.innerHTML = json.data.map(log => `
+          <tr>
+            <td><strong>#${log.log_id}</strong></td>
+            <td><span style="font-family:monospace; font-size:0.85rem; color:#2563eb;">${escapeHtml(log.timestamp)}</span></td>
+            <td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">${escapeHtml(log.action)}</span></td>
+            <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.82rem;">${escapeHtml(log.target_table)}: ${escapeHtml(log.target_id)}</code></td>
+            <td><strong>${escapeHtml(log.user_email)}</strong><br><small style="color:#64748b;">(${escapeHtml(log.user_role)})</small></td>
+            <td style="font-size:0.85rem; color:#334155;">${escapeHtml(log.details || '-')}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">Failed to load audit logs: ${err.message}</td></tr>`;
       }
     };
 
