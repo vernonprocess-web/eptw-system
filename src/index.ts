@@ -1726,6 +1726,20 @@ app.get('/api/tbm/:id', async (c) => {
       } catch (e) {}
     }
 
+    if (assignedWorkersDetails.length === 0 && record.worker_signatures) {
+      try {
+        const sigs = typeof record.worker_signatures === 'string' ? JSON.parse(record.worker_signatures) : record.worker_signatures;
+        if (Array.isArray(sigs) && sigs.length > 0) {
+          assignedWorkersDetails = sigs.map((s: any) => ({
+            worker_id: s.worker_id,
+            name: (s.full_name && s.full_name !== 'Worker') ? s.full_name : s.worker_id,
+            trade: s.trade || 'General Worker',
+            ic_wp_fin: s.ic_wp_fin_last4 || 'N/A'
+          }));
+        }
+      } catch (e) {}
+    }
+
     record.assigned_workers_details = assignedWorkersDetails;
 
     return c.json({ success: true, data: record });

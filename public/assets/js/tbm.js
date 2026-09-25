@@ -342,15 +342,27 @@ function renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, isLoc
       : w;
 
     const workerId = workerObj.worker_id || `WRK-${index}`;
-    const workerName = workerObj.name || workerObj.worker_name || 'Worker';
-    const workerTrade = workerObj.trade || 'General Worker';
-    const workerFin = workerObj.ic_wp_fin || workerObj.fin_no || workerObj.ic_no || workerObj.wp_no || workerId;
-
-    const existing = existingSignatures.find((s, idx) => 
+    
+    // Find matching signature by ID, name, or index fallback
+    const existing = (existingSignatures || []).find((s, idx) => 
       s.worker_id === workerId || 
-      (s.full_name && s.full_name !== 'Worker' && s.full_name === workerName) ||
+      (s.full_name && s.full_name !== 'Worker' && s.full_name === workerObj.name) ||
       idx === index
     );
+
+    const workerName = (existing && existing.full_name && existing.full_name !== 'Worker')
+      ? existing.full_name
+      : ((workerObj.name && workerObj.name !== 'Worker' && !workerObj.name.startsWith('WRK-'))
+          ? workerObj.name
+          : (workerObj.worker_name || workerObj.name || `Worker #${index + 1}`));
+
+    const workerTrade = (existing && existing.trade && existing.trade !== 'General Worker')
+      ? existing.trade
+      : (workerObj.trade || 'General Worker');
+
+    const workerFin = (existing && existing.ic_wp_fin_last4 && existing.ic_wp_fin_last4 !== 'N/A')
+      ? existing.ic_wp_fin_last4
+      : (workerObj.ic_wp_fin || workerObj.fin_no || workerObj.ic_no || workerObj.wp_no || workerId);
 
     const isSigned = !!(existing && existing.signature_base64);
 
@@ -472,6 +484,15 @@ window.clearTbmCanvas = function(canvasId) {
 window.submitTbmBriefingSignatures = async function() {
   if (!activeTbmModalId) return;
 
+  // 1. Synchronously capture all drawn canvas signature images from DOM BEFORE any async fetch
+  const capturedCanvases = {};
+  const canvasElements = document.querySelectorAll('[id^="tbm_canvas_"]');
+  canvasElements.forEach(canvas => {
+    if (!isCanvasBlank(canvas)) {
+      capturedCanvases[canvas.id] = canvas.toDataURL('image/png');
+    }
+  });
+
   try {
     const res = await fetch(`/api/tbm/${activeTbmModalId}`);
     const result = await res.json();
@@ -503,7 +524,9 @@ window.submitTbmBriefingSignatures = async function() {
     assignedWorkers.forEach((w, index) => {
       const workerObj = typeof w === 'string' ? { worker_id: w, name: w } : w;
       const workerId = workerObj.worker_id || `WRK-${index}`;
-      const workerName = workerObj.name || workerObj.worker_name || 'Worker';
+      const workerName = (workerObj.name && workerObj.name !== 'Worker' && !workerObj.name.startsWith('WRK-'))
+        ? workerObj.name
+        : (workerObj.worker_name || workerObj.name || `Worker #${index + 1}`);
       const workerTrade = workerObj.trade || 'General Worker';
       const workerFin = workerObj.ic_wp_fin || workerObj.fin_no || workerObj.ic_no || workerObj.wp_no || workerId;
 
@@ -513,34 +536,17 @@ window.submitTbmBriefingSignatures = async function() {
         idx === index
       );
       
-      if (existing && existing.signature_base64) {
-        updatedSignatures.push({
-          ...existing,
-          worker_id: workerId,
-          full_name: (existing.full_name && existing.full_name !== 'Worker') ? existing.full_name : workerName,
-          ic_wp_fin_last4: (existing.ic_wp_fin_last4 && existing.ic_wp_fin_last4 !== 'N/A') ? existing.ic_wp_fin_last4 : (workerFin ? maskFin(workerFin) : 'N/A'),
-          trade: (existing.trade && existing.trade !== 'General Worker') ? existing.trade : workerTrade
-        });
-      } else {
-        const canvas = document.getElementById(`tbm_canvas_${index}`);
-        let sigData = '';
-        if (canvas) {
-          const isBlank = isCanvasBlank(canvas);
-          if (!isBlank) {
-            sigData = canvas.toDataURL('image/png');
-          }
-        }
+      const sigData = capturedCanvases[`tbm_canvas_${index}`] || (existing ? existing.signature_base64 : '');
 
-        if (sigData) {
-          updatedSignatures.push({
-            worker_id: workerId,
-            full_name: workerName,
-            ic_wp_fin_last4: workerFin ? maskFin(workerFin) : 'N/A',
-            trade: workerTrade,
-            signed_at: nowTimestamp,
-            signature_base64: sigData
-          });
-        }
+      if (sigData) {
+        updatedSignatures.push({
+          worker_id: workerId,
+          full_name: (existing && existing.full_name && existing.full_name !== 'Worker') ? existing.full_name : workerName,
+          ic_wp_fin_last4: (existing && existing.ic_wp_fin_last4 && existing.ic_wp_fin_last4 !== 'N/A') ? existing.ic_wp_fin_last4 : (workerFin ? maskFin(workerFin) : 'N/A'),
+          trade: (existing && existing.trade && existing.trade !== 'General Worker') ? existing.trade : workerTrade,
+          signed_at: (existing && existing.signed_at) ? existing.signed_at : nowTimestamp,
+          signature_base64: sigData
+        });
       }
     });
 

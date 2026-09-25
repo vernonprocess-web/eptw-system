@@ -1,5 +1,5 @@
 // ePTW System Service Worker for PWA Offline Caching & Shell Support
-const CACHE_NAME = 'eptw-system-cache-v4';
+const CACHE_NAME = 'eptw-system-cache-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
   '/assets/js/ocr.js',
   '/assets/js/rams.js',
   '/assets/js/ptw.js',
+  '/assets/js/tbm.js',
   '/assets/js/app.js'
 ];
 
@@ -40,8 +41,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first strategy for API and HTML page requests so updates show immediately
-  if (event.request.url.includes('/api/') || event.request.mode === 'navigate' || event.request.url.endsWith('/') || event.request.url.includes('index.html')) {
+  // Network first strategy for API, JS assets, and HTML page requests so updates show immediately
+  if (event.request.url.includes('/api/') || event.request.url.includes('/assets/js/') || event.request.mode === 'navigate' || event.request.url.endsWith('/') || event.request.url.includes('index.html')) {
     event.respondWith(
       fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
