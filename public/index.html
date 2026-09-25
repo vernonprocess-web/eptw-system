@@ -892,6 +892,23 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL 3: VIEW WORKER DETAILS & CERTIFICATES -->
+    <div id="workerViewModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 740px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h3 id="workerViewTitle">👤 Worker Details & Certificates</h3>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeWorkerViewModal()">✕</button>
+        </div>
+        <div id="workerViewBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); overflow-y: auto; padding-right: 4px;">
+          <!-- Content populated via JS -->
+        </div>
+        <div class="form-actions" style="margin-top: 20px;">
+          <button type="button" class="btn-secondary" onclick="closeWorkerViewModal()">Close</button>
+          <button type="button" class="btn-primary" id="workerViewEditBtn">✏️ Edit Worker Profile</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1385,6 +1402,7 @@
         showToast(`Network error: ${err.message}`, 'error');
       }
     }
+    window.loadWorkerData = loadWorkerData;
 
     // Sort Worker Table
     window.handleWorkerSort = function(column) {
@@ -1557,6 +1575,7 @@
             <td style="text-align: center;">${overallStatusHTML}</td>
             <td style="text-align: center;">
               <div class="action-btn-group">
+                <button class="btn-action-view" onclick="openWorkerDetailModal('${escapeHtml(item.worker_id)}')">👤 Details</button>
                 <button class="btn-action-view" onclick="prepareAddCert('${escapeHtml(item.worker_id)}')">+ Add Cert</button>
                 <button class="btn-action-edit" onclick="startEditWorker('${escapeHtml(item.worker_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deleteWorker('${escapeHtml(item.worker_id)}')">Delete</button>
@@ -1774,6 +1793,98 @@
       } catch (err) {
         showToast(`Network error: ${err.message}`, 'error');
       }
+    };
+
+    window.openWorkerDetailModal = function(workerId) {
+      const item = workerData.find(w => w.worker_id === workerId);
+      if (!item) {
+        showToast('Worker profile not found.', 'error');
+        return;
+      }
+
+      const modal = document.getElementById('workerViewModal');
+      const title = document.getElementById('workerViewTitle');
+      const body = document.getElementById('workerViewBody');
+      const editBtn = document.getElementById('workerViewEditBtn');
+
+      title.textContent = `👤 Worker Profile: ${item.name} (${item.worker_id})`;
+      if (editBtn) {
+        editBtn.onclick = function() {
+          closeWorkerViewModal();
+          startEditWorker(item.worker_id);
+        };
+      }
+
+      const certs = item.certificates || [];
+      const sortedCerts = sortWorkerCertificates(certs);
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let certRowsHTML = '';
+      if (sortedCerts.length === 0) {
+        certRowsHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 12px;">No certificates attached to this worker.</td></tr>`;
+      } else {
+        certRowsHTML = sortedCerts.map(c => {
+          const certExpired = c.cert_expiry && c.cert_expiry < todayStr;
+          const certStatusBadge = certExpired
+            ? `<span class="status-badge status-expired">EXPIRED</span>`
+            : `<span class="status-badge status-valid">VALID</span>`;
+          const docLink = c.cert_file_url
+            ? `<a href="${escapeHtml(c.cert_file_url)}" target="_blank" class="btn-action-view">View File</a>`
+            : `<span style="color: #94a3b8;">No File</span>`;
+
+          return `
+            <tr ${certExpired ? 'style="background-color: #fee2e2;"' : ''}>
+              <td><strong>${escapeHtml(c.cert_type)}</strong></td>
+              <td><code>${escapeHtml(c.cert_no || 'N/A')}</code></td>
+              <td>${escapeHtml(c.issuer || 'N/A')}</td>
+              <td>${escapeHtml(c.issued_date || 'N/A')}</td>
+              <td>${escapeHtml(c.cert_expiry || 'N/A')}</td>
+              <td style="text-align: center;">${certStatusBadge}</td>
+              <td style="text-align: center;">${docLink}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      body.innerHTML = `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Worker ID</span> <strong>${escapeHtml(item.worker_id)}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Full Name</span> <strong>${escapeHtml(item.name)}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Trade / Skill</span> <strong>${escapeHtml(item.trade)}</strong></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">IC No (NRIC)</span> <code>${escapeHtml(item.ic_no || '-')}</code></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Work Permit (WP)</span> <code>${escapeHtml(item.wp_no || '-')}</code></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">FIN No</span> <code>${escapeHtml(item.fin_no || '-')}</code></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Email</span> ${escapeHtml(item.email || '-')}</div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Phone</span> ${escapeHtml(item.phone || '-')}</div>
+          </div>
+        </div>
+
+        <h4 style="margin: 16px 0 8px 0; color: #1e293b;">📜 Certificates & Accreditations (${certs.length})</h4>
+        <table class="drawer-table" style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Type / Name</th>
+              <th>Cert No</th>
+              <th>Issuer</th>
+              <th>Issued</th>
+              <th>Expiry</th>
+              <th style="text-align: center;">Status</th>
+              <th style="text-align: center;">Document</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${certRowsHTML}
+          </tbody>
+        </table>
+      `;
+
+      modal.style.display = 'flex';
+    };
+
+    window.closeWorkerViewModal = function() {
+      const modal = document.getElementById('workerViewModal');
+      if (modal) modal.style.display = 'none';
     };
 
     function resetWorkerForm() {

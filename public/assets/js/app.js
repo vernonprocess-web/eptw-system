@@ -38,9 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (tabId === 'workerTab') {
       document.querySelectorAll('.tab-btn')[1].classList.add('active');
       document.getElementById('workerTab').classList.add('active');
+      if (typeof window.loadWorkerData === 'function') window.loadWorkerData();
     } else if (tabId === 'projectTab') {
       document.querySelectorAll('.tab-btn')[2].classList.add('active');
       document.getElementById('projectTab').classList.add('active');
+      if (typeof window.loadProjectData === 'function') window.loadProjectData();
     } else if (tabId === 'ptwTab') {
       document.querySelectorAll('.tab-btn')[3].classList.add('active');
       document.getElementById('ptwTab').classList.add('active');
