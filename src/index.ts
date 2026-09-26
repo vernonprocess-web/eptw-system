@@ -1048,7 +1048,7 @@ app.get('/api/ptw', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT p.*, 
-              prj.project_name, prj.location, prj.client_name,
+              prj.project_name, prj.location, prj.client_name, prj.start_date AS project_start_date,
               prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
@@ -1067,7 +1067,7 @@ app.get('/api/ptw/:id', async (c) => {
     const id = c.req.param('id');
     const record = await c.env.DB.prepare(
       `SELECT p.*, 
-              prj.project_name, prj.location, prj.client_name,
+              prj.project_name, prj.location, prj.client_name, prj.start_date AS project_start_date,
               prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
@@ -1136,6 +1136,7 @@ app.post('/api/ptw', async (c) => {
       assigned_workers_json,
       selected_rams_json,
       status,
+      start_datetime,
       valid_until,
       applicant_signature,
       applicant_email,
@@ -1170,9 +1171,14 @@ app.post('/api/ptw', async (c) => {
       ptw_id = `PTW-2026-${Math.floor(100 + Math.random() * 900)}`;
     }
 
+    const startStr = start_datetime || getSingaporeTimestamp();
     const defaultExpiry = new Date();
     defaultExpiry.setHours(18, 0, 0, 0);
     const expiryStr = valid_until || defaultExpiry.toISOString().replace('T', ' ').substring(0, 19);
+
+    if (startStr >= expiryStr) {
+      return c.json({ success: false, error: 'Permit Start Date / Time must be earlier than Permit Expiry Date / Time.' }, 400);
+    }
 
     const workersJsonStr = typeof assigned_workers_json === 'string' 
       ? assigned_workers_json 
@@ -1186,11 +1192,15 @@ app.post('/api/ptw', async (c) => {
 
     // Fetch project details for validation and notifications
     const project = await c.env.DB.prepare(
-      'SELECT project_name, project_manager, wsho_name, wsho_email, pm_email, status, deleted_at FROM Project_Directory WHERE project_id = ?'
+      'SELECT project_name, project_manager, start_date, wsho_name, wsho_email, pm_email, status, deleted_at FROM Project_Directory WHERE project_id = ?'
     ).bind(project_id).first<any>();
 
     if (!project || project.status === 'Archived' || project.deleted_at) {
       return c.json({ success: false, error: 'Cannot issue a permit for an archived or inactive site.' }, 400);
+    }
+
+    if (project.start_date && startStr.substring(0, 10) < project.start_date) {
+      return c.json({ success: false, error: `Permit Start Date (${startStr.substring(0, 10)}) cannot be earlier than Project Directory Start Date (${project.start_date}).` }, 400);
     }
 
     const finalWshoName = assigned_wsho_name || project?.wsho_name || 'Safety Assessor';
@@ -1201,11 +1211,11 @@ app.post('/api/ptw', async (c) => {
     await c.env.DB.prepare(
       `INSERT INTO PTW_Records (
         ptw_id, project_id, ptw_type, work_description, 
-        assigned_workers_json, selected_rams_json, status, valid_until,
+        assigned_workers_json, selected_rams_json, status, start_datetime, valid_until,
         applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email,
         assigned_pm_name, assigned_pm_email, client_id, pm_user_id, assessor_user_id
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -1214,6 +1224,7 @@ app.post('/api/ptw', async (c) => {
       workersJsonStr,
       ramsJsonStr,
       initialStatus,
+      startStr,
       expiryStr,
       applicant_signature || null,
       applicant_email || null,
@@ -1443,11 +1454,15 @@ app.put('/api/ptw/:id', async (c) => {
       assigned_workers_json,
       selected_rams_json,
       status,
+      start_datetime,
       valid_until,
       applicant_signature,
       safety_signature,
       pm_signature,
-      rejection_reason,
+      closing_signature,
+      closed_by_email,
+      closing_remarks,
+      deisolation_verified,
       applicant_email,
       assigned_wsho_name,
       assigned_wsho_email
@@ -1471,7 +1486,13 @@ app.put('/api/ptw/:id', async (c) => {
       : existing.selected_rams_json;
 
     const updatedStatus = status || existing.status;
+    const updatedStartDatetime = start_datetime !== undefined ? start_datetime : (existing.start_datetime || existing.created_at);
     const updatedExpiry = valid_until || existing.valid_until;
+
+    if (updatedStartDatetime && updatedExpiry && updatedStartDatetime >= updatedExpiry) {
+      return c.json({ success: false, error: 'Permit Start Date / Time must be earlier than Permit Expiry Date / Time.' }, 400);
+    }
+
     const updatedApplicantSig = applicant_signature !== undefined ? applicant_signature : existing.applicant_signature;
     const updatedSafetySig = safety_signature !== undefined ? safety_signature : existing.safety_signature;
     const updatedPmSig = pm_signature !== undefined ? pm_signature : existing.pm_signature;
@@ -1480,11 +1501,16 @@ app.put('/api/ptw/:id', async (c) => {
     const updatedWshoName = assigned_wsho_name !== undefined ? assigned_wsho_name : existing.assigned_wsho_name;
     const updatedWshoEmail = assigned_wsho_email !== undefined ? assigned_wsho_email : existing.assigned_wsho_email;
 
+    const updatedClosingSig = closing_signature !== undefined ? closing_signature : existing.closing_signature;
+    const updatedClosedByEmail = closed_by_email !== undefined ? closed_by_email : existing.closed_by_email;
+    const updatedClosingRemarks = closing_remarks !== undefined ? closing_remarks : existing.closing_remarks;
+    const updatedDeisolation = deisolation_verified !== undefined ? (deisolation_verified ? 1 : 0) : existing.deisolation_verified;
+
     let safetyVettedAt = existing.safety_vetted_at;
     let pmApprovedAt = existing.pm_approved_at;
     let closedAt = existing.closed_at;
 
-    const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const nowStr = getSingaporeTimestamp();
     if (status === 'Pending PM Approval' && !existing.safety_vetted_at) {
       safetyVettedAt = nowStr;
     }
@@ -1498,9 +1524,9 @@ app.put('/api/ptw/:id', async (c) => {
     await c.env.DB.prepare(
       `UPDATE PTW_Records 
        SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?,
-           status = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
-           safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, rejection_reason = ?,
-           applicant_email = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
+           status = ?, start_datetime = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
+           safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, closing_signature = ?, closed_by_email = ?, closing_remarks = ?, deisolation_verified = ?,
+           rejection_reason = ?, applicant_email = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
        WHERE ptw_id = ?`
     ).bind(
       updatedProjectId,
@@ -1509,6 +1535,7 @@ app.put('/api/ptw/:id', async (c) => {
       updatedWorkers,
       updatedRams,
       updatedStatus,
+      updatedStartDatetime,
       updatedExpiry,
       updatedApplicantSig,
       updatedSafetySig,
@@ -1516,6 +1543,10 @@ app.put('/api/ptw/:id', async (c) => {
       safetyVettedAt,
       pmApprovedAt,
       closedAt,
+      updatedClosingSig,
+      updatedClosedByEmail,
+      updatedClosingRemarks,
+      updatedDeisolation,
       updatedRejection,
       updatedApplicantEmail,
       updatedWshoName,
@@ -1523,9 +1554,64 @@ app.put('/api/ptw/:id', async (c) => {
       id
     ).run();
 
-    await logAuditEvent(c, 'UPDATE_PTW', 'PTW_Records', id, `Updated permit details. Status: ${updatedStatus}`);
+    if (status === 'Closed') {
+      await c.env.DB.prepare(
+        `UPDATE TBM_Records SET status = 'CLOSED' WHERE ptw_id = ? AND status != 'CLOSED'`
+      ).bind(id).run();
+
+      await logAuditEvent(c, 'CLOSE_PERMIT', 'PTW_Records', id, `Permit closed by supervisor (${updatedClosedByEmail || 'Supervisor'}). Housekeeping & De-isolation verified. Linked TBM briefings archived.`);
+    } else {
+      await logAuditEvent(c, 'UPDATE_PTW', 'PTW_Records', id, `Updated permit details. Status: ${updatedStatus}`);
+    }
 
     return c.json({ success: true, message: `Permit ${id} updated successfully.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw/:id/close - Formal Permit Closure & Site De-isolation Verification
+app.post('/api/ptw/:id/close', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json().catch(() => ({}));
+    const { closing_signature, closed_by_email, closing_remarks, deisolation_verified } = body;
+
+    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit record not found.' }, 404);
+    }
+
+    if (existing.status === 'Closed') {
+      return c.json({ success: true, message: `Permit ${id} is already closed.` });
+    }
+
+    const closedAt = getSingaporeTimestamp();
+    const userEmail = closed_by_email || c.req.header('x-user-email') || 'supervisor@eptw-system.com';
+    const remarks = closing_remarks || 'Work completed. Housekeeping & site de-isolation verified.';
+
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records 
+       SET status = 'Closed', closed_at = ?, closing_signature = ?, closed_by_email = ?, closing_remarks = ?, deisolation_verified = 1
+       WHERE ptw_id = ?`
+    ).bind(closedAt, closing_signature || null, userEmail, remarks, id).run();
+
+    // Auto-close linked TBM briefings
+    await c.env.DB.prepare(
+      `UPDATE TBM_Records SET status = 'CLOSED' WHERE ptw_id = ? AND status != 'CLOSED'`
+    ).bind(id).run();
+
+    // Log Immutable Audit Event
+    await logAuditEvent(
+      c, 
+      'CLOSE_PERMIT', 
+      'PTW_Records', 
+      id, 
+      `Permit closed by supervisor (${userEmail}). Shift Duration Ended. Housekeeping & De-isolation verified. Linked TBM briefings archived. Remarks: ${remarks}`,
+      { email: userEmail, role: 'SITE_SUPERVISOR' }
+    );
+
+    return c.json({ success: true, message: `Permit ${id} closed successfully and linked TBM briefings archived.`, closed_at: closedAt });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }

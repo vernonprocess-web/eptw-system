@@ -187,7 +187,7 @@ window.openTbmModal = async function(tbmId) {
     const concernsEl = document.getElementById('tbmModalConcerns');
     if (concernsEl) {
       concernsEl.value = tbm.worker_concerns_raised || 'Nil / No concerns raised';
-      concernsEl.disabled = (tbm.status === 'COMPLETED');
+      concernsEl.disabled = (tbm.status === 'COMPLETED' || tbm.status === 'CLOSED');
     }
 
     // Populate Worker Signatures Manifest
@@ -211,7 +211,7 @@ window.openTbmModal = async function(tbmId) {
       }
     }
 
-    renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, tbm.status === 'COMPLETED');
+    renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, (tbm.status === 'COMPLETED' || tbm.status === 'CLOSED'));
 
     modal.style.display = 'flex';
   } catch (err) {

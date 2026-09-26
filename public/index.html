@@ -560,6 +560,11 @@
             </div>
 
             <div class="form-group">
+              <label for="ptw_start_datetime">Permit Start Date / Time *</label>
+              <input type="datetime-local" id="ptw_start_datetime" required>
+            </div>
+
+            <div class="form-group">
               <label for="ptw_valid_until">Permit Expiry / Shift Valid Until *</label>
               <input type="datetime-local" id="ptw_valid_until" required>
             </div>
@@ -643,7 +648,8 @@
                 <th>Work Description</th>
                 <th style="width: 180px;">Assigned Workers</th>
                 <th style="width: 180px;">RAMS Hazards</th>
-                <th style="width: 110px;" class="sortable" data-sort="valid_until" onclick="handlePtwSort('valid_until')">Valid Until <span class="sort-icon">⇅</span></th>
+                <th style="width: 130px;" class="sortable" data-sort="start_datetime" onclick="handlePtwSort('start_datetime')">Permit Start <span class="sort-icon">⇅</span></th>
+                <th style="width: 130px;" class="sortable" data-sort="valid_until" onclick="handlePtwSort('valid_until')">Valid Until <span class="sort-icon">⇅</span></th>
                 <th style="width: 110px; text-align: center;">Status</th>
                 <th style="width: 210px; text-align: center;">Actions</th>
               </tr>
@@ -907,6 +913,77 @@
           <button type="button" class="btn-secondary" onclick="closeWorkerViewModal()">Close</button>
           <button type="button" class="btn-primary" id="workerViewEditBtn">✏️ Edit Worker Profile</button>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: PERMIT CLOSURE & SITE DE-ISOLATION VERIFICATION -->
+    <div id="closePtwModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a;">🔒 Permit Closure & Site De-isolation</h3>
+            <div id="closePtwSubTitle" style="font-size: 0.8rem; color: #0284c7; font-weight: 600;">MOM WSH ePTW Compliance • Supervisor Site Handover Sign-off</div>
+          </div>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeClosePermitModal()">✕</button>
+        </div>
+
+        <form id="closePtwForm" onsubmit="handleClosePtwSubmit(event)" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+          <input type="hidden" id="closingPtwId" value="">
+
+          <!-- Safety Verification Checklist -->
+          <div style="background: #fff7ed; border: 1px solid #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 14px;">
+            <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #c2410c;">⚠️ Required Site De-isolation & Housekeeping Checks *</h4>
+            
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-bottom: 8px; cursor: pointer; color: #1e293b;">
+              <input type="checkbox" id="chk_close_completed" required style="width: 16px; height: 16px; accent-color: #ea580c;">
+              <span><strong>1. Work Completed / Suspended:</strong> All high-risk tasks for this shift are finished or safely suspended.</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-bottom: 8px; cursor: pointer; color: #1e293b;">
+              <input type="checkbox" id="chk_close_evacuated" required style="width: 16px; height: 16px; accent-color: #ea580c;">
+              <span><strong>2. Worker Evacuation:</strong> All assigned site personnel have safely vacated the work zone.</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-bottom: 8px; cursor: pointer; color: #1e293b;">
+              <input type="checkbox" id="chk_close_housekeeping" required style="width: 16px; height: 16px; accent-color: #ea580c;">
+              <span><strong>3. Site Housekeeping:</strong> Tools, machinery, scaffolding, and hazardous waste are cleared.</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer; color: #1e293b;">
+              <input type="checkbox" id="chk_close_deisolation" required style="width: 16px; height: 16px; accent-color: #ea580c;">
+              <span><strong>4. De-isolation & LOTO:</strong> Power, gas, and mechanical safety isolations are safely restored.</span>
+            </label>
+          </div>
+
+          <!-- Supervisor Email -->
+          <div style="margin-bottom: 12px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Supervisor / Closing Authority Email *</label>
+            <input type="email" id="closing_user_email" style="width: 100%; padding: 8px; font-size: 0.85rem;" required placeholder="supervisor@eptw-system.com">
+          </div>
+
+          <!-- Closing Handover Remarks -->
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Closure Handover Remarks *</label>
+            <textarea id="closing_remarks_input" style="width: 100%; height: 60px; padding: 8px; font-size: 0.85rem;" required placeholder="e.g. Work complete. Site cleaned, power restored, and area de-isolated."></textarea>
+          </div>
+
+          <!-- Touchscreen Signature Canvas -->
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 0.8rem; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">Closing Supervisor Digital Signature * (Draw below)</label>
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; padding: 8px;">
+              <canvas id="closingSigCanvas" width="460" height="110" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 460px; height: 110px; border: 1px dashed #cbd5e1; border-radius: 4px; background: #fff;"></canvas>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span style="font-size: 0.72rem; color: #64748b;">Sign with finger, stylus, or mouse</span>
+                <button type="button" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;" onclick="clearSignatureCanvas('closingSigCanvas')">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+            <button type="button" class="btn-secondary" onclick="closeClosePermitModal()">Cancel</button>
+            <button type="submit" id="btnConfirmClosePtw" class="btn-primary" style="background-color: #ea580c; border-color: #c2410c;">🔒 Confirm & Close Permit</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -2698,6 +2775,7 @@
           ? `<ul class="cert-bullet-list">${ramsSummaries.map(rName => `<li>${escapeHtml(rName)}</li>`).join('')}</ul>`
           : '<span style="color: #94a3b8; font-style: italic;">None Linked</span>';
 
+        const startDatetimeText = item.start_datetime ? item.start_datetime.replace('T', ' ').substring(0, 16) : (item.created_at ? item.created_at.substring(0, 16) : '-');
         const validUntilText = item.valid_until ? item.valid_until.replace('T', ' ').substring(0, 16) : '-';
 
         // Stage Action Button
@@ -2709,7 +2787,7 @@
         } else if (item.status === 'Pending PM Approval') {
           stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #e0e7ff; color: #3730a3;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Authorize (PM)</button>`;
         } else if (item.status === 'Active') {
-          stageActionBtn = `<button class="btn-action-edit" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>`;
+          stageActionBtn = `<button class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="openClosePermitModal('${escapeHtml(item.ptw_id)}')">🔒 Close Permit</button>`;
         }
 
         return `
@@ -2724,6 +2802,7 @@
             <td>${escapeHtml(item.work_description)}</td>
             <td>${workersListText}</td>
             <td>${ramsListText}</td>
+            <td><code style="font-size: 0.8rem; color: #0284c7; font-weight: 600;">${escapeHtml(startDatetimeText)}</code></td>
             <td><code style="font-size: 0.8rem;">${escapeHtml(validUntilText)}</code></td>
             <td style="text-align: center;">${statusBadge}</td>
             <td style="text-align: center;">
@@ -2771,11 +2850,29 @@
       const pmSelect = document.getElementById('ptw_assigned_pm_email');
       const selectedPmText = pmSelect ? pmSelect.options[pmSelect.selectedIndex]?.text || '' : '';
 
+      const startVal = document.getElementById('ptw_start_datetime').value;
+      const expiryVal = document.getElementById('ptw_valid_until').value;
+      if (startVal && expiryVal && startVal >= expiryVal) {
+        showToast('Permit Start Date / Time must be earlier than Permit Expiry Date / Time.', 'error');
+        return;
+      }
+
+      const selectedProjId = document.getElementById('ptw_project_id').value;
+      const projObj = (projectData || []).find(p => p.project_id === selectedProjId);
+      if (projObj && projObj.start_date && startVal) {
+        const ptwStartDateOnly = startVal.substring(0, 10);
+        if (ptwStartDateOnly < projObj.start_date) {
+          showToast(`Permit Start Date (${ptwStartDateOnly}) cannot be earlier than Project Directory Start Date (${projObj.start_date}).`, 'error');
+          return;
+        }
+      }
+
       const payload = {
-        project_id: document.getElementById('ptw_project_id').value,
+        project_id: selectedProjId,
         ptw_type: document.getElementById('ptw_type').value,
         work_description: document.getElementById('ptw_work_description').value.trim(),
-        valid_until: document.getElementById('ptw_valid_until').value,
+        start_datetime: startVal,
+        valid_until: expiryVal,
         assigned_workers_json: selectedWorkers,
         selected_rams_json: selectedRams,
         status: document.getElementById('ptw_status').value,
@@ -2838,6 +2935,85 @@
       }
     };
 
+    window.openClosePermitModal = function(ptwId) {
+      const item = (ptwData || []).find(p => p.ptw_id === ptwId);
+      if (!item) return;
+
+      document.getElementById('closingPtwId').value = ptwId;
+      document.getElementById('closePtwSubTitle').textContent = `Permit Ref: ${ptwId} — Site: ${item.project_name || item.project_id || 'Facility'}`;
+      
+      const activeUser = localStorage.getItem('active_user_email') || 'supervisor@eptw-system.com';
+      document.getElementById('closing_user_email').value = activeUser;
+      document.getElementById('closing_remarks_input').value = 'Work completed. Housekeeping & site de-isolation verified.';
+      
+      document.getElementById('chk_close_completed').checked = false;
+      document.getElementById('chk_close_evacuated').checked = false;
+      document.getElementById('chk_close_housekeeping').checked = false;
+      document.getElementById('chk_close_deisolation').checked = false;
+      
+      clearSignatureCanvas('closingSigCanvas');
+      document.getElementById('closePtwModal').style.display = 'flex';
+    };
+
+    window.closeClosePermitModal = function() {
+      document.getElementById('closePtwModal').style.display = 'none';
+      document.getElementById('closePtwForm').reset();
+      clearSignatureCanvas('closingSigCanvas');
+    };
+
+    window.handleClosePtwSubmit = async function(event) {
+      event.preventDefault();
+      const ptwId = document.getElementById('closingPtwId').value;
+      if (!ptwId) return;
+
+      const chk1 = document.getElementById('chk_close_completed').checked;
+      const chk2 = document.getElementById('chk_close_evacuated').checked;
+      const chk3 = document.getElementById('chk_close_housekeeping').checked;
+      const chk4 = document.getElementById('chk_close_deisolation').checked;
+
+      if (!chk1 || !chk2 || !chk3 || !chk4) {
+        showToast('Please verify and check all 4 site safety & de-isolation criteria before closing.', 'error');
+        return;
+      }
+
+      const closingSig = getSignatureDataUrl('closingSigCanvas');
+      const closingUser = document.getElementById('closing_user_email').value.trim();
+      const remarks = document.getElementById('closing_remarks_input').value.trim();
+
+      try {
+        const payload = {
+          closing_signature: closingSig,
+          closed_by_email: closingUser,
+          closing_remarks: remarks,
+          deisolation_verified: 1
+        };
+
+        const response = await fetch(`/api/ptw/${ptwId}/close`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-User-Email': closingUser,
+            'X-User-Role': 'SITE_SUPERVISOR'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Permit ${ptwId} closed successfully! Linked shift TBM briefings archived.`);
+          closeClosePermitModal();
+          loadPtwData();
+          if (typeof fetchTbmRecords === 'function') fetchTbmRecords();
+          if (typeof fetchAuditLogs === 'function') fetchAuditLogs();
+          closePermitViewModal();
+        } else {
+          showToast(`Close failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Request error: ${err.message}`, 'error');
+      }
+    };
+
     window.startEditPtw = function(ptwId) {
       const item = ptwData.find(p => p.ptw_id === ptwId);
       if (!item) return;
@@ -2847,6 +3023,11 @@
       document.getElementById('ptw_type').value = item.ptw_type || 'Work at Height';
       document.getElementById('ptw_work_description').value = item.work_description || '';
       document.getElementById('ptw_status').value = item.status || 'Pending Safety Vetting';
+      if (item.start_datetime) {
+        document.getElementById('ptw_start_datetime').value = item.start_datetime.substring(0, 16);
+      } else if (item.created_at) {
+        document.getElementById('ptw_start_datetime').value = item.created_at.substring(0, 16);
+      }
       if (item.valid_until) {
         document.getElementById('ptw_valid_until').value = item.valid_until.substring(0, 16);
       }
@@ -2929,11 +3110,16 @@
       btnSubmitPtw.textContent = 'Submit Permit for Vetting';
       btnCancelPtw.style.display = 'none';
       
-      // Set default expiry to 6:00 PM today
+      // Set default start datetime to NOW and expiry to 6:00 PM today
       const now = new Date();
-      now.setHours(18, 0, 0, 0);
-      const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
-      document.getElementById('ptw_valid_until').value = localIso;
+      const localStartIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+      document.getElementById('ptw_start_datetime').value = localStartIso;
+
+      const expiry = new Date();
+      expiry.setHours(18, 0, 0, 0);
+      if (expiry <= now) expiry.setHours(23, 59, 0, 0);
+      const localExpiryIso = new Date(expiry.getTime() - (expiry.getTimezoneOffset() * 60000)).toISOString().substring(0, 16);
+      document.getElementById('ptw_valid_until').value = localExpiryIso;
 
       populateProjectDropdown();
       populateWorkerChecklist();
@@ -3103,6 +3289,7 @@
           <div><strong>Site / Location:</strong> ${escapeHtml(item.project_name || item.project_id)} (${escapeHtml(item.location || '')})</div>
           <div><strong>Designated WSHO:</strong> ${escapeHtml(item.wsho_name || 'Unassigned')} ${item.wsho_email ? `(${item.wsho_email})` : ''}</div>
           <div><strong>Permit Category:</strong> ${escapeHtml(item.ptw_type || 'Work at Height')}</div>
+          <div><strong>Permit Start:</strong> ${escapeHtml(item.start_datetime || item.created_at || 'N/A')}</div>
           <div><strong>Shift Expiry:</strong> ${escapeHtml(item.valid_until || 'N/A')}</div>
         </div>
 

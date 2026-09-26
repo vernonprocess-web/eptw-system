@@ -69,7 +69,7 @@ export function renderPTWTable(tableBodyId, query = '') {
     } else if (item.status === 'Active') {
       stageActionBtn = `
         <button type="button" class="btn-action-view" style="background: #0284c7; color: #ffffff; border: none; font-weight: 600;" onclick="switchTab('tbmTab'); if (typeof fetchTbmRecords === 'function') fetchTbmRecords();" title="Open Site Shift TBM Briefing Sheet">🗣️ TBM Sheet</button>
-        <button type="button" class="btn-action-edit" onclick="window.updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Closed')">Close</button>
+        <button type="button" class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="window.openClosePermitModal('${escapeHtml(item.ptw_id)}')">🔒 Close Permit</button>
       `;
     }
 
@@ -87,6 +87,7 @@ export function renderPTWTable(tableBodyId, query = '') {
         <td>${escapeHtml(item.work_description || '')}</td>
         <td><small>${formatWorkers(item.assigned_workers_json)}</small></td>
         <td><small>${formatRAMS(item.selected_rams_json)}</small></td>
+        <td><small style="color: #0284c7; font-weight: 600;">${formatDate(item.start_datetime || item.created_at)}</small></td>
         <td><small>${formatDate(item.valid_until)}</small></td>
         <td style="text-align: center;">${getStatusBadgeHTML(item.status)}</td>
         <td style="text-align: center;">
