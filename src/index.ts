@@ -429,10 +429,10 @@ app.post('/api/users', async (c) => {
     if (!name || !email || !role) {
       return c.json({ success: false, error: 'Name, Email, and Role are required.' }, 400);
     }
-    const validRoles = ['SAFETY_ASSESSOR', 'WSHO', 'PROJECT_MANAGER', 'ADMIN', 'WORKER'];
-    let dbRole = role ? role.toUpperCase() : 'SAFETY_ASSESSOR';
-    if (dbRole === 'SUPERVISOR') dbRole = 'SAFETY_ASSESSOR';
-    if (!validRoles.includes(dbRole)) dbRole = 'SAFETY_ASSESSOR';
+    const validRoles = ['SITE_SUPERVISOR', 'SAFETY_ASSESSOR', 'WSHO', 'PROJECT_MANAGER', 'ADMIN', 'WORKER'];
+    let dbRole = role ? role.toUpperCase() : 'SITE_SUPERVISOR';
+    if (dbRole === 'SUPERVISOR') dbRole = 'SITE_SUPERVISOR';
+    if (!validRoles.includes(dbRole)) dbRole = 'SITE_SUPERVISOR';
 
     if (!id || !id.trim()) {
       id = `usr_${dbRole.toLowerCase()}_${Math.floor(100 + Math.random() * 900)}`;
@@ -1221,8 +1221,27 @@ app.get('/api/telegram/pairing-link', (c) => {
 // GET /api/ptw - Fetch all permits dynamically joined with Project details & Users (excluding deleted)
 app.get('/api/ptw', async (c) => {
   try {
-    const { results } = await c.env.DB.prepare(
-      `SELECT p.*, 
+    const userRole = (c.req.header('x-user-role') || c.req.header('X-User-Role') || '').toUpperCase();
+    const userEmail = (c.req.header('x-user-email') || c.req.header('X-User-Email') || '').toLowerCase();
+    const queryProjectId = c.req.query('project_id') || '';
+
+    let whereClause = 'WHERE p.deleted_at IS NULL';
+    const params: any[] = [];
+
+    if (userRole === 'SITE_SUPERVISOR' || userRole === 'SUPERVISOR') {
+      if (queryProjectId) {
+        whereClause += ' AND (p.project_id = ? AND (p.status != \'Draft\' OR LOWER(p.applicant_email) = ?))';
+        params.push(queryProjectId, userEmail);
+      } else {
+        whereClause += ' AND (LOWER(p.applicant_email) = ? OR p.status IN (\'Pending Safety Vetting\', \'Pending PM Approval\', \'Active\', \'Closed\', \'Rejected\'))';
+        params.push(userEmail);
+      }
+    } else if (queryProjectId) {
+      whereClause += ' AND p.project_id = ?';
+      params.push(queryProjectId);
+    }
+
+    const sql = `SELECT p.*, 
               prj.project_name, prj.location, prj.client_name, prj.start_date AS project_start_date,
               COALESCE(wsho.name, p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
               COALESCE(wsho.email, p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
@@ -1235,9 +1254,10 @@ app.get('/api/ptw', async (c) => {
        LEFT JOIN users wsho ON p.assessor_user_id = wsho.id OR LOWER(p.assigned_wsho_email) = LOWER(wsho.email) OR LOWER(prj.wsho_email) = LOWER(wsho.email)
        LEFT JOIN users pm ON p.pm_user_id = pm.id OR LOWER(p.assigned_pm_email) = LOWER(pm.email) OR LOWER(prj.pm_email) = LOWER(pm.email)
        LEFT JOIN users app ON LOWER(p.applicant_email) = LOWER(app.email)
-       WHERE p.deleted_at IS NULL
-       ORDER BY p.created_at DESC`
-    ).all();
+       ${whereClause}
+       ORDER BY p.created_at DESC`;
+
+    const { results } = await c.env.DB.prepare(sql).bind(...params).all();
     return c.json({ success: true, data: results || [] });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -1726,7 +1746,8 @@ app.put('/api/ptw/:id', async (c) => {
       deisolation_verified,
       applicant_email,
       assigned_wsho_name,
-      assigned_wsho_email
+      assigned_wsho_email,
+      rejection_reason
     } = body;
 
     const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
@@ -1877,6 +1898,69 @@ app.post('/api/ptw/:id/close', async (c) => {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
+
+// POST & PUT /api/ptw/:id/standdown - Emergency Work Suspension (Weather / Safety Halt)
+const handleStanddown = async (c: any) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json().catch(() => ({}));
+    const reason = body.reason || 'Monsoon Heavy Rain / CAT 1 Lightning Halt / Safety Stand-Down';
+    const userEmail = c.req.header('x-user-email') || body.user_email || 'supervisor@eptw-system.com';
+    const userRole = c.req.header('x-user-role') || body.user_role || 'SITE_SUPERVISOR';
+
+    const existing: any = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first();
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit record not found.' }, 404);
+    }
+
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records SET status = 'Suspended', rejection_reason = ? WHERE ptw_id = ?`
+    ).bind(`[STAND-DOWN HALT] ${reason}`, id).run();
+
+    await logAuditEvent(c, 'STANDDOWN_PERMIT', 'PTW_Records', id, `Emergency Work Suspension by ${userEmail} (${userRole}). Reason: ${reason}`, { email: userEmail, role: userRole });
+
+    safeWaitUntil(c, dispatchPermitNotification(c.env, c.env.DB, { ...existing, ptw_number: existing.ptw_id }, 'PERMIT_REJECTED'));
+
+    return c.json({ success: true, message: `Permit ${id} has been suspended (Stand-Down). WSHO clearance required to resume.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+};
+app.post('/api/ptw/:id/standdown', handleStanddown);
+app.put('/api/ptw/:id/standdown', handleStanddown);
+
+// POST & PUT /api/ptw/:id/resume - Clear Suspension & Resume Work (WSHO / PM Role-Gated)
+const handleResume = async (c: any) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json().catch(() => ({}));
+    const userEmail = c.req.header('x-user-email') || body.user_email || 'wsho@unified-as.com';
+    const userRole = (c.req.header('x-user-role') || body.user_role || 'WSHO').toUpperCase();
+
+    if (userRole !== 'WSHO' && userRole !== 'PROJECT_MANAGER' && userRole !== 'ADMIN' && userRole !== 'SAFETY_ASSESSOR') {
+      return c.json({ success: false, error: 'Access Denied: Only WSHO or Project Manager can clear work suspensions and resume permits.' }, 403);
+    }
+
+    const existing: any = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first();
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit record not found.' }, 404);
+    }
+
+    await c.env.DB.prepare(
+      `UPDATE PTW_Records SET status = 'Active', rejection_reason = NULL WHERE ptw_id = ?`
+    ).bind(id).run();
+
+    await logAuditEvent(c, 'RESUME_PERMIT', 'PTW_Records', id, `Work Suspension Cleared & Permit Resumed by ${userEmail} (${userRole}). Site safety verified.`, { email: userEmail, role: userRole });
+
+    safeWaitUntil(c, dispatchPermitNotification(c.env, c.env.DB, { ...existing, ptw_number: existing.ptw_id }, 'PERMIT_APPROVED'));
+
+    return c.json({ success: true, message: `Suspension cleared for Permit ${id}. Work resumed.` });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+};
+app.post('/api/ptw/:id/resume', handleResume);
+app.put('/api/ptw/:id/resume', handleResume);
 
 // DELETE /api/ptw/:id - Compliance Lock & Permit Archival Handler
 app.delete('/api/ptw/:id', async (c) => {
@@ -2303,7 +2387,7 @@ app.delete('/api/tbm/:id', async (c) => {
 });
 
 // Favicon & 404 Handler (Prevents __STATIC_CONTENT_MANIFEST reference error for unmatched routes)
-app.get('/favicon.ico', (c) => c.text('', 204));
+app.get('/favicon.ico', (c) => c.text('', 200));
 
 app.notFound((c) => {
   return c.json({ success: false, error: 'Resource not found' }, 404);

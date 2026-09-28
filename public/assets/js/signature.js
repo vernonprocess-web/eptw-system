@@ -67,12 +67,32 @@ export function initSignaturePad(canvasId, clearBtnId) {
     });
   }
 
+  function compressSignature() {
+    if (!hasSigned) return null;
+    try {
+      // Scale down canvas for memory-efficient IndexedDB offline caching (~15KB)
+      const scaleCanvas = document.createElement('canvas');
+      scaleCanvas.width = Math.min(canvas.width, 320);
+      scaleCanvas.height = Math.min(canvas.height, 140);
+      const scaleCtx = scaleCanvas.getContext('2d');
+      if (scaleCtx) {
+        scaleCtx.fillStyle = '#ffffff';
+        scaleCtx.fillRect(0, 0, scaleCanvas.width, scaleCanvas.height);
+        scaleCtx.drawImage(canvas, 0, 0, scaleCanvas.width, scaleCanvas.height);
+        return scaleCanvas.toDataURL('image/jpeg', 0.6);
+      }
+    } catch (e) {}
+    return canvas.toDataURL('image/png');
+  }
+
   return {
-    getSignatureData: () => hasSigned ? canvas.toDataURL('image/png') : null,
+    getSignatureData: compressSignature,
+    toDataURL: compressSignature,
     clear: () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasSigned = false;
     },
-    hasSigned: () => hasSigned
+    hasSigned: () => hasSigned,
+    isEmpty: () => !hasSigned
   };
 }

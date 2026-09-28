@@ -10,6 +10,7 @@ let currentFilter = 'all';
 export function getStatusBadgeHTML(status) {
   const s = status || 'Draft';
   if (s === 'Active') return `<span class="status-badge status-ptw-active">ACTIVE 🟢</span>`;
+  if (s === 'Suspended') return `<span class="status-badge" style="background: #dc2626; color: #ffffff; font-weight: 700; padding: 3px 8px; border-radius: 4px;">SUSPENDED 🔴</span>`;
   if (s === 'Pending Safety Vetting') return `<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>`;
   if (s === 'Pending PM Approval') return `<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>`;
   if (s === 'Closed') return `<span class="status-badge status-ptw-closed">CLOSED ⚪</span>`;
@@ -69,7 +70,12 @@ export function renderPTWTable(tableBodyId, query = '') {
     } else if (item.status === 'Active') {
       stageActionBtn = `
         <button type="button" class="btn-action-view" style="background: #0284c7; color: #ffffff; border: none; font-weight: 600;" onclick="switchTab('tbmTab'); if (typeof fetchTbmRecords === 'function') fetchTbmRecords();" title="Open Site Shift TBM Briefing Sheet">🗣️ TBM Sheet</button>
+        <button type="button" class="btn-action-edit" style="background: #dc2626; color: #ffffff; border: none; font-weight: 600;" onclick="window.standdownPermit('${escapeHtml(item.ptw_id)}')">🛑 Stand-Down</button>
         <button type="button" class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="window.openClosePermitModal('${escapeHtml(item.ptw_id)}')">🔒 Close Permit</button>
+      `;
+    } else if (item.status === 'Suspended') {
+      stageActionBtn = `
+        <button type="button" class="btn-bypass" style="background: #16a34a; color: #ffffff; border: none; font-weight: 700;" onclick="window.resumePermit('${escapeHtml(item.ptw_id)}')">▶️ Resume Work</button>
       `;
     }
 
@@ -102,6 +108,42 @@ export function renderPTWTable(tableBodyId, query = '') {
     `;
   }).join('');
 }
+
+window.standdownPermit = async function(ptwId) {
+  const reason = prompt('Enter Stand-Down Reason (e.g. Heavy Rain / CAT 1 Lightning Alert / Safety Breach):', 'Heavy Rain & Lightning Alert (CAT 1)');
+  if (reason === null) return;
+
+  try {
+    const res = await fetchAPI(`/api/ptw/${encodeURIComponent(ptwId)}/standdown`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    if (res.success) {
+      alert(`Permit ${ptwId} is now SUSPENDED. Telegram alert dispatched to WSHO & PM.`);
+      loadPTWs('ptwTableBody');
+    }
+  } catch (err) {
+    alert('Failed to stand-down permit: ' + err.message);
+  }
+};
+
+window.resumePermit = async function(ptwId) {
+  if (!confirm(`Are you sure weather/safety conditions have cleared and you want to RESUME work for Permit ${ptwId}?`)) return;
+
+  try {
+    const res = await fetchAPI(`/api/ptw/${encodeURIComponent(ptwId)}/resume`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.success) {
+      alert(`Suspension cleared for Permit ${ptwId}. Status reset to ACTIVE.`);
+      loadPTWs('ptwTableBody');
+    }
+  } catch (err) {
+    alert('Failed to resume permit: ' + err.message);
+  }
+};
 
 window.viewPermitDocument = function(ptwId) {
   if (typeof window.openPermitViewModal === 'function') window.openPermitViewModal(ptwId);
