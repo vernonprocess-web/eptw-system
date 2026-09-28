@@ -106,16 +106,13 @@ function initUserSession() {
   let activeRole = localStorage.getItem('active_user_role');
 
   if (!activeEmail || !activeRole) {
-    activeEmail = 'budi.supervisor@contractor.sg';
-    activeName = 'Budi Santoso';
-    activeRole = 'SITE_SUPERVISOR';
-    localStorage.setItem('active_user_email', activeEmail);
-    localStorage.setItem('active_user_name', activeName);
-    localStorage.setItem('active_user_role', activeRole);
+    window.location.replace('/login.html');
+    return false;
   }
 
   const nameEl = document.getElementById('userNameText');
   if (nameEl) nameEl.textContent = activeName || activeEmail;
+  return true;
 }
 
 function confirmProfileSwitch() {
@@ -126,6 +123,11 @@ function confirmProfileSwitch() {
   localStorage.setItem('active_user_email', email);
   localStorage.setItem('active_user_name', name);
   localStorage.setItem('active_user_role', role);
+
+  if (role !== 'SITE_SUPERVISOR') {
+    window.location.replace('/index.html');
+    return;
+  }
 
   const nameEl = document.getElementById('userNameText');
   if (nameEl) nameEl.textContent = name;

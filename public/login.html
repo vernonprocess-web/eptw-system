@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ePTW System — Central Authentication Gateway</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="assets/css/theme.css?v=4">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .login-gateway-card {
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      border-radius: 16px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+    .brand-logo {
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+    }
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 4px;
+    }
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .form-group-login {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    .form-group-login label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .login-select, .login-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+    .login-select:focus, .login-input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+    }
+    .btn-login-gateway {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      margin-top: 12px;
+      transition: transform 0.1s;
+    }
+    .btn-login-gateway:active {
+      transform: scale(0.98);
+    }
+    .routing-preview-badge {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.78rem;
+      color: #38bdf8;
+      margin-top: 16px;
+      text-align: left;
+    }
+  </style>
+  <script src="assets/js/login.js" type="module"></script>
+</head>
+<body>
+
+  <div class="login-gateway-card">
+    <div class="brand-logo">🛡️ 🏢</div>
+    <div class="brand-title">ePTW System Gateway</div>
+    <div class="brand-subtitle">Singapore WSH Audit Compliance & Site Management Portal</div>
+
+    <form id="loginGatewayForm">
+      <div class="form-group-login">
+        <label for="userProfileSelect">Select Authorized Account / Role:</label>
+        <select id="userProfileSelect" class="login-select" required>
+          <option value="budi.supervisor@contractor.sg|Budi Santoso|SITE_SUPERVISOR">Budi Santoso — Site Supervisor (Contractor A)</option>
+          <option value="tan.ahhock@subcon.sg|Tan Ah Hock|SITE_SUPERVISOR">Tan Ah Hock — Site Supervisor (Subcon B)</option>
+          <option value="david.wong@unified-as.com|David Wong|WSHO">David Wong — Workplace Safety & Health Officer (WSHO)</option>
+          <option value="vernon.process@gmail.com|Alex Tan|PROJECT_MANAGER">Alex Tan — Project Manager (PM)</option>
+          <option value="john.doe@unified-as.com|John Doe|SAFETY_ASSESSOR">John Doe — Safety Assessor</option>
+          <option value="admin@eptw-system.com|System Admin|ADMIN">System Admin — Operations HQ</option>
+        </select>
+      </div>
+
+      <div class="routing-preview-badge" id="routingPreview">
+        🎯 <strong>Smart Routing:</strong> Site Supervisors auto-route to <code>supervisor.html</code>. WSHOs & PMs auto-route to <code>index.html</code>.
+      </div>
+
+      <button type="submit" class="btn-login-gateway">🚀 Authenticate & Launch Portal</button>
+    </form>
+  </div>
+
+</body>
+</html>

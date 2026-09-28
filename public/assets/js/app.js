@@ -14,6 +14,20 @@ let applicantSigPad = null;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[App] Bootstrapping modular ePTW system...');
 
+  // Security Lock Check: Verify authenticated session for HQ Admin Dashboard
+  const activeEmail = localStorage.getItem('active_user_email');
+  const activeRole = localStorage.getItem('active_user_role');
+
+  if (!activeEmail || !activeRole) {
+    window.location.replace('/login.html');
+    return;
+  }
+
+  if (activeRole === 'SITE_SUPERVISOR') {
+    window.location.replace('/supervisor.html');
+    return;
+  }
+
   // Setup Offline Sync Listeners
   setupOfflineSyncListeners(() => {
     loadPTWs('ptwTableBody');
