@@ -429,15 +429,20 @@ app.post('/api/users', async (c) => {
     if (!name || !email || !role) {
       return c.json({ success: false, error: 'Name, Email, and Role are required.' }, 400);
     }
+    const validRoles = ['SAFETY_ASSESSOR', 'WSHO', 'PROJECT_MANAGER', 'ADMIN', 'WORKER'];
+    let dbRole = role ? role.toUpperCase() : 'SAFETY_ASSESSOR';
+    if (dbRole === 'SUPERVISOR') dbRole = 'SAFETY_ASSESSOR';
+    if (!validRoles.includes(dbRole)) dbRole = 'SAFETY_ASSESSOR';
+
     if (!id || !id.trim()) {
-      id = `usr_${role.toLowerCase()}_${Math.floor(100 + Math.random() * 900)}`;
+      id = `usr_${dbRole.toLowerCase()}_${Math.floor(100 + Math.random() * 900)}`;
     }
     const cleanEmail = email.toLowerCase().trim();
     await c.env.DB.prepare(
       `INSERT INTO users (id, name, email, phone, role, status) VALUES (?, ?, ?, ?, ?, ?)`
-    ).bind(id, name, cleanEmail, phone || '', role, status || 'ACTIVE').run();
+    ).bind(id, name, cleanEmail, phone || '', dbRole, status || 'ACTIVE').run();
 
-    await logAuditEvent(c, 'CREATE_USER', 'users', id, `Registered system user ${name} (${role}): ${cleanEmail}`);
+    await logAuditEvent(c, 'CREATE_USER', 'users', id, `Registered system user ${name} (${dbRole}): ${cleanEmail}`);
     return c.json({ success: true, message: 'User registered successfully', id }, 201);
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
