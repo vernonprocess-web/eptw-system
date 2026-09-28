@@ -248,11 +248,11 @@ Return ONLY valid JSON matching this schema:
 // RAMS ROUTES
 // ============================================================================
 
-// GET /api/rams - Fetch all RAMS entries from database
+// GET /api/rams - Fetch all RAMS entries from database (excluding soft-deleted)
 app.get('/api/rams', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
-      'SELECT * FROM Master_RAMS_Library ORDER BY id DESC'
+      'SELECT * FROM Master_RAMS_Library WHERE deleted_at IS NULL ORDER BY id DESC'
     ).all();
     return c.json({ success: true, data: results });
   } catch (error: any) {
@@ -318,6 +318,8 @@ app.post('/api/rams', async (c) => {
       )
       .run();
 
+    await logAuditEvent(c, 'CREATE_RAMS', 'Master_RAMS_Library', String(result.meta.last_row_id), `Created RAMS entry: ${work_activity}`);
+
     return c.json(
       {
         success: true,
@@ -331,12 +333,11 @@ app.post('/api/rams', async (c) => {
   }
 });
 
-// PUT /api/rams/:id - Update an existing RAMS entry by ID
+// PUT /api/rams/:id - Update an existing RAMS entry
 app.put('/api/rams/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-
     const {
       activity_category,
       work_activity,
@@ -346,21 +347,6 @@ app.put('/api/rams/:id', async (c) => {
       severity_s,
       likelihood_l,
     } = body;
-
-    if (
-      !activity_category ||
-      !work_activity ||
-      !hazard ||
-      !possible_accident ||
-      !control_measures ||
-      severity_s === undefined ||
-      likelihood_l === undefined
-    ) {
-      return c.json(
-        { success: false, error: 'All fields are required.' },
-        400
-      );
-    }
 
     const s = parseInt(severity_s, 10);
     const l = parseInt(likelihood_l, 10);
@@ -372,29 +358,19 @@ app.put('/api/rams/:id', async (c) => {
       );
     }
 
-    const rpn = body.rpn !== undefined ? parseInt(body.rpn, 10) : s * l;
+    const rpn = s * l;
 
     const result = await c.env.DB.prepare(
       `UPDATE Master_RAMS_Library 
        SET activity_category = ?, work_activity = ?, hazard = ?, possible_accident = ?, control_measures = ?, severity_s = ?, likelihood_l = ?, rpn = ?
-       WHERE id = ?`
-    )
-      .bind(
-        activity_category,
-        work_activity,
-        hazard,
-        possible_accident,
-        control_measures,
-        s,
-        l,
-        rpn,
-        id
-      )
-      .run();
+       WHERE id = ? AND deleted_at IS NULL`
+    ).bind(activity_category, work_activity, hazard, possible_accident, control_measures, s, l, rpn, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'RAMS record not found.' }, 404);
     }
+
+    await logAuditEvent(c, 'UPDATE_RAMS', 'Master_RAMS_Library', id, `Updated RAMS entry: ${work_activity}`);
 
     return c.json({ success: true, message: 'RAMS record updated successfully.' });
   } catch (error: any) {
@@ -402,21 +378,178 @@ app.put('/api/rams/:id', async (c) => {
   }
 });
 
-// DELETE /api/rams/:id - Delete a RAMS entry by ID
+// DELETE /api/rams/:id - Soft-delete a RAMS entry
 app.delete('/api/rams/:id', async (c) => {
   try {
     const id = c.req.param('id');
+    const nowSgt = getSingaporeTimestamp();
     const result = await c.env.DB.prepare(
-      'DELETE FROM Master_RAMS_Library WHERE id = ?'
-    )
-      .bind(id)
-      .run();
+      'UPDATE Master_RAMS_Library SET deleted_at = ? WHERE id = ?'
+    ).bind(nowSgt, id).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'RAMS record not found.' }, 404);
     }
 
-    return c.json({ success: true, message: 'RAMS record deleted successfully.' });
+    await logAuditEvent(c, 'DELETE_RAMS', 'Master_RAMS_Library', id, 'Soft-deleted RAMS library entry');
+
+    return c.json({ success: true, message: 'RAMS record archived successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// USER MANAGEMENT ROUTES (ADMIN ROLE & DIRECTORY)
+// ============================================================================
+
+// GET /api/users - List active users
+app.get('/api/users', async (c) => {
+  try {
+    const role = c.req.query('role');
+    let sql = 'SELECT * FROM users WHERE deleted_at IS NULL';
+    const params: any[] = [];
+    if (role) {
+      sql += ' AND role = ?';
+      params.push(role);
+    }
+    sql += ' ORDER BY name ASC';
+    const { results } = await c.env.DB.prepare(sql).bind(...params).all();
+    return c.json({ success: true, data: results || [] });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/users - Register new user
+app.post('/api/users', async (c) => {
+  try {
+    const body = await c.req.json();
+    let { id, name, email, phone, role, status } = body;
+    if (!name || !email || !role) {
+      return c.json({ success: false, error: 'Name, Email, and Role are required.' }, 400);
+    }
+    if (!id || !id.trim()) {
+      id = `usr_${role.toLowerCase()}_${Math.floor(100 + Math.random() * 900)}`;
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    await c.env.DB.prepare(
+      `INSERT INTO users (id, name, email, phone, role, status) VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(id, name, cleanEmail, phone || '', role, status || 'ACTIVE').run();
+
+    await logAuditEvent(c, 'CREATE_USER', 'users', id, `Registered system user ${name} (${role}): ${cleanEmail}`);
+    return c.json({ success: true, message: 'User registered successfully', id }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// PUT /api/users/:id - Update user details
+app.put('/api/users/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { name, email, phone, role, status } = body;
+
+    const result = await c.env.DB.prepare(
+      `UPDATE users 
+       SET name = COALESCE(NULLIF(?, ''), name),
+           email = COALESCE(NULLIF(?, ''), email),
+           phone = COALESCE(NULLIF(?, ''), phone),
+           role = COALESCE(NULLIF(?, ''), role),
+           status = COALESCE(NULLIF(?, ''), status)
+       WHERE id = ? AND deleted_at IS NULL`
+    ).bind(name || '', (email || '').toLowerCase(), phone || '', role || '', status || '', id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'User record not found.' }, 404);
+    }
+
+    await logAuditEvent(c, 'UPDATE_USER', 'users', id, `Updated user details for ${name || id}`);
+    return c.json({ success: true, message: 'User profile updated successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// DELETE /api/users/:id - Soft delete user
+app.delete('/api/users/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const nowSgt = getSingaporeTimestamp();
+    const result = await c.env.DB.prepare(
+      "UPDATE users SET deleted_at = ?, status = 'INACTIVE' WHERE id = ?"
+    ).bind(nowSgt, id).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'User record not found.' }, 404);
+    }
+
+    await logAuditEvent(c, 'DELETE_USER', 'users', id, 'Deactivated system user profile');
+    return c.json({ success: true, message: 'User profile deactivated successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// CLOUDFLARE R2 FILE UPLOAD & ASSET SERVING ROUTES
+// ============================================================================
+
+// POST /api/upload - Handle direct file upload to Cloudflare R2 bucket
+app.post('/api/upload', async (c) => {
+  try {
+    const formData = await c.req.parseBody();
+    const file = formData['file'] || formData['image'] || formData['cert'];
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ success: false, error: 'No file uploaded.' }, 400);
+    }
+
+    const ext = file.name.split('.').pop() || 'png';
+    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const arrayBuffer = await file.arrayBuffer();
+
+    if (c.env.CERT_BUCKET) {
+      await c.env.CERT_BUCKET.put(filename, arrayBuffer, {
+        httpMetadata: { contentType: file.type || 'image/png' }
+      });
+    }
+
+    const url = `/api/files/${filename}`;
+    await logAuditEvent(c, 'UPLOAD_R2', 'R2_Bucket', filename, `Uploaded certificate file to R2 storage: ${file.name}`);
+
+    return c.json({
+      success: true,
+      message: 'File uploaded to R2 bucket successfully',
+      filename,
+      url,
+      mime_type: file.type
+    }, 201);
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/files/:filename - Serve uploaded files directly from R2 bucket
+app.get('/api/files/:filename', async (c) => {
+  try {
+    const filename = c.req.param('filename');
+    if (!c.env.CERT_BUCKET) {
+      return c.json({ success: false, error: 'R2 bucket storage binding not found.' }, 500);
+    }
+
+    const object = await c.env.CERT_BUCKET.get(filename);
+    if (!object) {
+      return c.json({ success: false, error: 'File not found in R2 storage.' }, 404);
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('etag', object.httpEtag);
+    headers.set('Cache-Control', 'public, max-age=31536000');
+
+    return new Response(object.body as any, { headers });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -761,15 +894,29 @@ app.delete('/api/workers/:id', async (c) => {
 // PROJECT DIRECTORY ROUTES & CONTROL CENTER API
 // ============================================================================
 
-// GET /api/projects - List all projects (excluding soft-deleted / archived by default)
+// GET /api/projects - List all projects (dynamically joined with users for strict FK normalization)
 app.get('/api/projects', async (c) => {
   try {
     const includeArchived = c.req.query('include_archived') === 'true';
-    const sql = includeArchived
-      ? 'SELECT * FROM Project_Directory ORDER BY created_at DESC'
-      : "SELECT * FROM Project_Directory WHERE (deleted_at IS NULL AND (status IS NULL OR status != 'Archived')) ORDER BY created_at DESC";
+    const whereClause = includeArchived
+      ? '1=1'
+      : "(prj.deleted_at IS NULL AND (prj.status IS NULL OR prj.status != 'Archived'))";
+
+    const sql = `
+      SELECT prj.*,
+             COALESCE(pm.name, prj.project_manager) AS project_manager,
+             COALESCE(pm.email, prj.pm_email) AS pm_email,
+             COALESCE(wsho.name, prj.wsho_name) AS wsho_name,
+             COALESCE(wsho.email, prj.wsho_email) AS wsho_email,
+             COALESCE(wsho.phone, prj.wsho_phone) AS wsho_phone
+      FROM Project_Directory prj
+      LEFT JOIN users pm ON prj.pm_user_id = pm.id OR LOWER(prj.pm_email) = LOWER(pm.email)
+      LEFT JOIN users wsho ON prj.wsho_user_id = wsho.id OR LOWER(prj.wsho_email) = LOWER(wsho.email)
+      WHERE ${whereClause}
+      ORDER BY prj.created_at DESC`;
+
     const { results } = await c.env.DB.prepare(sql).all();
-    return c.json({ success: true, data: results });
+    return c.json({ success: true, data: results || [] });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
@@ -1066,82 +1213,54 @@ app.get('/api/telegram/pairing-link', (c) => {
 // ePTW TRANSACTION ENGINE ROUTES (PHASE 1, PHASE 2, PHASE 4 WORKFLOW)
 // ============================================================================
 
-// GET /api/ptw - Fetch all permits joined with Project details & Safety Officers (excluding deleted)
+// GET /api/ptw - Fetch all permits dynamically joined with Project details & Users (excluding deleted)
 app.get('/api/ptw', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT p.*, 
               prj.project_name, prj.location, prj.client_name, prj.start_date AS project_start_date,
-              prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
+              COALESCE(wsho.name, p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
+              COALESCE(wsho.email, p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
+              COALESCE(wsho.phone, prj.wsho_phone) AS assigned_wsho_phone,
+              COALESCE(pm.name, p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
+              COALESCE(pm.email, p.assigned_pm_email, prj.pm_email) AS assigned_pm_email,
+              COALESCE(app.name, 'Site Supervisor') AS applicant_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       LEFT JOIN users wsho ON p.assessor_user_id = wsho.id OR LOWER(p.assigned_wsho_email) = LOWER(wsho.email) OR LOWER(prj.wsho_email) = LOWER(wsho.email)
+       LEFT JOIN users pm ON p.pm_user_id = pm.id OR LOWER(p.assigned_pm_email) = LOWER(pm.email) OR LOWER(prj.pm_email) = LOWER(pm.email)
+       LEFT JOIN users app ON LOWER(p.applicant_email) = LOWER(app.email)
        WHERE p.deleted_at IS NULL
        ORDER BY p.created_at DESC`
     ).all();
-    return c.json({ success: true, data: results });
+    return c.json({ success: true, data: results || [] });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
 
-// GET /api/ptw/:id - Fetch single permit by ID for deep-link direct loading
+// GET /api/ptw/:id - Fetch single permit by ID dynamically joined with Users
 app.get('/api/ptw/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const record = await c.env.DB.prepare(
       `SELECT p.*, 
               prj.project_name, prj.location, prj.client_name, prj.start_date AS project_start_date,
-              prj.wsho_name, prj.wsho_email, prj.wsho_phone, prj.pm_email, prj.project_manager
+              COALESCE(wsho.name, p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
+              COALESCE(wsho.email, p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
+              COALESCE(wsho.phone, prj.wsho_phone) AS assigned_wsho_phone,
+              COALESCE(pm.name, p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
+              COALESCE(pm.email, p.assigned_pm_email, prj.pm_email) AS assigned_pm_email,
+              COALESCE(app.name, 'Site Supervisor') AS applicant_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       LEFT JOIN users wsho ON p.assessor_user_id = wsho.id OR LOWER(p.assigned_wsho_email) = LOWER(wsho.email) OR LOWER(prj.wsho_email) = LOWER(wsho.email)
+       LEFT JOIN users pm ON p.pm_user_id = pm.id OR LOWER(p.assigned_pm_email) = LOWER(pm.email) OR LOWER(prj.pm_email) = LOWER(pm.email)
+       LEFT JOIN users app ON LOWER(p.applicant_email) = LOWER(app.email)
        WHERE p.ptw_id = ?`
     ).bind(id).first();
 
     return c.json({ success: true, data: record });
-  } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500);
-  }
-});
-// GET /api/users - Fetch all system users (PMs, WSHOs, Assessors)
-app.get('/api/users', async (c) => {
-  try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT id, name, email, phone, role, status FROM users ORDER BY name ASC'
-    ).all();
-    return c.json({ success: true, data: results });
-  } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500);
-  }
-});
-
-// POST /api/users - Create new system user
-app.post('/api/users', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { name, email, phone, role } = body;
-    if (!name || !email || !role) {
-      return c.json({ success: false, error: 'Name, email, and role are required.' }, 400);
-    }
-    const userId = `usr_${role.toLowerCase().slice(0, 3)}_${Math.floor(100 + Math.random() * 900)}`;
-    await c.env.DB.prepare(
-      'INSERT INTO users (id, name, email, phone, role) VALUES (?, ?, ?, ?, ?)'
-    ).bind(userId, name, email, phone || null, role).run();
-    return c.json({ success: true, message: 'User created successfully', id: userId }, 201);
-  } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500);
-  }
-});
-
-// PUT /api/users/:id - Update user profile
-app.put('/api/users/:id', async (c) => {
-  try {
-    const id = c.req.param('id');
-    const body = await c.req.json();
-    const { name, email, phone, role, status } = body;
-    await c.env.DB.prepare(
-      'UPDATE users SET name = ?, email = ?, phone = ?, role = ?, status = ? WHERE id = ?'
-    ).bind(name, email, phone || null, role, status || 'ACTIVE', id).run();
-    return c.json({ success: true, message: 'User updated successfully' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
