@@ -724,6 +724,14 @@ app.delete('/api/certs/:cert_id', async (c) => {
       return c.json({ success: false, error: 'Certificate record not found.' }, 404);
     }
 
+    await logAuditEvent(
+      c,
+      'DELETE_CERT',
+      'Worker_Certificates',
+      certId,
+      'Deleted worker safety qualification certificate record'
+    );
+
     return c.json({ success: true, message: 'Certificate deleted successfully.' });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -1195,9 +1203,61 @@ app.post('/api/ptw', async (c) => {
       return c.json({ success: false, error: 'Permit Start Date / Time must be earlier than Permit Expiry Date / Time.' }, 400);
     }
 
+    // MOM WSH Shift Limit: Enforce maximum 12-hour single-shift validity
+    try {
+      const startDateObj = new Date(startStr.replace(' ', 'T'));
+      const expiryDateObj = new Date(expiryStr.replace(' ', 'T'));
+      const diffHours = (expiryDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60);
+      if (diffHours > 12) {
+        return c.json({
+          success: false,
+          error: `MOM ePTW Compliance Limit: Single-shift permit duration cannot exceed 12 hours (Requested: ${diffHours.toFixed(1)} hours). Daily re-authorization is legally required under WSH Regulations.`
+        }, 400);
+      }
+    } catch (e) {}
+
     const workersJsonStr = typeof assigned_workers_json === 'string' 
       ? assigned_workers_json 
       : JSON.stringify(assigned_workers_json || []);
+
+    // Statutory Safety Qualification Check: Validate assigned worker certs against WSH Regulations
+    if (assigned_workers_json) {
+      let workerList: any[] = [];
+      try {
+        workerList = typeof assigned_workers_json === 'string' 
+          ? JSON.parse(assigned_workers_json) 
+          : assigned_workers_json;
+      } catch (e) {}
+
+      if (Array.isArray(workerList) && workerList.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        for (const wrk of workerList) {
+          const workerId = typeof wrk === 'object' ? wrk.worker_id || wrk.id : wrk;
+          if (!workerId) continue;
+
+          const workerObj = await c.env.DB.prepare(
+            'SELECT name FROM Worker_Registry WHERE worker_id = ?'
+          ).bind(workerId).first<{ name: string }>();
+
+          const certs = await c.env.DB.prepare(
+            'SELECT cert_type, cert_expiry, cert_valid FROM Worker_Certificates WHERE worker_id = ?'
+          ).bind(workerId).all<any>();
+
+          const certList = certs.results || [];
+          const expiredCerts = certList.filter((ct: any) => 
+            ct.cert_valid === 0 || (ct.cert_expiry && ct.cert_expiry < today)
+          );
+
+          if (expiredCerts.length > 0) {
+            const expNames = expiredCerts.map((ct: any) => `${ct.cert_type} (Expired: ${ct.cert_expiry})`).join(', ');
+            return c.json({
+              success: false,
+              error: `MOM Statutory Compliance Violation: Worker '${workerObj?.name || workerId}' cannot be assigned to high-risk work. Expired/Invalid Safety Certificate(s): ${expNames}.`
+            }, 400);
+          }
+        }
+      }
+    }
 
     const ramsJsonStr = typeof selected_rams_json === 'string' 
       ? selected_rams_json 
@@ -1309,6 +1369,15 @@ app.post('/api/ptw/:id/vet', async (c) => {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
     }
 
+    // MOM WSH Separation of Duties Check: Applicant cannot self-vet as Safety Officer
+    const vettingEmail = c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.wsho_email;
+    if (existing.applicant_email && vettingEmail && existing.applicant_email.toLowerCase().trim() === vettingEmail.toLowerCase().trim()) {
+      return c.json({
+        success: false,
+        error: 'MOM WSH Separation of Duties Violation: The Safety Assessor (WSHO) cannot be the same person as the Permit Applicant.'
+      }, 400);
+    }
+
     // Idempotency check for vetting action
     if (action_transaction_id && existing.action_transaction_id === action_transaction_id) {
       return c.json({ success: true, message: `Permit ${existing.ptw_id} already vetted (Idempotent).` });
@@ -1371,6 +1440,24 @@ app.post('/api/ptw/:id/approve', async (c) => {
 
     if (!existing) {
       return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    // MOM WSH Separation of Duties Check: Approving PM cannot be Applicant or WSHO
+    const pmEmail = c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.pm_email;
+    if (pmEmail) {
+      const pmClean = pmEmail.toLowerCase().trim();
+      if (existing.applicant_email && existing.applicant_email.toLowerCase().trim() === pmClean) {
+        return c.json({
+          success: false,
+          error: 'MOM WSH Separation of Duties Violation: The Approving Manager (PM) cannot be the same person as the Permit Applicant.'
+        }, 400);
+      }
+      if (existing.assigned_wsho_email && existing.assigned_wsho_email.toLowerCase().trim() === pmClean) {
+        return c.json({
+          success: false,
+          error: 'MOM WSH Separation of Duties Violation: The Approving Manager (PM) cannot be the same person as the Safety Assessor (WSHO).'
+        }, 400);
+      }
     }
 
     // Idempotency check for approval action
