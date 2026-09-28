@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.tab-btn')[4].classList.add('active');
       document.getElementById('tbmTab').classList.add('active');
       initTbmTab();
+    } else if (tabId === 'auditTab') {
+      document.querySelectorAll('.tab-btn')[5].classList.add('active');
+      if (document.getElementById('auditTab')) document.getElementById('auditTab').classList.add('active');
+      if (typeof window.loadAuditLogs === 'function') window.loadAuditLogs();
     }
   };
 

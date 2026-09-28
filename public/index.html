@@ -738,34 +738,124 @@
       </div>
     </div>
 
-    <!-- TAB 6: IMMUTABLE AUDIT LOGS LEDGER -->
+    <!-- TAB 6: IMMUTABLE AUDIT LOGS LEDGER & WSH HISTORY -->
     <div id="auditTab" class="tab-content">
-      <div class="table-card">
-        <div class="table-toolbar" style="justify-content: space-between; align-items: center;">
-          <div>
-            <h3 style="margin: 0;">📜 Immutable WSH Audit Log Ledger</h3>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">Non-Repudiable Event History • SGT (UTC+8) Incident & Operational Timestamps</div>
-          </div>
-          <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="loadAuditLogs()">🔄 Refresh Audit Logs</button>
+      <!-- WSH Compliance Audit Summary Stats Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <div class="table-card" style="padding: 16px; border-left: 4px solid #3b82f6;">
+          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Total Audit Logs</div>
+          <div id="auditStatTotal" style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin: 4px 0;">-</div>
+          <div style="font-size: 0.75rem; color: #64748b;">Immutable D1 Ledger Entries</div>
         </div>
+        <div class="table-card" style="padding: 16px; border-left: 4px solid #10b981;">
+          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Permit & Safety Actions</div>
+          <div id="auditStatPermits" style="font-size: 1.8rem; font-weight: 800; color: #059669; margin: 4px 0;">-</div>
+          <div style="font-size: 0.75rem; color: #64748b;">ePTW Lifecycle Operations</div>
+        </div>
+        <div class="table-card" style="padding: 16px; border-left: 4px solid #f59e0b;">
+          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Archival & Closures</div>
+          <div id="auditStatArchival" style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin: 4px 0;">-</div>
+          <div style="font-size: 0.75rem; color: #64748b;">Permit Closures & Archives</div>
+        </div>
+        <div class="table-card" style="padding: 16px; border-left: 4px solid #8b5cf6;">
+          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Attributed System Users</div>
+          <div id="auditStatUsers" style="font-size: 1.8rem; font-weight: 800; color: #6d28d9; margin: 4px 0;">-</div>
+          <div style="font-size: 0.75rem; color: #64748b;">Duty Personnel & Assessors</div>
+        </div>
+      </div>
+
+      <!-- Main Audit Ledger Table Card -->
+      <div class="table-card">
+        <div class="table-toolbar" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+              <span>📜 Immutable WSH Audit Log Ledger</span>
+              <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">MOM Ready</span>
+            </h3>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Non-Repudiable Event History • SGT (UTC+8) Timestamps • WSH Officer & Auditor Trail</div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportAuditLogsCsv()">📥 Export CSV</button>
+            <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="printAuditLedger()">🖨️ Print WSH Trail</button>
+            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="loadAuditLogs()">🔄 Refresh Logs</button>
+          </div>
+        </div>
+
+        <!-- Filter Controls Toolbar -->
+        <div style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+          <input type="text" id="auditSearchInput" class="search-input" style="flex: 1; min-width: 220px; margin: 0;" placeholder="🔍 Search by user, action, target ID, or keywords..." oninput="filterAuditLogsLocal()">
+          
+          <select id="auditActionFilter" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;" onchange="loadAuditLogs()">
+            <option value="">All Action Events</option>
+            <option value="CREATE_PERMIT">Create Permit</option>
+            <option value="VET_PERMIT">WSHO Vet Permit</option>
+            <option value="APPROVE_PERMIT">PM Approve Permit</option>
+            <option value="CLOSE_PERMIT">Close Permit</option>
+            <option value="REJECT_PERMIT">Reject Permit</option>
+            <option value="ARCHIVE_PTW">Archive Permit</option>
+            <option value="CREATE_PROJECT">Create Site</option>
+            <option value="ARCHIVE_PROJECT">Archive Site</option>
+            <option value="CREATE_WORKER">Register Worker</option>
+            <option value="UPDATE_WORKER">Update Worker</option>
+            <option value="ARCHIVE_WORKER">Archive Worker</option>
+            <option value="CREATE_TBM">Create TBM</option>
+            <option value="SIGN_TBM">Sign TBM</option>
+            <option value="ARCHIVE_TBM">Archive TBM</option>
+          </select>
+
+          <select id="auditTargetFilter" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;" onchange="loadAuditLogs()">
+            <option value="">All Resources</option>
+            <option value="PTW_Records">PTW Permits (PTW_Records)</option>
+            <option value="Project_Directory">Projects (Project_Directory)</option>
+            <option value="Worker_Registry">Workers (Worker_Registry)</option>
+            <option value="TBM_Records">TBM Briefings (TBM_Records)</option>
+          </select>
+
+          <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="resetAuditFilters()">Reset Filters</button>
+        </div>
+
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th style="width: 80px;">Log ID</th>
-                <th style="width: 160px;">Timestamp (SGT)</th>
-                <th style="width: 180px;">Action Event</th>
-                <th style="width: 200px;">Target Resource</th>
-                <th style="width: 200px;">User Identity</th>
-                <th>Audit Details & Context</th>
+                <th style="width: 75px;">Log ID</th>
+                <th style="width: 155px;">Timestamp (SGT)</th>
+                <th style="width: 170px;">Action Event</th>
+                <th style="width: 175px;">Target Resource</th>
+                <th style="width: 210px;">Attributed User</th>
+                <th>Audit Context & Verification Details</th>
+                <th style="width: 75px; text-align: center;">View</th>
               </tr>
             </thead>
             <tbody id="auditLogTableBody">
               <tr>
-                <td colspan="6" style="text-align: center; padding: 20px; color: #888;">Select tab to view audit logs.</td>
+                <td colspan="7" style="text-align: center; padding: 20px; color: #888;">Select tab to view audit logs.</td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <div style="padding: 10px 16px; font-size: 0.8rem; color: #64748b; background: #fafafa; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+          <span id="auditCountFooter">Showing 0 audit records</span>
+          <span>Append-Only D1 Ledger • MOM WSH Regulations Compliant</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: AUDIT LOG ENTRY DETAILS -->
+    <div id="auditDetailModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-card" style="max-width: 600px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+          <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+            <span>📜 Audit Event Ledger Entry</span>
+            <span id="auditModalIdBadge" class="badge" style="background: #e2e8f0; color: #1e293b;">#0</span>
+          </h3>
+          <button type="button" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;" onclick="closeAuditModal()">✖</button>
+        </div>
+        <div id="auditDetailContent" style="font-size: 0.9rem; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Loaded dynamically -->
+        </div>
+        <div style="margin-top: 20px; text-align: right;">
+          <button type="button" class="btn-secondary" onclick="closeAuditModal()">Close Window</button>
         </div>
       </div>
     </div>
@@ -3074,30 +3164,198 @@
       }
     };
 
+    let globalAuditLogs = [];
+
+    function getActionBadgeStyle(action) {
+      if (!action) return { bg: '#e2e8f0', color: '#334155' };
+      const act = action.toUpperCase();
+      if (act.includes('APPROVE') || act.includes('CREATE') || act.includes('REGISTER')) {
+        return { bg: '#dcfce7', color: '#15803d' };
+      }
+      if (act.includes('VET') || act.includes('UPDATE') || act.includes('SIGN')) {
+        return { bg: '#e0f2fe', color: '#0369a1' };
+      }
+      if (act.includes('CLOSE') || act.includes('REJECT')) {
+        return { bg: '#fef3c7', color: '#b45309' };
+      }
+      if (act.includes('ARCHIVE') || act.includes('DELETE')) {
+        return { bg: '#fee2e2', color: '#b91c1c' };
+      }
+      return { bg: '#f1f5f9', color: '#475569' };
+    }
+
     window.loadAuditLogs = async function() {
       const container = document.getElementById('auditLogTableBody');
       if (!container) return;
-      container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px;">Loading audit logs...</td></tr>`;
+      container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">⏳ Fetching non-repudiable audit ledger...</td></tr>`;
+
       try {
-        const res = await fetch('/api/audit-logs?limit=100');
+        const action = document.getElementById('auditActionFilter')?.value || '';
+        const targetTable = document.getElementById('auditTargetFilter')?.value || '';
+
+        const params = new URLSearchParams();
+        params.append('limit', '200');
+        if (action) params.append('action', action);
+        if (targetTable) params.append('target_table', targetTable);
+
+        const res = await fetch(`/api/audit-logs?${params.toString()}`);
         const json = await res.json();
-        if (!json.success || !json.data || json.data.length === 0) {
-          container.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#888;">No audit logs recorded yet.</td></tr>`;
+
+        if (!json.success || !json.data) {
+          container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#ef4444;">Failed to retrieve audit records: ${json.error || 'Unknown error'}</td></tr>`;
           return;
         }
-        container.innerHTML = json.data.map(log => `
+
+        globalAuditLogs = json.data;
+
+        // Update stats summary cards
+        if (json.stats) {
+          if (document.getElementById('auditStatTotal')) document.getElementById('auditStatTotal').textContent = json.stats.total_logs;
+          if (document.getElementById('auditStatPermits')) document.getElementById('auditStatPermits').textContent = json.stats.permit_events;
+          if (document.getElementById('auditStatArchival')) document.getElementById('auditStatArchival').textContent = json.stats.archival_events;
+          if (document.getElementById('auditStatUsers')) document.getElementById('auditStatUsers').textContent = json.stats.unique_users;
+        } else if (document.getElementById('auditStatTotal')) {
+          document.getElementById('auditStatTotal').textContent = globalAuditLogs.length;
+        }
+
+        filterAuditLogsLocal();
+      } catch (err) {
+        container.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:20px;">Network error loading audit logs: ${err.message}</td></tr>`;
+      }
+    };
+
+    window.filterAuditLogsLocal = function() {
+      const container = document.getElementById('auditLogTableBody');
+      const countFooter = document.getElementById('auditCountFooter');
+      if (!container) return;
+
+      const search = (document.getElementById('auditSearchInput')?.value || '').toLowerCase().trim();
+      
+      let filtered = globalAuditLogs;
+      if (search) {
+        filtered = filtered.filter(log => 
+          String(log.log_id).includes(search) ||
+          (log.user_email && log.user_email.toLowerCase().includes(search)) ||
+          (log.user_role && log.user_role.toLowerCase().includes(search)) ||
+          (log.action && log.action.toLowerCase().includes(search)) ||
+          (log.target_table && log.target_table.toLowerCase().includes(search)) ||
+          (log.target_id && log.target_id.toLowerCase().includes(search)) ||
+          (log.details && log.details.toLowerCase().includes(search))
+        );
+      }
+
+      if (countFooter) {
+        countFooter.textContent = `Showing ${filtered.length} of ${globalAuditLogs.length} audit records`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#888;">No matching audit logs found.</td></tr>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(log => {
+        const badgeStyle = getActionBadgeStyle(log.action);
+        const detailsSnippet = escapeHtml(log.details || '-');
+        const shortDetails = detailsSnippet.length > 85 ? detailsSnippet.substring(0, 85) + '...' : detailsSnippet;
+
+        return `
           <tr>
             <td><strong>#${log.log_id}</strong></td>
-            <td><span style="font-family:monospace; font-size:0.85rem; color:#2563eb;">${escapeHtml(log.timestamp)}</span></td>
-            <td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">${escapeHtml(log.action)}</span></td>
-            <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.82rem;">${escapeHtml(log.target_table)}: ${escapeHtml(log.target_id)}</code></td>
-            <td><strong>${escapeHtml(log.user_email)}</strong><br><small style="color:#64748b;">(${escapeHtml(log.user_role)})</small></td>
-            <td style="font-size:0.85rem; color:#334155;">${escapeHtml(log.details || '-')}</td>
+            <td><span style="font-family:monospace; font-size:0.83rem; color:#2563eb; font-weight:600;">${escapeHtml(log.timestamp)}</span></td>
+            <td><span class="badge" style="background:${badgeStyle.bg}; color:${badgeStyle.color}; font-weight:700;">${escapeHtml(log.action)}</span></td>
+            <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.82rem; color:#334155;">${escapeHtml(log.target_table)}:<br><strong>${escapeHtml(log.target_id)}</strong></code></td>
+            <td>
+              <strong>${escapeHtml(log.user_email)}</strong><br>
+              <span class="badge" style="background:#f3e8ff; color:#6b21a8; font-size:0.75rem; padding:1px 6px;">${escapeHtml(log.user_role)}</span>
+            </td>
+            <td style="font-size:0.85rem; color:#334155; max-width:320px; line-height:1.4;">${shortDetails}</td>
+            <td style="text-align:center;">
+              <button type="button" class="btn-secondary" style="padding:3px 8px; font-size:0.75rem;" onclick="showAuditDetailModal(${log.log_id})">🔍 View</button>
+            </td>
           </tr>
-        `).join('');
-      } catch (err) {
-        container.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">Failed to load audit logs: ${err.message}</td></tr>`;
+        `;
+      }).join('');
+    };
+
+    window.resetAuditFilters = function() {
+      if (document.getElementById('auditSearchInput')) document.getElementById('auditSearchInput').value = '';
+      if (document.getElementById('auditActionFilter')) document.getElementById('auditActionFilter').value = '';
+      if (document.getElementById('auditTargetFilter')) document.getElementById('auditTargetFilter').value = '';
+      loadAuditLogs();
+    };
+
+    window.showAuditDetailModal = function(logId) {
+      const log = globalAuditLogs.find(l => l.log_id === logId);
+      if (!log) return;
+
+      const modal = document.getElementById('auditDetailModal');
+      const content = document.getElementById('auditDetailContent');
+      const badge = document.getElementById('auditModalIdBadge');
+      if (!modal || !content) return;
+
+      if (badge) badge.textContent = `#${log.log_id}`;
+      const badgeStyle = getActionBadgeStyle(log.action);
+
+      content.innerHTML = `
+        <div style="background:#f8fafc; border-radius:8px; padding:12px; border:1px solid #e2e8f0; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div><strong style="color:#64748b; font-size:0.8rem;">Timestamp (SGT):</strong><br><span style="font-family:monospace; color:#2563eb; font-weight:700;">${escapeHtml(log.timestamp)}</span></div>
+          <div><strong style="color:#64748b; font-size:0.8rem;">Action Event:</strong><br><span class="badge" style="background:${badgeStyle.bg}; color:${badgeStyle.color}; font-weight:700;">${escapeHtml(log.action)}</span></div>
+          <div><strong style="color:#64748b; font-size:0.8rem;">Target Table:</strong><br><code>${escapeHtml(log.target_table)}</code></div>
+          <div><strong style="color:#64748b; font-size:0.8rem;">Target Resource ID:</strong><br><strong style="color:#0f172a;">${escapeHtml(log.target_id)}</strong></div>
+        </div>
+
+        <div style="background:#f8fafc; border-radius:8px; padding:12px; border:1px solid #e2e8f0;">
+          <strong style="color:#64748b; font-size:0.8rem;">Attributed User & Role:</strong>
+          <div style="margin-top:4px;">
+            <strong style="color:#0f172a; font-size:0.95rem;">${escapeHtml(log.user_email)}</strong> 
+            <span class="badge" style="background:#f3e8ff; color:#6b21a8; margin-left:6px;">${escapeHtml(log.user_role)}</span>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc; border-radius:8px; padding:12px; border:1px solid #e2e8f0;">
+          <strong style="color:#64748b; font-size:0.8rem;">Full Audit Context & Inspection Notes:</strong>
+          <div style="margin-top:6px; font-size:0.9rem; color:#1e293b; background:#ffffff; padding:10px; border-radius:6px; border:1px solid #cbd5e1; white-space:pre-wrap; word-break:break-word;">${escapeHtml(log.details || 'No additional context provided.')}</div>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+    };
+
+    window.closeAuditModal = function() {
+      const modal = document.getElementById('auditDetailModal');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.exportAuditLogsCsv = function() {
+      if (!globalAuditLogs || globalAuditLogs.length === 0) {
+        showToast('No audit logs available to export.', 'error');
+        return;
       }
+      const headers = ['Log ID', 'Timestamp (SGT)', 'Action Event', 'Target Table', 'Target ID', 'User Email', 'User Role', 'Details'];
+      const rows = globalAuditLogs.map(log => [
+        log.log_id,
+        `"${(log.timestamp || '').replace(/"/g, '""')}"`,
+        `"${(log.action || '').replace(/"/g, '""')}"`,
+        `"${(log.target_table || '').replace(/"/g, '""')}"`,
+        `"${(log.target_id || '').replace(/"/g, '""')}"`,
+        `"${(log.user_email || '').replace(/"/g, '""')}"`,
+        `"${(log.user_role || '').replace(/"/g, '""')}"`,
+        `"${(log.details || '').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `WSH_Audit_Log_Ledger_${new Date().toISOString().substring(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('WSH Audit Ledger CSV exported successfully.');
+    };
+
+    window.printAuditLedger = function() {
+      window.print();
     };
 
     function resetPtwForm() {

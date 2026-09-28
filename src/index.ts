@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { serveStatic } from 'hono/cloudflare-workers';
 import {
   dispatchPermitNotification,
   decodeTelegramToken,
@@ -651,6 +650,14 @@ app.post('/api/workers', async (c) => {
       )
       .run();
 
+    await logAuditEvent(
+      c,
+      target_worker_id ? 'UPDATE_WORKER' : 'CREATE_WORKER',
+      'Worker_Registry',
+      finalWorkerId,
+      `Worker profile ${target_worker_id ? 'updated' : 'registered'}: ${name || 'Worker'} (${trade || 'General'}). Cert: ${certTypeFinal}`
+    );
+
     return c.json(
       {
         success: true,
@@ -690,6 +697,14 @@ app.put('/api/workers/:id', async (c) => {
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'Worker record not found.' }, 404);
     }
+
+    await logAuditEvent(
+      c,
+      'UPDATE_WORKER',
+      'Worker_Registry',
+      id,
+      `Updated worker profile details: ${name} (${trade})`
+    );
 
     return c.json({ success: true, message: 'Worker profile updated successfully.' });
   } catch (error: any) {
@@ -1257,6 +1272,15 @@ app.post('/api/ptw', async (c) => {
       dispatchPermitNotification(c.env, c.env.DB, ptwNotificationData, 'PERMIT_SUBMITTED')
     );
 
+    await logAuditEvent(
+      c,
+      'CREATE_PERMIT',
+      'PTW_Records',
+      ptw_id,
+      `Permit submitted (${ptw_type || 'Work at Height'}). Status: ${initialStatus}. Applicant: ${applicant_email || 'Supervisor'}. Assigned WSHO: ${finalWshoName}, PM: ${finalPmName}`,
+      { email: applicant_email || 'supervisor@site.com', role: 'SUPERVISOR' }
+    );
+
     return c.json({
       success: true,
       message: `Permit ${ptw_id} created successfully with status '${initialStatus}'.`,
@@ -1314,6 +1338,15 @@ app.post('/api/ptw/:id/vet', async (c) => {
     safeWaitUntil(
       c,
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_VETTED')
+    );
+
+    await logAuditEvent(
+      c,
+      'VET_PERMIT',
+      'PTW_Records',
+      id,
+      `Permit vetted by Safety Officer (${safety_officer_name || existing.assigned_wsho_name || 'WSHO'}). Status updated to Pending PM Approval.`,
+      { email: existing.assigned_wsho_email || 'wsho@eptw-system.com', role: 'WSHO' }
     );
 
     return c.json({ success: true, message: `Permit ${existing.ptw_id} vetted by WSHO. Pending PM Approval.` });
@@ -1383,6 +1416,15 @@ app.post('/api/ptw/:id/approve', async (c) => {
       dispatchPermitNotification(c.env, c.env.DB, notificationData, 'PERMIT_APPROVED')
     );
 
+    await logAuditEvent(
+      c,
+      'APPROVE_PERMIT',
+      'PTW_Records',
+      id,
+      `Permit approved by Project Manager (${existing.assigned_pm_name || 'PM'}). Permit is now ACTIVE. Created TBM ID: ${createdTbmId || 'None'}`,
+      { email: existing.assigned_pm_email || 'pm@eptw-system.com', role: 'PROJECT_MANAGER' }
+    );
+
     return c.json({
       success: true,
       message: `Permit ${existing.ptw_id} approved and is now ACTIVE.`,
@@ -1417,6 +1459,14 @@ app.post('/api/ptw/:id/reject', async (c) => {
        SET status = 'Rejected', rejection_reason = ?
        WHERE ptw_id = ?`
     ).bind(reason, id).run();
+
+    await logAuditEvent(
+      c,
+      'REJECT_PERMIT',
+      'PTW_Records',
+      id,
+      `Permit rejected. Reason: ${reason}`
+    );
 
     const notificationData: PTWRecordForNotification = {
       id: existing.ptw_id,
@@ -1664,16 +1714,69 @@ app.delete('/api/ptw/:id', async (c) => {
 // GET /api/audit-logs - Read-only Audit Log Ledger for WSH Officers & Auditors
 app.get('/api/audit-logs', async (c) => {
   try {
-    const limit = c.req.query('limit') || '100';
-    const { results } = await c.env.DB.prepare(
-      'SELECT * FROM Audit_Logs ORDER BY log_id DESC LIMIT ?'
-    ).bind(Number(limit)).all();
+    const limitParam = Number(c.req.query('limit') || '100');
+    const limit = Math.min(Math.max(limitParam, 1), 500);
+    const search = c.req.query('search') || '';
+    const action = c.req.query('action') || '';
+    const targetTable = c.req.query('target_table') || '';
+    const startDate = c.req.query('start_date') || '';
+    const endDate = c.req.query('end_date') || '';
 
-    return c.json({ success: true, data: results });
+    let sql = 'SELECT * FROM Audit_Logs WHERE 1=1';
+    const params: any[] = [];
+
+    if (search) {
+      sql += ' AND (details LIKE ? OR user_email LIKE ? OR target_id LIKE ? OR action LIKE ?)';
+      const term = `%${search}%`;
+      params.push(term, term, term, term);
+    }
+
+    if (action) {
+      sql += ' AND action = ?';
+      params.push(action);
+    }
+
+    if (targetTable) {
+      sql += ' AND target_table = ?';
+      params.push(targetTable);
+    }
+
+    if (startDate) {
+      sql += ' AND timestamp >= ?';
+      params.push(startDate + ' 00:00:00');
+    }
+
+    if (endDate) {
+      sql += ' AND timestamp <= ?';
+      params.push(endDate + ' 23:59:59');
+    }
+
+    sql += ' ORDER BY log_id DESC LIMIT ?';
+    params.push(limit);
+
+    const { results } = await c.env.DB.prepare(sql).bind(...params).all();
+
+    // Summary stats for Auditors
+    const totalCountRes = await c.env.DB.prepare('SELECT COUNT(*) as total FROM Audit_Logs').first<{ total: number }>();
+    const permitEventsRes = await c.env.DB.prepare("SELECT COUNT(*) as cnt FROM Audit_Logs WHERE target_table = 'PTW_Records'").first<{ cnt: number }>();
+    const archivalEventsRes = await c.env.DB.prepare("SELECT COUNT(*) as cnt FROM Audit_Logs WHERE action LIKE 'ARCHIVE%' OR action LIKE 'DELETE%' OR action LIKE 'CLOSE%'").first<{ cnt: number }>();
+    const uniqueUsersRes = await c.env.DB.prepare("SELECT COUNT(DISTINCT user_email) as cnt FROM Audit_Logs").first<{ cnt: number }>();
+
+    return c.json({
+      success: true,
+      data: results || [],
+      stats: {
+        total_logs: totalCountRes?.total || 0,
+        permit_events: permitEventsRes?.cnt || 0,
+        archival_events: archivalEventsRes?.cnt || 0,
+        unique_users: uniqueUsersRes?.cnt || 0
+      }
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
 });
+
 
 // POST /api/notifications/test - Trigger 1-Click Test Alert (Telegram & Email)
 app.post('/api/notifications/test', async (c) => {
@@ -1891,6 +1994,14 @@ app.post('/api/tbm', async (c) => {
       worker_concerns_raised || 'Nil / No concerns raised'
     ).run();
 
+    await logAuditEvent(
+      c,
+      'CREATE_TBM',
+      'TBM_Records',
+      tbmId,
+      `TBM Briefing created by ${supervisor_name} (${supervisor_role || 'Site Supervisor'}) linked to permit ${ptw_id}`
+    );
+
     return c.json({ success: true, message: 'TBM Briefing created successfully', id: tbmId }, 201);
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -1945,6 +2056,14 @@ app.post('/api/tbm/:id/sign', async (c) => {
       return c.json({ success: false, error: 'TBM record not found.' }, 404);
     }
 
+    await logAuditEvent(
+      c,
+      'SIGN_TBM',
+      'TBM_Records',
+      id,
+      `TBM Briefing signed & locked with ${count} worker attendance signatures. Concerns: ${concerns}`
+    );
+
     return c.json({ success: true, message: `TBM Briefing ${id} signed and locked as COMPLETED.` });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -1972,8 +2091,12 @@ app.delete('/api/tbm/:id', async (c) => {
   }
 });
 
-// Serve static assets from public folder
-app.use('/*', serveStatic({ root: './' }));
+// Favicon & 404 Handler (Prevents __STATIC_CONTENT_MANIFEST reference error for unmatched routes)
+app.get('/favicon.ico', (c) => c.text('', 204));
+
+app.notFound((c) => {
+  return c.json({ success: false, error: 'Resource not found' }, 404);
+});
 
 export default app;
 
