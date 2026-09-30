@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ePTW System — Central Authentication Gateway</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#f8fafc">
   <link rel="stylesheet" href="assets/css/theme.css?v=4">
   <style>
     body {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #f8fafc;
+      background: #f8fafc;
+      color: #1f2937;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       min-height: 100vh;
       display: flex;
@@ -21,13 +21,13 @@
       box-sizing: border-box;
     }
     .login-gateway-card {
-      background: #1e293b;
-      border: 1px solid #38bdf8;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 16px;
       padding: 32px 28px;
       width: 100%;
       max-width: 440px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
       text-align: center;
     }
     .brand-logo {
@@ -37,12 +37,12 @@
     .brand-title {
       font-size: 1.35rem;
       font-weight: 700;
-      color: #38bdf8;
+      color: #1e293b;
       margin-bottom: 4px;
     }
     .brand-subtitle {
       font-size: 0.82rem;
-      color: #94a3b8;
+      color: #64748b;
       margin-bottom: 24px;
     }
     .form-group-login {
@@ -53,48 +53,51 @@
       display: block;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #cbd5e1;
+      color: #1f2937;
       margin-bottom: 6px;
     }
     .login-select, .login-input {
       width: 100%;
       padding: 12px 14px;
-      background: #0f172a;
-      border: 1px solid #475569;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
       border-radius: 8px;
-      color: #ffffff;
+      color: #1f2937;
       font-size: 0.95rem;
       box-sizing: border-box;
     }
     .login-select:focus, .login-input:focus {
       outline: none;
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
     }
     .btn-login-gateway {
       width: 100%;
       padding: 14px;
-      background: linear-gradient(135deg, #0284c7, #2563eb);
+      background: #2563eb;
       color: #ffffff;
       font-size: 1rem;
       font-weight: 700;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
       margin-top: 12px;
-      transition: transform 0.1s;
+      transition: background-color 0.15s, transform 0.1s;
+    }
+    .btn-login-gateway:hover {
+      background: #1d4ed8;
     }
     .btn-login-gateway:active {
       transform: scale(0.98);
     }
     .routing-preview-badge {
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
       border-radius: 8px;
       padding: 10px;
       font-size: 0.78rem;
-      color: #38bdf8;
+      color: #1e40af;
       margin-top: 16px;
       text-align: left;
     }
