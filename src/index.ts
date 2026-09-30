@@ -899,13 +899,27 @@ app.delete('/api/workers/:id', async (c) => {
 // PROJECT DIRECTORY ROUTES & CONTROL CENTER API
 // ============================================================================
 
-// GET /api/projects - List all projects (dynamically joined with users for strict FK normalization)
+// GET /api/projects - List projects (Role-scoped for PM/WSHO, unrestricted for Admin, operational for Supervisor)
 app.get('/api/projects', async (c) => {
   try {
     const includeArchived = c.req.query('include_archived') === 'true';
-    const whereClause = includeArchived
+    const userRole = (c.req.header('x-user-role') || c.req.header('X-User-Role') || '').toUpperCase();
+    const userEmail = (c.req.header('x-user-email') || c.req.header('X-User-Email') || '').toLowerCase().trim();
+
+    let whereClause = includeArchived
       ? '1=1'
       : "(prj.deleted_at IS NULL AND (prj.status IS NULL OR prj.status != 'Archived'))";
+
+    const params: any[] = [];
+
+    // Hybrid Data Isolation: Strict Portfolio Scoping for PMs and WSHOs
+    if (userRole === 'PROJECT_MANAGER' && userEmail) {
+      whereClause += ' AND (LOWER(prj.pm_email) = ? OR prj.pm_user_id = ?)';
+      params.push(userEmail, userEmail);
+    } else if (userRole === 'WSHO' && userEmail) {
+      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR prj.wsho_user_id = ?)';
+      params.push(userEmail, userEmail);
+    }
 
     const sql = `
       SELECT prj.*,
@@ -920,7 +934,7 @@ app.get('/api/projects', async (c) => {
       WHERE ${whereClause}
       ORDER BY prj.created_at DESC`;
 
-    const { results } = await c.env.DB.prepare(sql).all();
+    const { results } = await c.env.DB.prepare(sql).bind(...params).all();
     return c.json({ success: true, data: results || [] });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -1228,7 +1242,21 @@ app.get('/api/ptw', async (c) => {
     let whereClause = 'WHERE p.deleted_at IS NULL';
     const params: any[] = [];
 
-    if (userRole === 'SITE_SUPERVISOR' || userRole === 'SUPERVISOR') {
+    if (userRole === 'PROJECT_MANAGER' && userEmail) {
+      whereClause += ' AND (LOWER(prj.pm_email) = ? OR prj.pm_user_id = ? OR LOWER(p.assigned_pm_email) = ? OR p.pm_user_id = ?)';
+      params.push(userEmail, userEmail, userEmail, userEmail);
+      if (queryProjectId) {
+        whereClause += ' AND p.project_id = ?';
+        params.push(queryProjectId);
+      }
+    } else if (userRole === 'WSHO' && userEmail) {
+      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR prj.wsho_user_id = ? OR LOWER(p.assigned_wsho_email) = ? OR p.assessor_user_id = ?)';
+      params.push(userEmail, userEmail, userEmail, userEmail);
+      if (queryProjectId) {
+        whereClause += ' AND p.project_id = ?';
+        params.push(queryProjectId);
+      }
+    } else if (userRole === 'SITE_SUPERVISOR' || userRole === 'SUPERVISOR') {
       if (queryProjectId) {
         whereClause += ' AND (p.project_id = ? AND (p.status != \'Draft\' OR LOWER(p.applicant_email) = ?))';
         params.push(queryProjectId, userEmail);
