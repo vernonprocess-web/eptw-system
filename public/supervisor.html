@@ -249,8 +249,11 @@
       👷 ePTW Site Portal
       <span id="offlineBadge" class="offline-status-pill online">🟢 Online</span>
     </div>
-    <div id="userPill" class="user-pill" onclick="window.openLoginModal()">
-      👤 <span id="userNameText">Budi Santoso</span> (Supervisor) 🔄
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div id="userPill" class="user-pill" onclick="window.openLoginModal()">
+        👤 <span id="userNameText">Budi Santoso</span> (Supervisor) 🔄
+      </div>
+      <a href="login.html?logout=true" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; text-decoration: none; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">🚪 Switch Role</a>
     </div>
   </header>
 

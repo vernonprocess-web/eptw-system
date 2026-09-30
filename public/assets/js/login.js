@@ -9,17 +9,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const preview = document.getElementById('routingPreview');
   const form = document.getElementById('loginGatewayForm');
 
-  // If valid session already exists, auto-route user directly
+  // Check if explicit logout or switch account requested via URL query
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('logout') || urlParams.has('switch')) {
+    localStorage.removeItem('active_user_email');
+    localStorage.removeItem('active_user_name');
+    localStorage.removeItem('active_user_role');
+  }
+
   const existingEmail = localStorage.getItem('active_user_email');
   const existingRole = localStorage.getItem('active_user_role');
 
-  if (existingEmail && existingRole) {
-    if (existingRole === 'SITE_SUPERVISOR') {
-      window.location.replace('/supervisor.html');
-      return;
-    } else if (['WSHO', 'PROJECT_MANAGER', 'ADMIN', 'SAFETY_ASSESSOR'].includes(existingRole)) {
-      window.location.replace('/index.html');
-      return;
+  // If saved session exists, pre-select it in the dropdown so user can switch or continue easily
+  if (existingEmail && select) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value.startsWith(existingEmail)) {
+        select.selectedIndex = i;
+        break;
+      }
     }
   }
 
