@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=5">
-  <script src="assets/js/app.js?v=5" type="module"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=6">
+  <script src="assets/js/app.js?v=6" type="module"></script>
 </head>
 <body>
 
@@ -1503,6 +1503,118 @@
       }
     });
 
+    // Direct Browser Client-Side Gemini OCR (Singapore IP Auto-Fallback)
+    async function extractWithGeminiClientSide(file, apiKey) {
+      const base64Data = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = reader.result;
+          const base64 = typeof res === 'string' ? res.split(',')[1] : '';
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const promptText = `Analyze this image or document containing Worker Identification Cards, Work Permits, FIN cards, NRIC, WSQ Certificates, SOC Safety Certificates, or Training Cards in Singapore.
+CRITICAL: This document may contain MULTIPLE cards, certificates, or courses on a single page or across pages for the same worker (e.g. Work Permit, Building Construction Supervisors Safety Course BCSS, Work-At-Height WAHS, Confined Space, Lifting Supervisor).
+Detect and extract ALL individual certificates and cards present on this document.
+
+Extract the following information strictly as valid JSON:
+- name: Full name of the worker (e.g. "SAMIDURAI RAVI", "SHEIKH SHUVO")
+- ic_no: Singapore NRIC / Identity Card number ONLY (starts with S or T). If none, return empty string "".
+- wp_no: Singapore Work Permit number ONLY (e.g. "0 6486128"). If none, return empty string "".
+- fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G8806788L"). If none, return empty string "".
+- trade: Sector, job title, or trade (e.g. "CONSTRUCTION", "Work-At-Height Supervisor", "Lifting Supervisor")
+- employer: Employer name if stated (e.g. "SOLARGY PTE. LTD.")
+- certificates: Array of ALL distinct certificates, licenses, work permits, or safety courses detected on the document:
+  [
+    {
+      "cert_type": "Official title/name of the certificate or course",
+      "cert_no": "Certificate, serial, registration, or permit number",
+      "issuer": "Issuing academy, institution, ministry, or provider",
+      "issued_date": "Certificate issue date strictly in YYYY-MM-DD format if visible, otherwise empty string",
+      "cert_expiry": "Certificate expiration date strictly in YYYY-MM-DD format if visible, otherwise empty string"
+    }
+  ]
+
+Return ONLY valid JSON matching this schema:
+{
+  "name": "string",
+  "ic_no": "string",
+  "wp_no": "string",
+  "fin_no": "string",
+  "trade": "string",
+  "employer": "string",
+  "certificates": [
+    {
+      "cert_type": "string",
+      "cert_no": "string",
+      "issuer": "string",
+      "issued_date": "string",
+      "cert_expiry": "string"
+    }
+  ]
+}`;
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: promptText },
+              { inlineData: { mimeType: file.type || 'application/pdf', data: base64Data } }
+            ]
+          }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Direct Gemini API error (${res.status}): ${errText}`);
+      }
+
+      const resData = await res.json();
+      const candidate = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidate) throw new Error('Empty response from Gemini API');
+
+      let parsed;
+      try {
+        parsed = JSON.parse(candidate);
+      } catch (e) {
+        const cleaned = candidate.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsed = JSON.parse(cleaned);
+      }
+
+      const rawCerts = Array.isArray(parsed.certificates) && parsed.certificates.length > 0
+        ? parsed.certificates
+        : [{
+            cert_type: parsed.cert_type || 'Certificate',
+            cert_no: parsed.cert_no || '',
+            issuer: parsed.issuer || '',
+            issued_date: parsed.issued_date || '',
+            cert_expiry: parsed.cert_expiry || ''
+          }];
+
+      const primary = rawCerts[0] || {};
+      return {
+        name: parsed.name || '',
+        ic_no: parsed.ic_no || '',
+        wp_no: parsed.wp_no || '',
+        fin_no: parsed.fin_no || '',
+        trade: parsed.trade || '',
+        employer: parsed.employer || '',
+        cert_type: primary.cert_type || 'Certificate',
+        cert_no: primary.cert_no || '',
+        issuer: primary.issuer || '',
+        issued_date: primary.issued_date || '',
+        cert_expiry: primary.cert_expiry || '',
+        certificates: rawCerts
+      };
+    }
+
     // Handle Certificate File Upload & Gemini OCR Call
     window.handleCertUpload = async function(input) {
       const file = input.files[0];
@@ -1549,22 +1661,46 @@
         const result = await response.json();
 
         if (result.success) {
-          showToast('Certificate uploaded and OCR complete!');
-          
           if (result.cert_file_url) {
             document.getElementById('cert_file_url').value = result.cert_file_url;
           }
-          if (result.ocr) {
-            if (result.ocr.cert_type) document.getElementById('cert_type').value = result.ocr.cert_type;
-            if (result.ocr.cert_no) document.getElementById('cert_no').value = result.ocr.cert_no;
-            if (result.ocr.issuer) document.getElementById('issuer').value = result.ocr.issuer;
-            if (result.ocr.issued_date) document.getElementById('issued_date').value = result.ocr.issued_date;
-            if (result.ocr.cert_expiry) document.getElementById('cert_expiry').value = result.ocr.cert_expiry;
 
-            const extractedName = (result.ocr.name || '').trim().toLowerCase();
-            const extractedIc = (result.ocr.ic_no || '').trim().toLowerCase();
-            const extractedWp = (result.ocr.wp_no || '').trim().toLowerCase();
-            const extractedFin = (result.ocr.fin_no || '').trim().toLowerCase();
+          let ocr = result.ocr || {};
+
+          // Dual-Path Auto-Fallback: If cloud server got location restricted, run via Singapore browser directly!
+          if (!ocr.name || (result.ocr_error && result.ocr_error.includes('location'))) {
+            const effectiveKey = apiKey || result.fallback_key;
+            if (effectiveKey) {
+              if (stepDetail) stepDetail.textContent = '🌐 Rerouting scan directly via your Singapore connection...';
+              try {
+                const clientOcr = await extractWithGeminiClientSide(file, effectiveKey);
+                if (clientOcr && clientOcr.name) {
+                  ocr = clientOcr;
+                  console.log('[Dual-Path OCR] Browser-direct Singapore extraction successful!');
+                }
+              } catch (clientErr) {
+                console.warn('[Dual-Path OCR] Browser fallback error:', clientErr);
+              }
+            }
+          }
+
+          if (ocr.name || ocr.cert_type) {
+            showToast('Document analyzed & worker credentials extracted!', 'success');
+          } else {
+            showToast('Document uploaded. Please verify the extracted fields.', 'info');
+          }
+
+          if (ocr) {
+            if (ocr.cert_type) document.getElementById('cert_type').value = ocr.cert_type;
+            if (ocr.cert_no) document.getElementById('cert_no').value = ocr.cert_no;
+            if (ocr.issuer) document.getElementById('issuer').value = ocr.issuer;
+            if (ocr.issued_date) document.getElementById('issued_date').value = ocr.issued_date;
+            if (ocr.cert_expiry) document.getElementById('cert_expiry').value = ocr.cert_expiry;
+
+            const extractedName = (ocr.name || '').trim().toLowerCase();
+            const extractedIc = (ocr.ic_no || '').trim().toLowerCase();
+            const extractedWp = (ocr.wp_no || '').trim().toLowerCase();
+            const extractedFin = (ocr.fin_no || '').trim().toLowerCase();
 
             // Auto-match existing worker by IC, WP, FIN, or Name
             const matchedWorker = workerData.find(w => 
@@ -1585,23 +1721,23 @@
               showToast(`Matched existing worker: ${matchedWorker.name} (${matchedWorker.worker_id})`);
             } else {
               targetWorkerSelect.value = '';
-              if (result.ocr.name) document.getElementById('worker_name').value = result.ocr.name;
-              if (result.ocr.ic_no) document.getElementById('ic_no').value = result.ocr.ic_no;
-              if (result.ocr.wp_no) document.getElementById('wp_no').value = result.ocr.wp_no;
-              if (result.ocr.fin_no) document.getElementById('fin_no').value = result.ocr.fin_no;
-              if (result.ocr.trade) document.getElementById('trade').value = result.ocr.trade;
+              if (ocr.name) document.getElementById('worker_name').value = ocr.name;
+              if (ocr.ic_no) document.getElementById('ic_no').value = ocr.ic_no;
+              if (ocr.wp_no) document.getElementById('wp_no').value = ocr.wp_no;
+              if (ocr.fin_no) document.getElementById('fin_no').value = ocr.fin_no;
+              if (ocr.trade) document.getElementById('trade').value = ocr.trade;
               document.getElementById('worker_id').value = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
             }
 
             // Process Multi-Certificate Array
-            const rawCerts = Array.isArray(result.ocr.certificates) && result.ocr.certificates.length > 0
-              ? result.ocr.certificates
-              : (result.ocr.cert_type ? [{
-                  cert_type: result.ocr.cert_type,
-                  cert_no: result.ocr.cert_no || '',
-                  issuer: result.ocr.issuer || '',
-                  issued_date: result.ocr.issued_date || '',
-                  cert_expiry: result.ocr.cert_expiry || '',
+            const rawCerts = Array.isArray(ocr.certificates) && ocr.certificates.length > 0
+              ? ocr.certificates
+              : (ocr.cert_type ? [{
+                  cert_type: ocr.cert_type,
+                  cert_no: ocr.cert_no || '',
+                  issuer: ocr.issuer || '',
+                  issued_date: ocr.issued_date || '',
+                  cert_expiry: ocr.cert_expiry || '',
                   cert_file_url: result.cert_file_url || ''
                 }] : []);
 
@@ -1636,6 +1772,8 @@
               `).join('');
               multiContainer.style.display = 'block';
               btnSubmitWorker.textContent = `💾 Save Worker & All ${currentOcrCertificates.length} Certificates`;
+              showToast(`Gemini Vision detected ${currentOcrCertificates.length} certificates on this document!`, 'success');
+            } else if (multiContainer) {
               showToast(`Gemini Vision detected ${currentOcrCertificates.length} certificates on this document!`, 'success');
             } else if (multiContainer) {
               multiContainer.style.display = 'none';

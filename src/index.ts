@@ -714,6 +714,7 @@ app.post('/api/workers/upload', async (c) => {
       cert_file_url: certFileUrl,
       ocr: ocrData,
       hasKey: !!apiKey,
+      fallback_key: ocrData.ocr_error ? apiKey : undefined,
       ocr_error: ocrData.ocr_error || null
     });
   } catch (error: any) {
