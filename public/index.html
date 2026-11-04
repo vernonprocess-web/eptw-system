@@ -159,12 +159,12 @@
     <!-- TAB 2: WORKER REGISTRY & MULTI-CERT OCR -->
     <div id="workerTab" class="tab-content">
       <!-- OCR Upload Card -->
-      <div class="upload-card">
-        <div onclick="document.getElementById('certFileInput').click()">
-          <div class="upload-title">📷 Upload Work Permit, WSQ, or SOC Safety Certificate for Automated OCR</div>
-          <div class="upload-sub">Click or drop image (JPG, PNG) to run Gemini Vision AI & extract certificate details</div>
+      <div class="upload-card" id="certDropzone">
+        <div onclick="document.getElementById('certFileInput').click()" style="cursor: pointer;">
+          <div class="upload-title">📄 📷 Upload Work Permit, WSQ, or Safety Certificates for Automated OCR</div>
+          <div class="upload-sub">Click to browse or drag & drop files (PDF, JPG, PNG) to run Gemini Vision AI & extract certificate details</div>
         </div>
-        <input type="file" id="certFileInput" accept="image/*" style="display: none;" onchange="handleCertUpload(this)">
+        <input type="file" id="certFileInput" accept="image/*,application/pdf,.pdf" style="display: none;" onchange="handleCertUpload(this)">
         
         <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -265,6 +265,21 @@
               <label for="cert_file_url">Certificate File URL (R2 Storage)</label>
               <input type="text" id="cert_file_url" readonly placeholder="Uploaded file URL will appear here after OCR upload">
             </div>
+          </div>
+
+          <!-- Multi-Certificate Detection Preview Banner -->
+          <div id="multiCertPreviewContainer" style="display: none; background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 10px; padding: 14px 18px; margin: 16px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="font-weight: 700; color: #15803d; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+                <span>🎉</span>
+                <span id="multiCertCountText">Detected Multiple Certifications</span>
+              </div>
+              <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 12px; font-weight: 700;">1-Click Auto-Batch Save</span>
+            </div>
+            <div style="font-size: 0.8rem; color: #166534; margin-bottom: 10px;">
+              Gemini Vision AI identified the following certificates on this document. Clicking save will bind all of them to this worker profile automatically:
+            </div>
+            <div id="multiCertList" style="display: flex; flex-direction: column; gap: 6px;"></div>
           </div>
 
           <div class="form-actions">
@@ -1436,6 +1451,7 @@
     const btnCancelWorker = document.getElementById('btnCancelWorker');
     const workerTableBody = document.getElementById('workerTableBody');
     const ocrLoader = document.getElementById('ocrLoader');
+    let currentOcrCertificates = null;
 
     // Populate Target Worker Select Dropdown
     function populateTargetWorkerDropdown(selectedWorkerId = '') {
@@ -1540,6 +1556,55 @@
               if (result.ocr.trade) document.getElementById('trade').value = result.ocr.trade;
               document.getElementById('worker_id').value = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
             }
+
+            // Process Multi-Certificate Array
+            const rawCerts = Array.isArray(result.ocr.certificates) && result.ocr.certificates.length > 0
+              ? result.ocr.certificates
+              : (result.ocr.cert_type ? [{
+                  cert_type: result.ocr.cert_type,
+                  cert_no: result.ocr.cert_no || '',
+                  issuer: result.ocr.issuer || '',
+                  issued_date: result.ocr.issued_date || '',
+                  cert_expiry: result.ocr.cert_expiry || '',
+                  cert_file_url: result.cert_file_url || ''
+                }] : []);
+
+            currentOcrCertificates = rawCerts.map(c => ({
+              cert_type: c.cert_type || 'Certificate',
+              cert_no: c.cert_no || '',
+              issuer: c.issuer || '',
+              issued_date: c.issued_date || '',
+              cert_expiry: c.cert_expiry || '',
+              cert_file_url: result.cert_file_url || ''
+            }));
+
+            const multiContainer = document.getElementById('multiCertPreviewContainer');
+            const multiList = document.getElementById('multiCertList');
+            const multiCountText = document.getElementById('multiCertCountText');
+
+            if (currentOcrCertificates.length > 1 && multiContainer && multiList) {
+              multiCountText.textContent = `Detected ${currentOcrCertificates.length} Distinct Certifications on Document`;
+              multiList.innerHTML = currentOcrCertificates.map((c, idx) => `
+                <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                  <div>
+                    <strong style="color: #0f172a;">${idx + 1}. ${escapeHtml(c.cert_type || 'Certificate')}</strong>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">
+                      ${c.cert_no ? `Ref / Serial: <code>${escapeHtml(c.cert_no)}</code> • ` : ''}
+                      ${c.issuer ? `${escapeHtml(c.issuer)} • ` : ''}
+                      ${c.issued_date ? `Issued: ${escapeHtml(c.issued_date)}` : ''}
+                      ${c.cert_expiry ? ` • Expires: ${escapeHtml(c.cert_expiry)}` : ''}
+                    </div>
+                  </div>
+                  <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; font-weight: 700; padding: 2px 8px; border-radius: 10px;">✓ Auto-Save</span>
+                </div>
+              `).join('');
+              multiContainer.style.display = 'block';
+              btnSubmitWorker.textContent = `💾 Save Worker & All ${currentOcrCertificates.length} Certificates`;
+              showToast(`Gemini Vision detected ${currentOcrCertificates.length} certificates on this document!`, 'success');
+            } else if (multiContainer) {
+              multiContainer.style.display = 'none';
+              btnSubmitWorker.textContent = 'Save Certificate to Worker';
+            }
           }
         } else {
           showToast(`Upload failed: ${result.error}`, 'error');
@@ -1548,9 +1613,28 @@
         showToast(`Upload error: ${err.message}`, 'error');
       } finally {
         ocrLoader.style.display = 'none';
-        input.value = ''; // Reset file input
+        if (input && input.value !== undefined) input.value = ''; // Reset file input
       }
     };
+
+    // Attach Drag-and-Drop Listeners to certDropzone
+    const certDropzone = document.getElementById('certDropzone');
+    if (certDropzone) {
+      certDropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        certDropzone.style.background = '#e0f2fe';
+      });
+      certDropzone.addEventListener('dragleave', () => {
+        certDropzone.style.background = '';
+      });
+      certDropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        certDropzone.style.background = '';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          window.handleCertUpload({ files: e.dataTransfer.files });
+        }
+      });
+    }
 
     // Load Worker Registry Data
     async function loadWorkerData() {
@@ -1867,6 +1951,10 @@
         cert_file_url: document.getElementById('cert_file_url').value.trim()
       };
 
+      if (currentOcrCertificates && currentOcrCertificates.length > 0) {
+        payload.certificates = currentOcrCertificates;
+      }
+
       try {
         let response;
         if (isEditingWorkerProfile && targetId) {
@@ -1893,7 +1981,10 @@
 
         const result = await response.json();
         if (result.success) {
-          showToast(isEditingWorkerProfile ? 'Worker profile updated!' : 'Certificate saved to worker registry!');
+          const successMsg = result.cert_count && result.cert_count > 1
+            ? `🎉 Saved worker profile and all ${result.cert_count} certificates!`
+            : (isEditingWorkerProfile ? 'Worker profile updated!' : 'Certificate saved to worker registry!');
+          showToast(successMsg, 'success');
           resetWorkerForm();
           loadWorkerData();
         } else {
@@ -2061,6 +2152,9 @@
       document.getElementById('worker_id').readOnly = false;
       targetWorkerSelect.value = '';
       isEditingWorkerProfile = false;
+      currentOcrCertificates = null;
+      const multiContainer = document.getElementById('multiCertPreviewContainer');
+      if (multiContainer) multiContainer.style.display = 'none';
       workerFormTitle.querySelector('span').textContent = 'Add Certificate / Register Worker';
       workerEditIndicator.style.display = 'none';
       btnSubmitWorker.textContent = 'Save Certificate to Worker';

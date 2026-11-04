@@ -172,31 +172,45 @@ async function extractWorkerDataWithGemini(
   }
   const base64Data = btoa(binary);
 
-  const promptText = `Analyze this image of a Worker Identification Card, Work Permit, FIN card, NRIC, WSQ Certificate, SOC Safety Certificate, or Training Card in Singapore.
+  const promptText = `Analyze this image or document containing Worker Identification Cards, Work Permits, FIN cards, NRIC, WSQ Certificates, SOC Safety Certificates, or Training Cards in Singapore.
+CRITICAL: This document may contain MULTIPLE cards, certificates, or courses on a single page or across pages for the same worker (e.g. Work Permit, Building Construction Supervisors Safety Course BCSS, Work-At-Height WAHS, Confined Space, Lifting Supervisor).
+Detect and extract ALL individual certificates and cards present on this document.
+
 Extract the following information strictly as valid JSON:
-- cert_type: Official title/type of document (e.g. "Work Permit", "WSQ Supervise Safe Lifting Operation", "SOC Safety Course", "Work at Height Supervisor")
-- cert_no: Certificate, student, or permit registration number (e.g. "LS-MF-COM-306E-1-00072", "0 64780727", "G2884785N")
-- issuer: Issuing academy/institution or ministry (e.g. "Wong Fong Academy", "MOM Singapore", "WSH Council")
-- issued_date: Certificate issue date strictly in YYYY-MM-DD format (e.g. "2023-01-25" if 25/01/2023)
-- cert_expiry: Certificate expiration date strictly in YYYY-MM-DD format (if applicable, otherwise empty string)
-- name: Full name of the worker (e.g. "BABU MD NAIM")
+- name: Full name of the worker (e.g. "SAMIDURAI RAVI", "BABU MD NAIM")
 - ic_no: Singapore NRIC / Identity Card number ONLY (starts with S or T, e.g. "S9876543A"). If document is not an NRIC, return empty string "".
-- wp_no: Singapore Work Permit number ONLY (e.g. "0 64780727"). If document is not a Work Permit, return empty string "".
-- fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G2884785N"). If document is not a FIN card, return empty string "".
-- trade: Sector, job title or trade (e.g. "CONSTRUCTION", "Rigging & Lifting", "Electrician", "Scaffolder")
+- wp_no: Singapore Work Permit number ONLY (e.g. "0 32955878", "0 64780727"). If none, return empty string "".
+- fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G7598230K"). If none, return empty string "".
+- trade: Sector, job title, or trade (e.g. "CONSTRUCTION", "Site Supervisor", "Work-At-Height Supervisor", "Lifting Supervisor", "Electrician")
+- employer: Employer name if stated (e.g. "60 COY PTE. LTD.")
+- certificates: Array of ALL distinct certificates, licenses, work permits, or safety courses detected on the document:
+  [
+    {
+      "cert_type": "Official title/name of the certificate or course (e.g. 'Work Permit', 'Building Construction Supervisors Safety Course', 'Work-At-Height Course for Supervisors', 'WSQ Supervise Safe Lifting Operation')",
+      "cert_no": "Certificate, serial, registration, or permit number (e.g. 'BCSS PR-E-61-05', 'ES-WAHS-1184-0199', '0 32955878')",
+      "issuer": "Issuing academy, institution, ministry, or provider (e.g. 'Ministry of Manpower', 'EVER SAFE CONSULTANTS PTE LTD', 'WSH Council', 'Wong Fong Academy')",
+      "issued_date": "Certificate issue date strictly in YYYY-MM-DD format if visible, otherwise empty string",
+      "cert_expiry": "Certificate expiration date strictly in YYYY-MM-DD format if visible, otherwise empty string"
+    }
+  ]
 
 Return ONLY valid JSON matching this schema:
 {
-  "cert_type": "string",
-  "cert_no": "string",
-  "issuer": "string",
-  "issued_date": "YYYY-MM-DD",
-  "cert_expiry": "YYYY-MM-DD",
   "name": "string",
   "ic_no": "string",
   "wp_no": "string",
   "fin_no": "string",
-  "trade": "string"
+  "trade": "string",
+  "employer": "string",
+  "certificates": [
+    {
+      "cert_type": "string",
+      "cert_no": "string",
+      "issuer": "string",
+      "issued_date": "string",
+      "cert_expiry": "string"
+    }
+  ]
 }`;
 
   const response = await fetch(
@@ -236,12 +250,24 @@ Return ONLY valid JSON matching this schema:
     throw new Error('Gemini API returned empty response');
   }
 
+  let parsed: any;
   try {
-    return JSON.parse(candidate);
+    parsed = JSON.parse(candidate);
   } catch (e) {
     const cleaned = candidate.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   }
+
+  if (Array.isArray(parsed.certificates) && parsed.certificates.length > 0) {
+    const primary = parsed.certificates[0] || {};
+    parsed.cert_type = parsed.cert_type || primary.cert_type || 'Certificate';
+    parsed.cert_no = parsed.cert_no || primary.cert_no || '';
+    parsed.issuer = parsed.issuer || primary.issuer || '';
+    parsed.issued_date = parsed.issued_date || primary.issued_date || '';
+    parsed.cert_expiry = parsed.cert_expiry || primary.cert_expiry || '';
+  }
+
+  return parsed;
 }
 
 // ============================================================================
@@ -638,7 +664,7 @@ app.post('/api/workers/upload', async (c) => {
 
     const certFileUrl = `/api/certs/${key}`;
 
-    let ocrData = {
+    let ocrData: any = {
       cert_type: 'Certificate',
       cert_no: '',
       issuer: '',
@@ -650,6 +676,8 @@ app.post('/api/workers/upload', async (c) => {
       fin_no: '',
       ic_wp_no: '',
       trade: '',
+      employer: '',
+      certificates: []
     };
 
     const apiKey = c.env.GEMINI_API_KEY || c.req.header('x-gemini-api-key');
@@ -672,9 +700,12 @@ app.post('/api/workers/upload', async (c) => {
           fin_no: extracted.fin_no || '',
           ic_wp_no: extracted.ic_no || extracted.wp_no || extracted.fin_no || extracted.ic_wp_no || '',
           trade: extracted.trade || '',
+          employer: extracted.employer || '',
+          certificates: Array.isArray(extracted.certificates) ? extracted.certificates : []
         };
       } catch (ocrErr: any) {
         console.error('Gemini OCR extraction error:', ocrErr);
+        ocrData.ocr_error = ocrErr?.message || String(ocrErr);
       }
     }
 
@@ -682,7 +713,8 @@ app.post('/api/workers/upload', async (c) => {
       success: true,
       cert_file_url: certFileUrl,
       ocr: ocrData,
-      hasKey: !!apiKey
+      hasKey: !!apiKey,
+      ocr_error: ocrData.ocr_error || null
     });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
@@ -762,46 +794,63 @@ app.post('/api/workers', async (c) => {
       }
     }
 
-    let isValid = 1;
-    if (cert_expiry) {
-      const today = new Date().toISOString().split('T')[0];
-      isValid = cert_expiry >= today ? 1 : 0;
-    } else if (cert_valid !== undefined) {
-      isValid = cert_valid ? 1 : 0;
-    }
+    const certsToInsert: any[] = Array.isArray(body.certificates) && body.certificates.length > 0
+      ? body.certificates
+      : [{
+          cert_type: cert_type || 'General Certificate',
+          cert_no: cert_no || null,
+          issuer: issuer || null,
+          issued_date: issued_date || null,
+          cert_expiry: cert_expiry || null,
+          cert_valid: cert_valid,
+          cert_file_url: cert_file_url || ''
+        }];
 
-    const certTypeFinal = cert_type || 'General Certificate';
-    const certResult = await c.env.DB.prepare(
-      `INSERT INTO Worker_Certificates 
-      (worker_id, cert_type, cert_no, issuer, issued_date, cert_expiry, cert_valid, cert_file_url)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        finalWorkerId,
-        certTypeFinal,
-        cert_no || null,
-        issuer || null,
-        issued_date || null,
-        cert_expiry || null,
-        isValid,
-        cert_file_url || ''
+    let lastCertId = 0;
+    const today = new Date().toISOString().split('T')[0];
+
+    for (const cert of certsToInsert) {
+      let isValid = 1;
+      if (cert.cert_expiry) {
+        isValid = cert.cert_expiry >= today ? 1 : 0;
+      } else if (cert.cert_valid !== undefined) {
+        isValid = cert.cert_valid ? 1 : 0;
+      }
+
+      const res = await c.env.DB.prepare(
+        `INSERT INTO Worker_Certificates 
+        (worker_id, cert_type, cert_no, issuer, issued_date, cert_expiry, cert_valid, cert_file_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run();
+        .bind(
+          finalWorkerId,
+          cert.cert_type || 'General Certificate',
+          cert.cert_no || null,
+          cert.issuer || null,
+          cert.issued_date || null,
+          cert.cert_expiry || null,
+          isValid,
+          cert.cert_file_url || cert_file_url || ''
+        )
+        .run();
+      lastCertId = res.meta.last_row_id;
+    }
 
     await logAuditEvent(
       c,
       target_worker_id ? 'UPDATE_WORKER' : 'CREATE_WORKER',
       'Worker_Registry',
       finalWorkerId,
-      `Worker profile ${target_worker_id ? 'updated' : 'registered'}: ${name || 'Worker'} (${trade || 'General'}). Cert: ${certTypeFinal}`
+      `Worker profile ${target_worker_id ? 'updated' : 'registered'}: ${name || 'Worker'} (${trade || 'General'}). Attached ${certsToInsert.length} cert(s).`
     );
 
     return c.json(
       {
         success: true,
-        message: 'Certificate saved successfully',
+        message: `Saved worker profile and ${certsToInsert.length} certificate(s) successfully`,
         worker_id: finalWorkerId,
-        cert_id: certResult.meta.last_row_id,
+        cert_count: certsToInsert.length,
+        cert_id: lastCertId,
       },
       201
     );
