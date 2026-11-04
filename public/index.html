@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=4">
+  <link rel="stylesheet" href="assets/css/theme.css?v=5">
   <script src="assets/js/app.js?v=5" type="module"></script>
 </head>
 <body>
@@ -180,9 +180,21 @@
           </div>
         </div>
 
-        <div id="ocrLoader" class="ocr-loader">
-          <div class="spinner"></div>
-          <span>Analyzing document with Gemini Vision OCR...</span>
+        <!-- In-Card OCR Progress Cockpit (Option 2) -->
+        <div id="ocrProgressCockpit" class="ocr-progress-cockpit">
+          <div class="ocr-progress-header">
+            <div class="ocr-progress-status">
+              <div class="spinner"></div>
+              <span id="ocrStatusMsg">Analyzing document with Gemini Vision AI...</span>
+            </div>
+            <div class="ocr-timer-badge" id="ocrTimerBadge">⏱️ 0s elapsed</div>
+          </div>
+          <div class="ocr-progress-track">
+            <div class="ocr-progress-bar"></div>
+          </div>
+          <div class="ocr-progress-sub" id="ocrStepDetail">
+            Scanning Work Permit, BCSS, WAHS & Safety Certifications • Usually takes 5–8 seconds
+          </div>
         </div>
       </div>
 
@@ -1496,7 +1508,31 @@
       const file = input.files[0];
       if (!file) return;
 
-      ocrLoader.style.display = 'flex';
+      const dropzone = document.getElementById('certDropzone');
+      const cockpit = document.getElementById('ocrProgressCockpit');
+      const timerBadge = document.getElementById('ocrTimerBadge');
+      const stepDetail = document.getElementById('ocrStepDetail');
+
+      let elapsedSeconds = 0;
+      let ocrTimer = null;
+
+      if (cockpit) cockpit.style.display = 'flex';
+      if (dropzone) dropzone.classList.add('scanning');
+      if (timerBadge) timerBadge.textContent = '⏱️ 0s elapsed';
+      if (stepDetail) stepDetail.textContent = 'Scanning Work Permit, BCSS, WAHS & Safety Certifications • Usually takes 5–8 seconds';
+
+      ocrTimer = setInterval(() => {
+        elapsedSeconds++;
+        if (timerBadge) timerBadge.textContent = `⏱️ ${elapsedSeconds}s elapsed`;
+        if (elapsedSeconds === 2 && stepDetail) {
+          stepDetail.textContent = '🔍 Reading text & identifying worker credentials...';
+        } else if (elapsedSeconds === 4 && stepDetail) {
+          stepDetail.textContent = '📋 Parsing multiple certificates, course serials & dates...';
+        } else if (elapsedSeconds >= 7 && stepDetail) {
+          stepDetail.textContent = '✨ Finalizing structured verification data...';
+        }
+      }, 1000);
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -1612,7 +1648,9 @@
       } catch (err) {
         showToast(`Upload error: ${err.message}`, 'error');
       } finally {
-        ocrLoader.style.display = 'none';
+        if (ocrTimer) clearInterval(ocrTimer);
+        if (cockpit) cockpit.style.display = 'none';
+        if (dropzone) dropzone.classList.remove('scanning');
         if (input && input.value !== undefined) input.value = ''; // Reset file input
       }
     };
