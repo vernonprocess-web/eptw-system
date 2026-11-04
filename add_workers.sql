@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS Worker_Registry (
     fin_no TEXT,
     ic_wp_no TEXT,
     trade TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
