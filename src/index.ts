@@ -778,6 +778,16 @@ app.post('/api/workers', async (c) => {
         ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker', finalEmail, finalPhone).run();
       } else {
         finalWorkerId = String(existingWorker.worker_id);
+        // Ensure previously soft-deleted worker is restored and latest profile details updated
+        await c.env.DB.prepare(
+          `UPDATE Worker_Registry 
+           SET deleted_at = NULL,
+               name = COALESCE(NULLIF(?, ''), name),
+               trade = COALESCE(NULLIF(?, ''), trade),
+               email = COALESCE(NULLIF(?, ''), email),
+               phone = COALESCE(NULLIF(?, ''), phone)
+           WHERE worker_id = ?`
+        ).bind(name || '', trade || '', finalEmail, finalPhone, finalWorkerId).run();
       }
     } else {
       if (trade || name || finalIcNo || finalWpNo || finalFinNo || finalEmail || finalPhone) {
