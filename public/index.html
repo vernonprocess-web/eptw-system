@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=6">
-  <script src="assets/js/app.js?v=6" type="module"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=7">
+  <script src="assets/js/app.js?v=7" type="module"></script>
 </head>
 <body>
 
@@ -1035,6 +1035,47 @@
       </div>
     </div>
 
+    <!-- MODAL 3B: EDIT INDIVIDUAL WORKER CERTIFICATE -->
+    <div id="certEditModal" class="modal-backdrop" style="display: none; z-index: 1050;">
+      <div class="modal-card" style="max-width: 520px; max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h3 id="certEditModalTitle">✏️ Edit Certificate Details</h3>
+          <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeCertEditModal()">✕</button>
+        </div>
+        <form id="certEditForm" onsubmit="handleCertEditSubmit(event)">
+          <input type="hidden" id="edit_cert_id" value="">
+          <div class="form-grid" style="grid-template-columns: 1fr; gap: 12px; margin-top: 12px;">
+            <div class="form-group">
+              <label for="edit_cert_type">Certificate Type / Name *</label>
+              <input type="text" id="edit_cert_type" required>
+            </div>
+            <div class="form-group">
+              <label for="edit_cert_no">Certificate / Ref / Student No</label>
+              <input type="text" id="edit_cert_no">
+            </div>
+            <div class="form-group">
+              <label for="edit_cert_issuer">Issuing Provider / Academy</label>
+              <input type="text" id="edit_cert_issuer">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label for="edit_cert_issued_date">Issued Date</label>
+                <input type="date" id="edit_cert_issued_date">
+              </div>
+              <div class="form-group">
+                <label for="edit_cert_expiry">Expiry Date</label>
+                <input type="date" id="edit_cert_expiry">
+              </div>
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top: 20px;">
+            <button type="button" class="btn-secondary" onclick="closeCertEditModal()">Cancel</button>
+            <button type="submit" class="btn-primary" id="btnSaveCertEdit">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- MODAL 4: PERMIT CLOSURE & SITE DE-ISOLATION VERIFICATION -->
     <div id="closePtwModal" class="modal-backdrop" style="display: none;">
       <div class="modal-card" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
@@ -2039,8 +2080,9 @@ Return ONLY valid JSON matching this schema:
                   <td>${escapeHtml(c.cert_expiry || 'N/A')}</td>
                   <td style="text-align: center;">${certStatusBadge}</td>
                   <td style="text-align: center;">${certDocLink}</td>
-                  <td style="text-align: center;">
-                    <button class="btn-action-delete" onclick="deleteCertificate(${c.cert_id})">Delete Cert</button>
+                  <td style="text-align: center; white-space: nowrap;">
+                    <button class="btn-action-edit" onclick="openCertEditModal(${c.cert_id})">Edit</button>
+                    <button class="btn-action-delete" onclick="deleteCertificate(${c.cert_id})">Delete</button>
                   </td>
                 </tr>
               `;
@@ -2205,12 +2247,112 @@ Return ONLY valid JSON matching this schema:
         const result = await response.json();
         if (result.success) {
           showToast('Certificate deleted successfully.');
-          loadWorkerData();
+          await loadWorkerData();
+          const workerModal = document.getElementById('workerViewModal');
+          if (workerModal && workerModal.style.display === 'flex') {
+            const titleEl = document.getElementById('workerViewTitle');
+            if (titleEl) {
+              const m = titleEl.textContent.match(/\((WRK-[0-9]+)\)/);
+              if (m && m[1]) openWorkerDetailModal(m[1]);
+            }
+          }
         } else {
           showToast(`Delete failed: ${result.error}`, 'error');
         }
       } catch (err) {
         showToast(`Network error: ${err.message}`, 'error');
+      }
+    };
+
+    window.openCertEditModal = function(certId) {
+      let foundCert = null;
+      let foundWorker = null;
+      for (const w of workerData) {
+        if (w.certificates) {
+          const c = w.certificates.find(ct => ct.cert_id === certId);
+          if (c) {
+            foundCert = c;
+            foundWorker = w;
+            break;
+          }
+        }
+      }
+
+      if (!foundCert) {
+        showToast('Certificate not found.', 'error');
+        return;
+      }
+
+      document.getElementById('edit_cert_id').value = foundCert.cert_id;
+      document.getElementById('edit_cert_type').value = foundCert.cert_type || '';
+      document.getElementById('edit_cert_no').value = foundCert.cert_no || '';
+      document.getElementById('edit_cert_issuer').value = foundCert.issuer || '';
+      document.getElementById('edit_cert_issued_date').value = foundCert.issued_date || '';
+      document.getElementById('edit_cert_expiry').value = foundCert.cert_expiry || '';
+
+      const modalTitle = document.getElementById('certEditModalTitle');
+      if (modalTitle && foundWorker) {
+        modalTitle.textContent = `✏️ Edit Cert - ${foundWorker.name}`;
+      }
+
+      const modal = document.getElementById('certEditModal');
+      if (modal) modal.style.display = 'flex';
+    };
+
+    window.closeCertEditModal = function() {
+      const modal = document.getElementById('certEditModal');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.handleCertEditSubmit = async function(e) {
+      e.preventDefault();
+      const certId = document.getElementById('edit_cert_id').value;
+      if (!certId) return;
+
+      const btn = document.getElementById('btnSaveCertEdit');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+      }
+
+      const payload = {
+        cert_type: document.getElementById('edit_cert_type').value.trim(),
+        cert_no: document.getElementById('edit_cert_no').value.trim(),
+        issuer: document.getElementById('edit_cert_issuer').value.trim(),
+        issued_date: document.getElementById('edit_cert_issued_date').value,
+        cert_expiry: document.getElementById('edit_cert_expiry').value
+      };
+
+      try {
+        const res = await fetch(`/api/certs/${certId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast('Certificate updated successfully!');
+          closeCertEditModal();
+          await loadWorkerData();
+
+          const workerModal = document.getElementById('workerViewModal');
+          if (workerModal && workerModal.style.display === 'flex') {
+            const titleEl = document.getElementById('workerViewTitle');
+            if (titleEl) {
+              const m = titleEl.textContent.match(/\((WRK-[0-9]+)\)/);
+              if (m && m[1]) openWorkerDetailModal(m[1]);
+            }
+          }
+        } else {
+          showToast(`Update failed: ${result.error}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error: ${err.message}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Save Changes';
+        }
       }
     };
 
@@ -2257,7 +2399,7 @@ Return ONLY valid JSON matching this schema:
 
       let certRowsHTML = '';
       if (sortedCerts.length === 0) {
-        certRowsHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 12px;">No certificates attached to this worker.</td></tr>`;
+        certRowsHTML = `<tr><td colspan="8" style="text-align: center; color: #64748b; padding: 12px;">No certificates attached to this worker.</td></tr>`;
       } else {
         certRowsHTML = sortedCerts.map(c => {
           const certExpired = c.cert_expiry && c.cert_expiry < todayStr;
@@ -2277,6 +2419,10 @@ Return ONLY valid JSON matching this schema:
               <td>${escapeHtml(c.cert_expiry || 'N/A')}</td>
               <td style="text-align: center;">${certStatusBadge}</td>
               <td style="text-align: center;">${docLink}</td>
+              <td style="text-align: center; white-space: nowrap;">
+                <button class="btn-action-edit" onclick="openCertEditModal(${c.cert_id})">Edit</button>
+                <button class="btn-action-delete" onclick="deleteCertificate(${c.cert_id})">Delete</button>
+              </td>
             </tr>
           `;
         }).join('');
@@ -2307,6 +2453,7 @@ Return ONLY valid JSON matching this schema:
               <th>Expiry</th>
               <th style="text-align: center;">Status</th>
               <th style="text-align: center;">Document</th>
+              <th style="text-align: center;">Actions</th>
             </tr>
           </thead>
           <tbody>

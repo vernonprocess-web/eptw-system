@@ -910,6 +910,62 @@ app.put('/api/workers/:id', async (c) => {
   }
 });
 
+// PUT /api/certs/:cert_id - Update an individual certificate's details
+app.put('/api/certs/:cert_id', async (c) => {
+  try {
+    const certId = c.req.param('cert_id');
+    const body = await c.req.json();
+    const {
+      cert_type,
+      cert_no,
+      issuer,
+      issued_date,
+      cert_expiry
+    } = body;
+
+    const issuedVal = issued_date ? String(issued_date).trim() : null;
+    const expiryVal = cert_expiry ? String(cert_expiry).trim() : null;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const certValid = (expiryVal && expiryVal < todayStr) ? 0 : 1;
+
+    const result = await c.env.DB.prepare(
+      `UPDATE Worker_Certificates 
+       SET cert_type = COALESCE(NULLIF(?, ''), cert_type),
+           cert_no = COALESCE(NULLIF(?, ''), cert_no),
+           issuer = COALESCE(NULLIF(?, ''), issuer),
+           issued_date = ?,
+           cert_expiry = ?,
+           cert_valid = ?
+       WHERE cert_id = ?`
+    ).bind(
+      cert_type || '',
+      cert_no || '',
+      issuer || '',
+      issuedVal,
+      expiryVal,
+      certValid,
+      certId
+    ).run();
+
+    if (result.meta.changes === 0) {
+      return c.json({ success: false, error: 'Certificate record not found.' }, 404);
+    }
+
+    await logAuditEvent(
+      c,
+      'UPDATE_CERT',
+      'Worker_Certificates',
+      certId,
+      `Updated certificate ${cert_type || ''} (${cert_no || ''}) dates: issued ${issuedVal || 'N/A'}, expiry ${expiryVal || 'N/A'}`
+    );
+
+    return c.json({ success: true, message: 'Certificate updated successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // DELETE /api/certs/:cert_id - Delete a single certificate
 app.delete('/api/certs/:cert_id', async (c) => {
   try {
