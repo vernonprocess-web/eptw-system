@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=8">
-  <script src="assets/js/app.js?v=8" type="module"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=9">
+  <script src="assets/js/app.js?v=9" type="module"></script>
 </head>
 <body>
 
@@ -327,15 +327,14 @@
             <thead>
               <tr>
                 <th style="width: 40px; text-align: center;">Expand</th>
-                <th style="width: 110px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
-                <th style="width: 160px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Name <span class="sort-icon">⇅</span></th>
-                <th style="width: 110px;" class="sortable" data-sort="ic_no" onclick="handleWorkerSort('ic_no')">NRIC / IC <span class="sort-icon">⇅</span></th>
-                <th style="width: 120px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">Work Permit <span class="sort-icon">⇅</span></th>
-                <th style="width: 110px;" class="sortable" data-sort="fin_no" onclick="handleWorkerSort('fin_no')">FIN No <span class="sort-icon">⇅</span></th>
-                <th style="width: 140px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
-                <th>Certificates</th>
-                <th style="width: 120px; text-align: center;">Overall Status</th>
-                <th style="width: 170px; text-align: center;">Actions</th>
+                <th style="width: 105px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
+                <th style="width: 175px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Full Name <span class="sort-icon">⇅</span></th>
+                <th style="width: 135px; text-align: center;" class="sortable" data-sort="role" onclick="handleWorkerSort('role')">System Role <span class="sort-icon">⇅</span></th>
+                <th style="width: 145px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">ID / Work Permit <span class="sort-icon">⇅</span></th>
+                <th style="width: 135px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
+                <th>Active Certifications</th>
+                <th style="width: 110px; text-align: center;">Overall Status</th>
+                <th style="width: 180px; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody id="workerTableBody">
@@ -1949,6 +1948,7 @@ Return ONLY valid JSON matching this schema:
           (item.wp_no && item.wp_no.toLowerCase().includes(query)) ||
           (item.fin_no && item.fin_no.toLowerCase().includes(query)) ||
           (item.trade && item.trade.toLowerCase().includes(query)) ||
+          (item.role && item.role.toLowerCase().includes(query)) ||
           certNames.includes(query)
         );
       });
@@ -2034,7 +2034,7 @@ Return ONLY valid JSON matching this schema:
       if (!data || data.length === 0) {
         workerTableBody.innerHTML = `
           <tr>
-            <td colspan="10" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
+            <td colspan="9" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
           </tr>
         `;
         return;
@@ -2066,11 +2066,26 @@ Return ONLY valid JSON matching this schema:
 
         let roleBadge = '';
         if (item.role === 'SUPERVISOR') {
-          roleBadge = `<span class="status-badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">🛡️ Supervisor</span>`;
+          roleBadge = `<span class="status-badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">🛡️ Supervisor</span>`;
         } else if (item.role === 'SUPERVISOR_WORKER') {
-          roleBadge = `<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">⚡ Sup + Worker</span>`;
+          roleBadge = `<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">⚡ Sup + Worker</span>`;
         } else {
-          roleBadge = `<span class="status-badge" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">👷 Worker</span>`;
+          roleBadge = `<span class="status-badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">👷 Worker</span>`;
+        }
+
+        // Consolidated Identification cell (WP / FIN / NRIC)
+        let idDetailsHTML = '';
+        if (item.wp_no) {
+          idDetailsHTML += `<div><strong style="color: #0f172a; font-size: 0.75rem;">WP:</strong> <code style="font-size: 0.82rem; font-weight: 600;">${escapeHtml(item.wp_no)}</code></div>`;
+        }
+        if (item.fin_no) {
+          idDetailsHTML += `<div style="font-size: 0.78rem; color: #475569; margin-top: 2px;"><strong>FIN:</strong> <code>${escapeHtml(item.fin_no)}</code></div>`;
+        }
+        if (item.ic_no) {
+          idDetailsHTML += `<div style="font-size: 0.78rem; color: #475569; margin-top: 2px;"><strong>NRIC:</strong> <code>${escapeHtml(item.ic_no)}</code></div>`;
+        }
+        if (!idDetailsHTML) {
+          idDetailsHTML = '<span style="color: #94a3b8; font-style: italic;">No ID on file</span>';
         }
 
         // Main Worker Row (1 row per worker)
@@ -2080,11 +2095,10 @@ Return ONLY valid JSON matching this schema:
               <button class="btn-expand" onclick="toggleWorkerDrawer('${escapeHtml(item.worker_id)}')">${expandIcon}</button>
             </td>
             <td><strong>${escapeHtml(item.worker_id)}</strong></td>
-            <td><strong>${escapeHtml(item.name)}</strong></td>
-            <td><code>${escapeHtml(item.ic_no || '-')}</code></td>
-            <td><code>${escapeHtml(item.wp_no || '-')}</code></td>
-            <td><code>${escapeHtml(item.fin_no || '-')}</code></td>
-            <td>${escapeHtml(item.trade)}<br>${roleBadge}</td>
+            <td><strong style="font-size: 0.95rem; color: #0f172a;">${escapeHtml(item.name)}</strong></td>
+            <td style="text-align: center;">${roleBadge}</td>
+            <td>${idDetailsHTML}</td>
+            <td><strong>${escapeHtml(item.trade)}</strong></td>
             <td>${certNamesText}</td>
             <td style="text-align: center;">${overallStatusHTML}</td>
             <td style="text-align: center;">
@@ -2135,7 +2149,7 @@ Return ONLY valid JSON matching this schema:
 
           rowsHTML += `
             <tr class="drawer-row">
-              <td colspan="10">
+              <td colspan="9">
                 <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
                   📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
                 </div>
