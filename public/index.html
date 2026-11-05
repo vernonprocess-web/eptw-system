@@ -2817,16 +2817,16 @@ Return ONLY valid JSON matching this schema:
 
       body.innerHTML = `
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Worker ID</span> <strong>${escapeHtml(item.worker_id)}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Full Name</span> <strong>${escapeHtml(item.name)}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Trade / Skill</span> <strong>${escapeHtml(item.trade)}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">IC No (NRIC)</span> <code>${escapeHtml(item.ic_no || '-')}</code></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Work Permit (WP)</span> <code>${escapeHtml(item.wp_no || '-')}</code></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">FIN No</span> <code>${escapeHtml(item.fin_no || '-')}</code></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">System Role</span> <strong>${item.role === 'SUPERVISOR' ? '🛡️ Supervisor (Applicant Only)' : (item.role === 'SUPERVISOR_WORKER' ? '⚡ Supervisor + Worker (Dual Role)' : '👷 Worker (Crew Only)')}</strong></div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Email</span> ${escapeHtml(item.email || '-')}</div>
-            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Phone</span> ${escapeHtml(item.phone || '-')}</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Worker ID</span> <strong>${escapeHtml(item.worker_id)}</strong></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Full Name</span> <strong>${escapeHtml(item.name)}</strong></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Trade / Skill</span> <strong>${escapeHtml(item.trade)}</strong></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">IC No (NRIC)</span> <code>${escapeHtml(item.ic_no || '-')}</code></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Work Permit (WP)</span> <code>${escapeHtml(item.wp_no || '-')}</code></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">FIN No</span> <code>${escapeHtml(item.fin_no || '-')}</code></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">System Role</span> <strong>${item.role === 'SUPERVISOR' ? '🛡️ Supervisor (Applicant Only)' : (item.role === 'SUPERVISOR_WORKER' ? '⚡ Supervisor + Worker (Dual Role)' : '👷 Worker (Crew Only)')}</strong></div>
+            <div style="min-width: 0; word-break: break-all; overflow-wrap: anywhere;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Email</span> <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">${escapeHtml(item.email || '-')}</span></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Phone</span> <code style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(item.phone || '-')}</code></div>
           </div>
         </div>
 
