@@ -1048,6 +1048,7 @@ app.get('/api/projects', async (c) => {
       SELECT prj.*,
              COALESCE(pm.name, prj.project_manager) AS project_manager,
              COALESCE(pm.email, prj.pm_email) AS pm_email,
+             COALESCE(pm.phone, prj.pm_phone) AS pm_phone,
              COALESCE(wsho.name, prj.wsho_name) AS wsho_name,
              COALESCE(wsho.email, prj.wsho_email) AS wsho_email,
              COALESCE(wsho.phone, prj.wsho_phone) AS wsho_phone
@@ -1068,7 +1069,7 @@ app.get('/api/projects', async (c) => {
 app.post('/api/projects', async (c) => {
   try {
     const body = await c.req.json();
-    let { project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email } = body;
+    let { project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -1087,8 +1088,8 @@ app.post('/api/projects', async (c) => {
     }
 
     await c.env.DB.prepare(
-      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       project_id,
       project_name,
@@ -1100,7 +1101,8 @@ app.post('/api/projects', async (c) => {
       wsho_name || '',
       wsho_email || '',
       wsho_phone || '',
-      pm_email || ''
+      pm_email || '',
+      pm_phone || ''
     ).run();
 
     await logAuditEvent(c, 'CREATE_PROJECT', 'Project_Directory', project_id, `Created site: ${project_name} (${location})`);
@@ -1120,7 +1122,7 @@ app.put('/api/projects/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email } = body;
+    const { project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -1129,7 +1131,7 @@ app.put('/api/projects/:id', async (c) => {
     const result = await c.env.DB.prepare(
       `UPDATE Project_Directory 
        SET project_name = ?, client_name = ?, location = ?, project_manager = ?, status = ?, start_date = ?,
-           wsho_name = ?, wsho_email = ?, wsho_phone = ?, pm_email = ?
+           wsho_name = ?, wsho_email = ?, wsho_phone = ?, pm_email = ?, pm_phone = ?
        WHERE project_id = ?`
     ).bind(
       project_name,
@@ -1142,6 +1144,7 @@ app.put('/api/projects/:id', async (c) => {
       wsho_email || '',
       wsho_phone || '',
       pm_email || '',
+      pm_phone || '',
       id
     ).run();
 

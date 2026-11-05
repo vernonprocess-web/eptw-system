@@ -498,7 +498,7 @@
                     <option value="">-- Select PM to Auto-Fill Details (or type manually below) --</option>
                   </select>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
                   <div class="form-group" style="margin: 0;">
                     <label for="project_manager_input" style="font-size: 0.8rem; color: #0c4a6e;">Project Manager Name *</label>
                     <input type="text" id="project_manager_input" required placeholder="e.g. Vernon Tan" style="background: #ffffff;">
@@ -506,6 +506,10 @@
                   <div class="form-group" style="margin: 0;">
                     <label for="pm_email_input" style="font-size: 0.8rem; color: #0c4a6e;">PM Email Address *</label>
                     <input type="email" id="pm_email_input" required placeholder="e.g. vernon.tan@company.com" style="background: #ffffff;">
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label for="pm_phone_input" style="font-size: 0.8rem; color: #0c4a6e;">PM Contact / Phone No.</label>
+                    <input type="text" id="pm_phone_input" placeholder="e.g. +65 9876 5432" style="background: #ffffff;">
                   </div>
                 </div>
               </div>
@@ -3141,6 +3145,9 @@ Return ONLY valid JSON matching this schema:
       if (selectedOpt && selectedOpt.dataset.name) {
         document.getElementById('project_manager_input').value = selectedOpt.dataset.name;
         document.getElementById('pm_email_input').value = selectedOpt.dataset.email || '';
+        if (selectedOpt.dataset.phone) {
+          document.getElementById('pm_phone_input').value = selectedOpt.dataset.phone;
+        }
         showToast(`Auto-filled PM details for ${selectedOpt.dataset.name}`);
       }
     };
@@ -3270,9 +3277,11 @@ Return ONLY valid JSON matching this schema:
       projectTableBody.innerHTML = data.map(item => {
         const statusBadge = getProjectStatusBadge(item.status);
         const pmText = item.project_manager || 'TBD';
-        const pmEmailText = item.pm_email ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.pm_email)}</div>` : '';
+        const pmContactText = item.pm_phone || item.pm_email
+          ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.pm_phone ? '☎️ ' + item.pm_phone : '')}${item.pm_phone && item.pm_email ? ' ' : ''}${escapeHtml(item.pm_email || '')}</div>`
+          : '';
         const wshoText = item.wsho_name || 'Unassigned';
-        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone || item.wsho_email)}</div>` : '';
+        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone ? '☎️ ' + item.wsho_phone : '')}${item.wsho_phone && item.wsho_email ? ' ' : ''}${escapeHtml(item.wsho_email || '')}</div>` : '';
 
         return `
           <tr>
@@ -3282,7 +3291,7 @@ Return ONLY valid JSON matching this schema:
             <td>${escapeHtml(item.location)}</td>
             <td>
               <strong>${escapeHtml(pmText)}</strong>
-              ${pmEmailText}
+              ${pmContactText}
             </td>
             <td>
               <strong>${escapeHtml(wshoText)}</strong>
@@ -3311,6 +3320,7 @@ Return ONLY valid JSON matching this schema:
         location: document.getElementById('location_input').value.trim(),
         project_manager: document.getElementById('project_manager_input').value.trim(),
         pm_email: document.getElementById('pm_email_input').value.trim(),
+        pm_phone: document.getElementById('pm_phone_input').value.trim(),
         wsho_name: document.getElementById('wsho_name_input').value.trim(),
         wsho_email: document.getElementById('wsho_email_input').value.trim(),
         wsho_phone: document.getElementById('wsho_phone_input').value.trim(),
@@ -3360,6 +3370,7 @@ Return ONLY valid JSON matching this schema:
       document.getElementById('location_input').value = item.location;
       document.getElementById('project_manager_input').value = item.project_manager || '';
       document.getElementById('pm_email_input').value = item.pm_email || '';
+      document.getElementById('pm_phone_input').value = item.pm_phone || '';
       document.getElementById('wsho_name_input').value = item.wsho_name || '';
       document.getElementById('wsho_email_input').value = item.wsho_email || '';
       document.getElementById('wsho_phone_input').value = item.wsho_phone || '';
