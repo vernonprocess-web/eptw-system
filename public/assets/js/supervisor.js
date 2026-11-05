@@ -205,15 +205,23 @@ async function loadWorkersChecklist() {
         return;
       }
 
-      grid.innerHTML = certifiedWorkers.map(w => `
+      grid.innerHTML = certifiedWorkers.map(w => {
+        const isDual = w.role === 'SUPERVISOR_WORKER';
+        const isPureSup = w.role === 'SUPERVISOR';
+        const roleTag = isDual
+          ? `<span style="background: #ecfdf5; color: #047857; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">⚡ Working Sup</span>`
+          : (isPureSup ? `<span style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">🛡️ Site Sup</span>` : '');
+
+        return `
         <label class="touch-item-card">
-          <input type="checkbox" name="worker_select" value="${w.id}">
+          <input type="checkbox" name="worker_select" value="${w.worker_id || w.id}">
           <div>
-            <strong>${escapeHtml(w.name)} (${escapeHtml(w.fin_no || w.ic_no || 'ID')})</strong>
+            <strong>${escapeHtml(w.name)} (${escapeHtml(w.fin_no || w.wp_no || w.ic_no || 'ID')})</strong>${roleTag}
             <div style="font-size: 0.72rem; color: #38bdf8;">Trade: ${escapeHtml(w.trade || 'General')}</div>
           </div>
         </label>
-      `).join('');
+        `;
+      }).join('');
     }
   } catch (err) {
     console.error('Failed to load workers checklist:', err);

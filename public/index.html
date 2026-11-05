@@ -7,8 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=7">
-  <script src="assets/js/app.js?v=7" type="module"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=8">
+  <script src="assets/js/app.js?v=8" type="module"></script>
 </head>
 <body>
 
@@ -245,6 +245,20 @@
             <div class="form-group">
               <label for="worker_phone">Contact / Phone No.</label>
               <input type="text" id="worker_phone" placeholder="e.g. +65 9123 4567">
+            </div>
+
+            <div class="form-group" style="grid-column: span 2; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px;">
+              <label for="worker_role" style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: block;">
+                🎯 Worker System Role & Portal Authorization *
+              </label>
+              <select id="worker_role" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #94a3b8; background: #ffffff; font-weight: 600; color: #0f172a; font-size: 0.95rem;">
+                <option value="WORKER">👷 Worker (Field Crew Only — Briefed under TBMs, cannot apply for ePTWs)</option>
+                <option value="SUPERVISOR">🛡️ Supervisor (Site Supervisor Only — Can apply & sign ePTWs in mobile portal)</option>
+                <option value="SUPERVISOR_WORKER">⚡ Supervisor + Worker (Dual Role — Can apply for ePTWs AND be selected on active crew)</option>
+              </select>
+              <small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 6px;">
+                💡 <strong>Role Guide:</strong> "Supervisor + Worker" gives access to the Mobile Supervisor Portal to apply for permits AND allows inclusion in the active work crew.
+              </small>
             </div>
 
             <!-- Certificate Details -->
@@ -1568,6 +1582,9 @@ Extract the following information strictly as valid JSON:
 - fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G8806788L"). If none, return empty string "".
 - trade: Sector, job title, or trade (e.g. "CONSTRUCTION", "Work-At-Height Supervisor", "Lifting Supervisor")
 - employer: Employer name if stated (e.g. "SOLARGY PTE. LTD.")
+- trade: Sector, job title, or trade
+- employer: Employer name if stated
+- suggested_role: "SUPERVISOR_WORKER" if document contains supervisor qualifications (e.g. BCSS, Building Construction Supervisors, Work at Height for Supervisors WAHS, Lifting Supervisor, Safety Supervisor) or job title is Supervisor; otherwise "WORKER"
 - certificates: Array of ALL distinct certificates, licenses, work permits, or safety courses detected on the document:
   [
     {
@@ -1587,6 +1604,7 @@ Return ONLY valid JSON matching this schema:
   "fin_no": "string",
   "trade": "string",
   "employer": "string",
+  "suggested_role": "WORKER | SUPERVISOR | SUPERVISOR_WORKER",
   "certificates": [
     {
       "cert_type": "string",
@@ -1647,6 +1665,7 @@ Return ONLY valid JSON matching this schema:
         fin_no: parsed.fin_no || '',
         trade: parsed.trade || '',
         employer: parsed.employer || '',
+        suggested_role: parsed.suggested_role || '',
         cert_type: primary.cert_type || 'Certificate',
         cert_no: primary.cert_no || '',
         issuer: primary.issuer || '',
@@ -1751,6 +1770,7 @@ Return ONLY valid JSON matching this schema:
               (extractedName && w.name && w.name.toLowerCase().includes(extractedName))
             );
 
+            const roleEl = document.getElementById('worker_role');
             if (matchedWorker) {
               targetWorkerSelect.value = matchedWorker.worker_id;
               document.getElementById('worker_id').value = matchedWorker.worker_id;
@@ -1759,6 +1779,7 @@ Return ONLY valid JSON matching this schema:
               document.getElementById('wp_no').value = matchedWorker.wp_no || '';
               document.getElementById('fin_no').value = matchedWorker.fin_no || '';
               document.getElementById('trade').value = matchedWorker.trade;
+              if (roleEl) roleEl.value = matchedWorker.role || 'WORKER';
               showToast(`Matched existing worker: ${matchedWorker.name} (${matchedWorker.worker_id})`);
             } else {
               targetWorkerSelect.value = '';
@@ -1768,6 +1789,20 @@ Return ONLY valid JSON matching this schema:
               if (ocr.fin_no) document.getElementById('fin_no').value = ocr.fin_no;
               if (ocr.trade) document.getElementById('trade').value = ocr.trade;
               document.getElementById('worker_id').value = `WRK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+              if (roleEl) {
+                if (ocr.suggested_role) {
+                  roleEl.value = ocr.suggested_role;
+                } else {
+                  const tradeUpper = (ocr.trade || '').toUpperCase();
+                  const allCertsUpper = (ocr.certificates || []).map(c => (c.cert_type || '').toUpperCase()).join(' ') + ' ' + (ocr.cert_type || '').toUpperCase();
+                  if (tradeUpper.includes('SUPERVISOR') || allCertsUpper.includes('SUPERVISOR') || allCertsUpper.includes('BCSS') || allCertsUpper.includes('WAHS')) {
+                    roleEl.value = 'SUPERVISOR_WORKER';
+                  } else {
+                    roleEl.value = 'WORKER';
+                  }
+                }
+              }
             }
 
             // Process Multi-Certificate Array
@@ -2029,6 +2064,15 @@ Return ONLY valid JSON matching this schema:
 
         const expandIcon = isExpanded ? '▼' : '►';
 
+        let roleBadge = '';
+        if (item.role === 'SUPERVISOR') {
+          roleBadge = `<span class="status-badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">🛡️ Supervisor</span>`;
+        } else if (item.role === 'SUPERVISOR_WORKER') {
+          roleBadge = `<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">⚡ Sup + Worker</span>`;
+        } else {
+          roleBadge = `<span class="status-badge" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">👷 Worker</span>`;
+        }
+
         // Main Worker Row (1 row per worker)
         rowsHTML += `
           <tr class="${rowClass}">
@@ -2040,7 +2084,7 @@ Return ONLY valid JSON matching this schema:
             <td><code>${escapeHtml(item.ic_no || '-')}</code></td>
             <td><code>${escapeHtml(item.wp_no || '-')}</code></td>
             <td><code>${escapeHtml(item.fin_no || '-')}</code></td>
-            <td>${escapeHtml(item.trade)}</td>
+            <td>${escapeHtml(item.trade)}<br>${roleBadge}</td>
             <td>${certNamesText}</td>
             <td style="text-align: center;">${overallStatusHTML}</td>
             <td style="text-align: center;">
@@ -2159,6 +2203,7 @@ Return ONLY valid JSON matching this schema:
         wp_no: document.getElementById('wp_no').value.trim(),
         fin_no: document.getElementById('fin_no').value.trim(),
         trade: document.getElementById('trade').value.trim(),
+        role: document.getElementById('worker_role')?.value || 'WORKER',
         email: emailEl ? emailEl.value.trim() : '',
         phone: phoneEl ? phoneEl.value.trim() : '',
         cert_type: document.getElementById('cert_type').value.trim(),
@@ -2185,6 +2230,7 @@ Return ONLY valid JSON matching this schema:
               wp_no: payload.wp_no,
               fin_no: payload.fin_no,
               trade: payload.trade,
+              role: payload.role,
               email: payload.email,
               phone: payload.phone
             })
@@ -2230,6 +2276,9 @@ Return ONLY valid JSON matching this schema:
       const phoneEl = document.getElementById('worker_phone');
       if (emailEl) emailEl.value = item.email || '';
       if (phoneEl) phoneEl.value = item.phone || '';
+
+      const roleEl = document.getElementById('worker_role');
+      if (roleEl) roleEl.value = item.role || 'WORKER';
 
       isEditingWorkerProfile = true;
       workerFormTitle.querySelector('span').textContent = 'Edit Worker Profile';
@@ -2437,6 +2486,7 @@ Return ONLY valid JSON matching this schema:
             <div><span style="color: #64748b; font-size: 0.8rem; display: block;">IC No (NRIC)</span> <code>${escapeHtml(item.ic_no || '-')}</code></div>
             <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Work Permit (WP)</span> <code>${escapeHtml(item.wp_no || '-')}</code></div>
             <div><span style="color: #64748b; font-size: 0.8rem; display: block;">FIN No</span> <code>${escapeHtml(item.fin_no || '-')}</code></div>
+            <div><span style="color: #64748b; font-size: 0.8rem; display: block;">System Role</span> <strong>${item.role === 'SUPERVISOR' ? '🛡️ Supervisor (Applicant Only)' : (item.role === 'SUPERVISOR_WORKER' ? '⚡ Supervisor + Worker (Dual Role)' : '👷 Worker (Crew Only)')}</strong></div>
             <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Email</span> ${escapeHtml(item.email || '-')}</div>
             <div><span style="color: #64748b; font-size: 0.8rem; display: block;">Phone</span> ${escapeHtml(item.phone || '-')}</div>
           </div>
@@ -2474,6 +2524,8 @@ Return ONLY valid JSON matching this schema:
       workerForm.reset();
       document.getElementById('worker_id').readOnly = false;
       targetWorkerSelect.value = '';
+      const roleEl = document.getElementById('worker_role');
+      if (roleEl) roleEl.value = 'WORKER';
       isEditingWorkerProfile = false;
       currentOcrCertificates = null;
       const multiContainer = document.getElementById('multiCertPreviewContainer');

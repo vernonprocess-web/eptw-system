@@ -183,6 +183,7 @@ Extract the following information strictly as valid JSON:
 - fin_no: Singapore FIN (Foreign Identification Number) ONLY (starts with F, G, or M, e.g. "G7598230K"). If none, return empty string "".
 - trade: Sector, job title, or trade (e.g. "CONSTRUCTION", "Site Supervisor", "Work-At-Height Supervisor", "Lifting Supervisor", "Electrician")
 - employer: Employer name if stated (e.g. "60 COY PTE. LTD.")
+- suggested_role: "SUPERVISOR_WORKER" if document contains supervisor qualifications (e.g. BCSS, Building Construction Supervisors, Work at Height for Supervisors WAHS, Lifting Supervisor, Safety Supervisor) or job title is Supervisor; otherwise "WORKER"
 - certificates: Array of ALL distinct certificates, licenses, work permits, or safety courses detected on the document:
   [
     {
@@ -202,6 +203,7 @@ Return ONLY valid JSON matching this schema:
   "fin_no": "string",
   "trade": "string",
   "employer": "string",
+  "suggested_role": "WORKER | SUPERVISOR | SUPERVISOR_WORKER",
   "certificates": [
     {
       "cert_type": "string",
@@ -701,6 +703,7 @@ app.post('/api/workers/upload', async (c) => {
           ic_wp_no: extracted.ic_no || extracted.wp_no || extracted.fin_no || extracted.ic_wp_no || '',
           trade: extracted.trade || '',
           employer: extracted.employer || '',
+          suggested_role: extracted.suggested_role || (extracted.trade && extracted.trade.toUpperCase().includes('SUPERVISOR') ? 'SUPERVISOR_WORKER' : 'WORKER'),
           certificates: Array.isArray(extracted.certificates) ? extracted.certificates : []
         };
       } catch (ocrErr: any) {
@@ -735,6 +738,7 @@ app.post('/api/workers', async (c) => {
       fin_no,
       ic_wp_no,
       trade,
+      role,
       email,
       phone,
       cert_type,
@@ -753,6 +757,7 @@ app.post('/api/workers', async (c) => {
     const combinedIcWp = ic_wp_no || finalIcNo || finalWpNo || finalFinNo || '';
     const finalEmail = email || '';
     const finalPhone = phone || '';
+    const finalRole = role || 'WORKER';
 
     if (!target_worker_id) {
       if (!name) {
@@ -773,9 +778,9 @@ app.post('/api/workers', async (c) => {
 
       if (!existingWorker) {
         await c.env.DB.prepare(
-          `INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, ic_wp_no, trade, email, phone)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker', finalEmail, finalPhone).run();
+          `INSERT INTO Worker_Registry (worker_id, name, ic_no, wp_no, fin_no, ic_wp_no, trade, role, email, phone)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(finalWorkerId, name, finalIcNo, finalWpNo, finalFinNo, combinedIcWp, trade || 'General Worker', finalRole, finalEmail, finalPhone).run();
       } else {
         finalWorkerId = String(existingWorker.worker_id);
         // Ensure previously soft-deleted worker is restored and latest profile details updated
@@ -784,13 +789,14 @@ app.post('/api/workers', async (c) => {
            SET deleted_at = NULL,
                name = COALESCE(NULLIF(?, ''), name),
                trade = COALESCE(NULLIF(?, ''), trade),
+               role = COALESCE(NULLIF(?, ''), role),
                email = COALESCE(NULLIF(?, ''), email),
                phone = COALESCE(NULLIF(?, ''), phone)
            WHERE worker_id = ?`
-        ).bind(name || '', trade || '', finalEmail, finalPhone, finalWorkerId).run();
+        ).bind(name || '', trade || '', finalRole, finalEmail, finalPhone, finalWorkerId).run();
       }
     } else {
-      if (trade || name || finalIcNo || finalWpNo || finalFinNo || finalEmail || finalPhone) {
+      if (trade || name || finalIcNo || finalWpNo || finalFinNo || finalEmail || finalPhone || role) {
         await c.env.DB.prepare(
           `UPDATE Worker_Registry 
            SET name = COALESCE(NULLIF(?, ''), name),
@@ -798,10 +804,11 @@ app.post('/api/workers', async (c) => {
                wp_no = COALESCE(NULLIF(?, ''), wp_no),
                fin_no = COALESCE(NULLIF(?, ''), fin_no),
                trade = COALESCE(NULLIF(?, ''), trade),
+               role = COALESCE(NULLIF(?, ''), role),
                email = COALESCE(NULLIF(?, ''), email),
                phone = COALESCE(NULLIF(?, ''), phone)
            WHERE worker_id = ?`
-        ).bind(name || '', finalIcNo, finalWpNo, finalFinNo, trade || '', finalEmail, finalPhone, target_worker_id).run();
+        ).bind(name || '', finalIcNo, finalWpNo, finalFinNo, trade || '', finalRole, finalEmail, finalPhone, target_worker_id).run();
       }
     }
 
@@ -875,7 +882,7 @@ app.put('/api/workers/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { name, ic_no, wp_no, fin_no, trade, email, phone } = body;
+    const { name, ic_no, wp_no, fin_no, trade, role, email, phone } = body;
 
     if (!name || !trade) {
       return c.json(
@@ -886,10 +893,10 @@ app.put('/api/workers/:id', async (c) => {
 
     const result = await c.env.DB.prepare(
       `UPDATE Worker_Registry 
-       SET name = ?, ic_no = ?, wp_no = ?, fin_no = ?, trade = ?, email = ?, phone = ?
+       SET name = ?, ic_no = ?, wp_no = ?, fin_no = ?, trade = ?, role = COALESCE(NULLIF(?, ''), role), email = ?, phone = ?
        WHERE worker_id = ?`
     )
-      .bind(name, ic_no || '', wp_no || '', fin_no || '', trade, email || '', phone || '', id)
+      .bind(name, ic_no || '', wp_no || '', fin_no || '', trade, role || '', email || '', phone || '', id)
       .run();
 
     if (result.meta.changes === 0) {

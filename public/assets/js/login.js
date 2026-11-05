@@ -45,6 +45,44 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePreview();
   }
 
+  // Dynamically load registered Site Supervisors & Working Supervisors from Worker Registry
+  async function loadRegisteredSupervisors() {
+    try {
+      const res = await fetch('/api/workers');
+      const result = await res.json();
+      if (result.success && Array.isArray(result.data)) {
+        const supervisors = result.data.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
+        if (supervisors.length > 0 && select) {
+          const group = document.createElement('optgroup');
+          group.label = "🛡️ Verified Site Supervisors (From Worker Registry)";
+          supervisors.forEach(s => {
+            const opt = document.createElement('option');
+            const email = s.email || `${(s.name || 'supervisor').toLowerCase().replace(/[^a-z0-9]/g, '.')}@site.sg`;
+            opt.value = `${email}|${s.name}|SITE_SUPERVISOR`;
+            const roleTitle = s.role === 'SUPERVISOR_WORKER' ? 'Working Supervisor (Dual Role)' : 'Site Supervisor';
+            opt.textContent = `${s.name} — ${roleTitle} (${s.fin_no || s.wp_no || s.worker_id})`;
+            group.appendChild(opt);
+          });
+          select.insertBefore(group, select.firstChild);
+
+          if (existingEmail) {
+            for (let i = 0; i < select.options.length; i++) {
+              if (select.options[i].value.startsWith(existingEmail)) {
+                select.selectedIndex = i;
+                break;
+              }
+            }
+          }
+          updatePreview();
+        }
+      }
+    } catch (err) {
+      console.warn('[LoginGateway] Could not fetch dynamic supervisors:', err);
+    }
+  }
+
+  loadRegisteredSupervisors();
+
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
