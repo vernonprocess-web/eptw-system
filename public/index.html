@@ -393,90 +393,125 @@
           </h2>
           <form id="projectForm">
             <input type="hidden" id="editingProjectId" value="">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="project_id_input">Project ID (Optional)</label>
-                <input type="text" id="project_id_input" placeholder="e.g. PRJ-004 (Auto-generated if blank)">
+
+            <!-- SECTION 1: 🏗️ Project Profile, Location & Schedule -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <span>🏗️</span> <span>Project Profile, Location & Schedule</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+                <div class="form-group">
+                  <label for="project_id_input">Project ID (Optional)</label>
+                  <input type="text" id="project_id_input" placeholder="e.g. PRJ-004 (Auto-generated if blank)">
+                </div>
+
+                <div class="form-group">
+                  <label for="project_name_input">Project Name *</label>
+                  <input type="text" id="project_name_input" required placeholder="e.g. Jurong Island Solar PV Installation">
+                </div>
+
+                <div class="form-group">
+                  <label for="client_name_input">Client Name</label>
+                  <input type="text" id="client_name_input" placeholder="e.g. Sembcorp Industries">
+                </div>
+
+                <div class="form-group">
+                  <label for="location_input">Location / Address *</label>
+                  <input type="text" id="location_input" required placeholder="e.g. 10 Sakra Road, Jurong Island">
+                </div>
+
+                <div class="form-group">
+                  <label for="start_date_input">Project Start Date</label>
+                  <input type="date" id="start_date_input">
+                </div>
+
+                <div class="form-group">
+                  <label for="project_status_input">Project Status</label>
+                  <select id="project_status_input">
+                    <option value="Active" selected>Active 🟢</option>
+                    <option value="Upcoming">Upcoming 🟡</option>
+                    <option value="Completed">Completed ⚪</option>
+                    <option value="On Hold">On Hold 🔴</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: 👥 Key Site Personnel & Statutory Compliance Roles -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+              <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                <span>👥</span> <span>Key Site Personnel & Statutory Compliance Roles</span>
               </div>
 
-              <div class="form-group">
-                <label for="project_name_input">Project Name *</label>
-                <input type="text" id="project_name_input" required placeholder="e.g. Jurong Island Solar PV Installation">
-              </div>
-
-              <div class="form-group">
-                <label for="client_name_input">Client Name</label>
-                <input type="text" id="client_name_input" placeholder="e.g. Sembcorp Industries">
-              </div>
-
-              <div class="form-group">
-                <label for="location_input">Location / Address *</label>
-                <input type="text" id="location_input" required placeholder="e.g. 10 Sakra Road, Jurong Island">
-              </div>
-
-              <div class="form-group" style="grid-column: span 2; background: #f0f9ff; padding: 12px; border-radius: 8px; border: 1px solid #bae6fd;">
-                <label for="pm_select_input" style="color: #0369a1; font-weight: 700;">👤 Select Registered Project Manager (PM)</label>
-                <select id="pm_select_input" onchange="handlePmDropdownChange(this)">
-                  <option value="">-- Select PM to Auto-Fill Details (or type manually below) --</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="project_manager_input">Project Manager Name *</label>
-                <input type="text" id="project_manager_input" required placeholder="e.g. Vernon Tan">
-              </div>
-
-              <div class="form-group">
-                <label for="pm_email_input">PM Email Address *</label>
-                <input type="email" id="pm_email_input" required placeholder="e.g. vernon.tan@company.com">
-              </div>
-
-              <div class="form-group" style="grid-column: span 2; background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
-                <label for="wsho_select_input" style="color: #15803d; font-weight: 700;">🛡️ Select Designated WSHO / Safety Assessor</label>
-                <select id="wsho_select_input" onchange="handleWshoDropdownChange(this)">
-                  <option value="">-- Select WSHO to Auto-Fill Details (or type manually below) --</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="wsho_name_input">Designated WSHO / Safety Officer</label>
-                <input type="text" id="wsho_name_input" placeholder="e.g. Alex Tan (WSHO)">
-              </div>
-
-              <div class="form-group">
-                <label for="wsho_email_input">WSHO Email Address</label>
-                <input type="email" id="wsho_email_input" placeholder="e.g. alex.tan@safety-wsh.sg">
-              </div>
-
-              <div class="form-group">
-                <label for="wsho_phone_input">WSHO Contact / Phone No.</label>
-                <input type="text" id="wsho_phone_input" placeholder="e.g. +65 9123 4567">
-              </div>
-
-              <div class="form-group" style="grid-column: span 2; background: #fff7ed; padding: 12px; border-radius: 8px; border: 1px solid #fed7aa;">
-                <label for="supervisor_select_input" style="color: #c2410c; font-weight: 700;">👷 Select Site Supervisor (From Worker Registry)</label>
-                <select id="supervisor_select_input" onchange="handleSupervisorDropdownChange(this)">
+              <!-- Role 1: Site Supervisor (Permit Applicant) -->
+              <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                  <label for="supervisor_select_input" style="color: #c2410c; font-weight: 700; margin: 0; font-size: 0.9rem;">
+                    ⚡ 1. Designated Site Supervisor <span style="font-size: 0.78rem; font-weight: 500; color: #9a3412;">(Permit Applicant)</span>
+                  </label>
+                  <span style="font-size: 0.75rem; background: #ffedd5; color: #c2410c; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Worker Registry Verified</span>
+                </div>
+                <select id="supervisor_select_input" onchange="handleSupervisorDropdownChange(this)" style="width: 100%; background: #ffffff;">
                   <option value="">-- Select Site Supervisor --</option>
                 </select>
               </div>
 
-              <div class="form-group">
-                <label for="project_status_input">Status</label>
-                <select id="project_status_input">
-                  <option value="Active" selected>Active 🟢</option>
-                  <option value="Upcoming">Upcoming 🟡</option>
-                  <option value="Completed">Completed ⚪</option>
-                  <option value="On Hold">On Hold 🔴</option>
-                </select>
+              <!-- Role 2: Designated WSHO / Safety Officer (Permit Vetting) -->
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                  <label for="wsho_select_input" style="color: #15803d; font-weight: 700; margin: 0; font-size: 0.9rem;">
+                    🛡️ 2. Designated WSHO / Safety Assessor <span style="font-size: 0.78rem; font-weight: 500; color: #166534;">(Safety Vetting Authority)</span>
+                  </label>
+                  <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-weight: 600;">WSH Officer List</span>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <select id="wsho_select_input" onchange="handleWshoDropdownChange(this)" style="width: 100%; background: #ffffff;">
+                    <option value="">-- Select WSHO to Auto-Fill Details (or type manually below) --</option>
+                  </select>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label for="wsho_name_input" style="font-size: 0.8rem; color: #14532d;">WSHO / Safety Officer Name</label>
+                    <input type="text" id="wsho_name_input" placeholder="e.g. Alex Tan (WSHO)" style="background: #ffffff;">
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label for="wsho_email_input" style="font-size: 0.8rem; color: #14532d;">WSHO Email Address</label>
+                    <input type="email" id="wsho_email_input" placeholder="e.g. alex.tan@safety-wsh.sg" style="background: #ffffff;">
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label for="wsho_phone_input" style="font-size: 0.8rem; color: #14532d;">WSHO Contact / Phone No.</label>
+                    <input type="text" id="wsho_phone_input" placeholder="e.g. +65 9123 4567" style="background: #ffffff;">
+                  </div>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label for="start_date_input">Start Date</label>
-                <input type="date" id="start_date_input">
+              <!-- Role 3: Project Manager (Permit Approving Authority) -->
+              <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 14px 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                  <label for="pm_select_input" style="color: #0369a1; font-weight: 700; margin: 0; font-size: 0.9rem;">
+                    👔 3. Project Manager (PM) <span style="font-size: 0.78rem; font-weight: 500; color: #075985;">(MOM Permit Approving Authority)</span>
+                  </label>
+                  <span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;">System Users</span>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <select id="pm_select_input" onchange="handlePmDropdownChange(this)" style="width: 100%; background: #ffffff;">
+                    <option value="">-- Select PM to Auto-Fill Details (or type manually below) --</option>
+                  </select>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label for="project_manager_input" style="font-size: 0.8rem; color: #0c4a6e;">Project Manager Name *</label>
+                    <input type="text" id="project_manager_input" required placeholder="e.g. Vernon Tan" style="background: #ffffff;">
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label for="pm_email_input" style="font-size: 0.8rem; color: #0c4a6e;">PM Email Address *</label>
+                    <input type="email" id="pm_email_input" required placeholder="e.g. vernon.tan@company.com" style="background: #ffffff;">
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="form-actions">
+            <div class="form-actions" style="margin-top: 10px;">
               <button type="button" id="btnCancelProject" class="btn-secondary" style="display: none;">Cancel Edit</button>
               <button type="submit" id="btnSubmitProject" class="btn-primary">Register Project</button>
             </div>
