@@ -2502,34 +2502,6 @@ Return ONLY valid JSON matching this schema:
       workerTableBody.innerHTML = rowsHTML;
       updateSelectionUI();
     }
-                <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
-                  📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
-                </div>
-                <table class="drawer-table">
-                  <thead>
-                    <tr>
-                      <th>Certificate Name / Type</th>
-                      <th>Cert / Ref No</th>
-                      <th>Issuer</th>
-                      <th>Issued Date</th>
-                      <th>Expiry Date</th>
-                      <th style="text-align: center;">Status</th>
-                      <th style="text-align: center;">Document</th>
-                      <th style="text-align: center;">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${drawerCertsHTML}
-                  </tbody>
-                </table>
-              </td>
-            </tr>
-          `;
-        }
-      });
-
-      workerTableBody.innerHTML = rowsHTML;
-    }
 
     // Pre-fill form to add certificate to specific worker
     window.prepareAddCert = function(workerId) {
