@@ -589,14 +589,16 @@ tr.drawer-row td {
 
 .action-btn-group {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
   white-space: nowrap;
 }
 
 .btn-action-edit {
   background-color: #e0e7ff;
   color: #3730a3;
-  padding: 6px 10px;
+  padding: 4px 8px;
   font-size: 0.75rem;
 }
 
@@ -607,7 +609,7 @@ tr.drawer-row td {
 .btn-action-delete {
   background-color: #fee2e2;
   color: #991b1b;
-  padding: 6px 10px;
+  padding: 4px 8px;
   font-size: 0.75rem;
 }
 

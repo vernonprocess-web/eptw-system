@@ -7,9 +7,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=11">
+  <link rel="stylesheet" href="assets/css/theme.css?v=12">
   <script src="assets/js/jszip.min.js"></script>
-  <script src="assets/js/app.js?v=11" type="module"></script>
+  <script src="assets/js/app.js?v=12" type="module"></script>
 </head>
 <body>
 
@@ -359,18 +359,18 @@
           <table id="workerTable">
             <thead>
               <tr>
-                <th style="width: 35px; text-align: center;">
+                <th style="width: 32px; text-align: center;">
                   <input type="checkbox" id="masterWorkerCheckbox" title="Select / Deselect All Visible Workers" onchange="toggleSelectAllWorkers(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
                 </th>
-                <th style="width: 35px; text-align: center;">Expand</th>
-                <th style="width: 105px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
-                <th style="width: 175px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Full Name <span class="sort-icon">⇅</span></th>
-                <th style="width: 135px; text-align: center;" class="sortable" data-sort="role" onclick="handleWorkerSort('role')">System Role <span class="sort-icon">⇅</span></th>
-                <th style="width: 145px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">ID / Work Permit <span class="sort-icon">⇅</span></th>
-                <th style="width: 135px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
-                <th>Active Certifications</th>
-                <th style="width: 110px; text-align: center;">Overall Status</th>
-                <th style="width: 180px; text-align: center;">Actions</th>
+                <th style="width: 32px; text-align: center;">Expand</th>
+                <th style="width: 85px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
+                <th style="width: 140px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Full Name <span class="sort-icon">⇅</span></th>
+                <th style="width: 110px; text-align: center;" class="sortable" data-sort="role" onclick="handleWorkerSort('role')">System Role <span class="sort-icon">⇅</span></th>
+                <th style="width: 115px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">ID / Work Permit <span class="sort-icon">⇅</span></th>
+                <th style="width: 95px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
+                <th style="min-width: 320px; width: 35%;">Active Certifications</th>
+                <th style="width: 85px; text-align: center;">Overall Status</th>
+                <th style="width: 215px; min-width: 215px; text-align: center;">Actions</th>
               </tr>
             </thead>
             <tbody id="workerTableBody">
@@ -2424,7 +2424,7 @@ Return ONLY valid JSON matching this schema:
             <td><strong>${escapeHtml(item.trade)}</strong></td>
             <td>${certNamesText}</td>
             <td style="text-align: center;">${overallStatusHTML}</td>
-            <td style="text-align: center;">
+            <td style="text-align: center; white-space: nowrap;">
               <div class="action-btn-group">
                 <button class="btn-action-view" onclick="openWorkerDetailModal('${escapeHtml(item.worker_id)}')">👤 Details</button>
                 <button class="btn-action-view" onclick="prepareAddCert('${escapeHtml(item.worker_id)}')">+ Add Cert</button>
