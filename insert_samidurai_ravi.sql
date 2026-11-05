@@ -7,7 +7,7 @@ VALUES (
     '0 32955878',
     'G7598230K',
     'G7598230K',
-    'CONSTRUCTION (Supervisor)'
+    'CONSTRUCTION'
 );
 
 -- Insert Certificate 1: MOM Work Permit & Visit Pass
