@@ -3078,15 +3078,26 @@ Return ONLY valid JSON matching this schema:
 
       if (supervisorSelect) {
         supervisorSelect.innerHTML = '<option value="">-- Select Site Supervisor --</option>';
-        (workerData || []).forEach(w => {
+        const supervisors = (workerData || []).filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
+        if (supervisors.length === 0) {
           const opt = document.createElement('option');
-          opt.value = w.worker_id;
-          opt.textContent = `👷 ${w.name} [${w.trade}] ${w.phone ? '☎️ ' + w.phone : ''} ${w.email ? '✉️ ' + w.email : ''}`;
-          opt.dataset.name = w.name;
-          opt.dataset.email = w.email || '';
-          opt.dataset.phone = w.phone || '';
+          opt.value = '';
+          opt.textContent = '-- No Supervisors Registered in Worker Registry --';
+          opt.disabled = true;
           supervisorSelect.appendChild(opt);
-        });
+        } else {
+          supervisors.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w.worker_id;
+            const roleTag = w.role === 'SUPERVISOR' ? '🛡️ [Site Supervisor]' : '⚡ [Working Supervisor]';
+            const contactInfo = [w.phone ? '☎️ ' + w.phone : '', w.email ? '✉️ ' + w.email : ''].filter(Boolean).join(' ');
+            opt.textContent = `${roleTag} ${w.name} (${w.trade || 'General'})${contactInfo ? ' - ' + contactInfo : ''}`;
+            opt.dataset.name = w.name;
+            opt.dataset.email = w.email || '';
+            opt.dataset.phone = w.phone || '';
+            supervisorSelect.appendChild(opt);
+          });
+        }
       }
     }
 
