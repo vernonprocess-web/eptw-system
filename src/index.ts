@@ -1212,30 +1212,95 @@ app.delete('/api/projects/:id', async (c) => {
   }
 });
 
-// GET /api/projects/:id/dashboard - Project Control Center KPI Endpoint
+// GET /api/projects/:id/dashboard - Project Control Center KPI Endpoint (Live Data)
 app.get('/api/projects/:id/dashboard', async (c) => {
   try {
     const id = c.req.param('id');
     const project = await c.env.DB.prepare(
       'SELECT * FROM Project_Directory WHERE project_id = ?'
-    ).bind(id).first();
+    ).bind(id).first<any>();
 
     if (!project) {
       return c.json({ success: false, error: 'Project not found.' }, 404);
     }
 
-    const isTuas = id === 'PRJ-002';
-    const isUpcoming = project.status === 'Upcoming';
+    // 1. Live count of Active Permits
+    const activePtwsResult = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM PTW_Records 
+       WHERE project_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL`
+    ).bind(id).first<{ count: number }>();
+    const activePtws = activePtwsResult?.count || 0;
+
+    // 2. Live count of unique Workers currently on site across all active permits
+    const activePermits = await c.env.DB.prepare(
+      `SELECT assigned_workers_json FROM PTW_Records 
+       WHERE project_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL`
+    ).bind(id).all<{ assigned_workers_json: string }>();
+
+    const uniqueWorkerIds = new Set<string>();
+    for (const p of activePermits.results || []) {
+      if (p.assigned_workers_json) {
+        try {
+          const parsed = JSON.parse(p.assigned_workers_json);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((w: any) => {
+              const wId = typeof w === 'string' ? w : (w.worker_id || w.id || w.name);
+              if (wId) uniqueWorkerIds.add(String(wId).trim());
+            });
+          }
+        } catch {}
+      }
+    }
+    const workersOnSite = uniqueWorkerIds.size;
+
+    // 3. Live calculation of Incident-Free Days based on project Start Date
+    let daysWithoutIncident = 0;
+    if (project.start_date) {
+      const startDate = new Date(project.start_date);
+      const today = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      const diffMs = today.getTime() - startDate.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      daysWithoutIncident = Math.max(0, diffDays);
+    }
+
+    // 4. Live WSH Compliance Score calculation
+    const totalProcessed = await c.env.DB.prepare(
+      `SELECT 
+         COUNT(*) as total,
+         SUM(CASE WHEN status = 'REJECTED' THEN 1 ELSE 0 END) as rejected
+       FROM PTW_Records 
+       WHERE project_id = ? AND deleted_at IS NULL`
+    ).bind(id).first<{ total: number; rejected: number }>();
+
+    let complianceScore = '100%';
+    if (totalProcessed && totalProcessed.total > 0) {
+      const score = Math.max(0, Math.round(((totalProcessed.total - (totalProcessed.rejected || 0)) / totalProcessed.total) * 100));
+      complianceScore = `${score}%`;
+    }
+
+    // 5. Live High-Risk Activities & Pending Permits count
+    const highRiskResult = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM PTW_Records 
+       WHERE project_id = ? AND status = 'ACTIVE' AND deleted_at IS NULL 
+       AND ptw_type IN ('Hot Work', 'Confined Space', 'Work at Height', 'Lifting Operations')`
+    ).bind(id).first<{ count: number }>();
+
+    const pendingResult = await c.env.DB.prepare(
+      `SELECT COUNT(*) as count FROM PTW_Records 
+       WHERE project_id = ? AND status IN ('Pending WSHO Review', 'Pending PM Approval') AND deleted_at IS NULL`
+    ).bind(id).first<{ count: number }>();
 
     const kpiData = {
       project,
       kpis: {
-        active_ptws: isUpcoming ? 0 : (isTuas ? 6 : 4),
-        workers_on_site: isUpcoming ? 0 : (isTuas ? 18 : 12),
-        days_without_incident: isUpcoming ? 0 : (isTuas ? 88 : 45),
-        wsh_compliance_score: isUpcoming ? '100%' : '98.5%',
-        high_risk_activities: isUpcoming ? 0 : (isTuas ? 4 : 2),
-        pending_permits: isUpcoming ? 1 : 2
+        active_ptws: activePtws,
+        workers_on_site: workersOnSite,
+        days_without_incident: daysWithoutIncident,
+        wsh_compliance_score: complianceScore,
+        high_risk_activities: highRiskResult?.count || 0,
+        pending_permits: pendingResult?.count || 0
       }
     };
 
