@@ -7,8 +7,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=9">
-  <script src="assets/js/app.js?v=9" type="module"></script>
+  <link rel="stylesheet" href="assets/css/theme.css?v=11">
+  <script src="assets/js/jszip.min.js"></script>
+  <script src="assets/js/app.js?v=11" type="module"></script>
 </head>
 <body>
 
@@ -317,16 +318,51 @@
 
       <!-- Worker Registry Spreadsheet Data Table -->
       <div class="table-card">
-        <div class="table-toolbar">
-          <h3>Worker Registry Spreadsheet Grid (1 Row per Worker)</h3>
-          <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC, WP, FIN, trade, or cert name...">
+        <div class="table-toolbar" style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h3 style="margin: 0;">Worker Registry Spreadsheet Grid (1 Row per Worker)</h3>
+            <span id="workerSelectionBadge" style="display: none; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 20px;">
+              0 Selected
+            </span>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC, WP, FIN, trade, or cert name..." style="max-width: 280px;">
+
+            <!-- Dual Action Export Dropdown -->
+            <div style="position: relative; display: inline-block;" id="exportDropdownContainer">
+              <button type="button" id="btnExportMenu" class="btn-primary" style="background: #047857; border-color: #059669; font-weight: 600; padding: 7px 14px; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;" onclick="toggleExportMenu()">
+                <span>📥 Export</span> <span id="exportSelectedCount"></span> <span>▼</span>
+              </button>
+              <div id="exportMenuDropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); z-index: 100; min-width: 290px; padding: 6px 0;">
+                <button type="button" onclick="exportWorkersCsv()" style="width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; font-size: 0.85rem; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+                  <span style="font-size: 1.2rem;">📊</span>
+                  <div>
+                    <strong>Export Excel / CSV</strong>
+                    <div style="font-size: 0.75rem; color: #64748b;">Roster spreadsheet with live clickable cert links</div>
+                  </div>
+                </button>
+                <div style="height: 1px; background: #e2e8f0; margin: 4px 0;"></div>
+                <button type="button" onclick="exportWorkersComplianceZip()" style="width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; font-size: 0.85rem; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+                  <span style="font-size: 1.2rem;">📦</span>
+                  <div>
+                    <strong>Download Compliance ZIP</strong>
+                    <div style="font-size: 0.75rem; color: #64748b;">Bundle Excel + all original PDF certificates</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="table-container">
           <table id="workerTable">
             <thead>
               <tr>
-                <th style="width: 40px; text-align: center;">Expand</th>
+                <th style="width: 35px; text-align: center;">
+                  <input type="checkbox" id="masterWorkerCheckbox" title="Select / Deselect All Visible Workers" onchange="toggleSelectAllWorkers(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+                </th>
+                <th style="width: 35px; text-align: center;">Expand</th>
                 <th style="width: 105px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
                 <th style="width: 175px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Full Name <span class="sort-icon">⇅</span></th>
                 <th style="width: 135px; text-align: center;" class="sortable" data-sort="role" onclick="handleWorkerSort('role')">System Role <span class="sort-icon">⇅</span></th>
@@ -1975,6 +2011,289 @@ Return ONLY valid JSON matching this schema:
 
     workerSearchInput.addEventListener('input', renderProcessedWorkerData);
 
+    // ============================================================================
+    // WORKER ROW SELECTION & DUAL-ACTION EXPORT ENGINE
+    // ============================================================================
+    let selectedWorkerIds = new Set();
+
+    window.toggleSelectWorker = function(workerId, isChecked) {
+      if (isChecked) {
+        selectedWorkerIds.add(workerId);
+      } else {
+        selectedWorkerIds.delete(workerId);
+      }
+      updateSelectionUI();
+    };
+
+    window.toggleSelectAllWorkers = function(isChecked) {
+      const visibleWorkers = getProcessedWorkerData();
+      visibleWorkers.forEach(w => {
+        if (isChecked) {
+          selectedWorkerIds.add(w.worker_id);
+        } else {
+          selectedWorkerIds.delete(w.worker_id);
+        }
+      });
+      renderProcessedWorkerData();
+    };
+
+    function updateSelectionUI() {
+      const badge = document.getElementById('workerSelectionBadge');
+      const countSpan = document.getElementById('exportSelectedCount');
+      const masterCb = document.getElementById('masterWorkerCheckbox');
+      const visibleWorkers = getProcessedWorkerData();
+
+      const count = selectedWorkerIds.size;
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = `✓ ${count} Selected`;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      if (countSpan) {
+        countSpan.textContent = count > 0 ? `(${count})` : '';
+      }
+
+      if (masterCb && visibleWorkers.length > 0) {
+        const allSelected = visibleWorkers.every(w => selectedWorkerIds.has(w.worker_id));
+        const someSelected = visibleWorkers.some(w => selectedWorkerIds.has(w.worker_id));
+        masterCb.checked = allSelected;
+        masterCb.indeterminate = !allSelected && someSelected;
+      }
+    }
+
+    window.toggleExportMenu = function() {
+      const menu = document.getElementById('exportMenuDropdown');
+      if (!menu) return;
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    };
+
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('exportDropdownContainer');
+      const menu = document.getElementById('exportMenuDropdown');
+      if (container && menu && !container.contains(e.target)) {
+        menu.style.display = 'none';
+      }
+    });
+
+    // 1. Export Excel / CSV Roster with Live Clickable Cert Links
+    window.exportWorkersCsv = function() {
+      const dropdown = document.getElementById('exportMenuDropdown');
+      if (dropdown) dropdown.style.display = 'none';
+
+      let targetWorkers = [];
+      if (selectedWorkerIds.size > 0) {
+        targetWorkers = workerData.filter(w => selectedWorkerIds.has(w.worker_id));
+      } else {
+        targetWorkers = getProcessedWorkerData();
+      }
+
+      if (targetWorkers.length === 0) {
+        showToast('No workers available to export.', 'error');
+        return;
+      }
+
+      const originUrl = window.location.origin;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const headers = [
+        'Worker ID',
+        'Full Name',
+        'System Role',
+        'Work Permit No',
+        'FIN No',
+        'NRIC / IC No',
+        'Trade / Designation',
+        'Overall Validity',
+        'Total Certifications',
+        'Active Certifications List',
+        'Certificate Document Links',
+        'Contact Phone',
+        'Email Address'
+      ];
+
+      const rows = targetWorkers.map(w => {
+        const certs = w.certificates || [];
+        const hasExpired = certs.some(c => c.cert_expiry && c.cert_expiry < todayStr);
+        const overallStatus = certs.length === 0 ? 'NO CERTS' : (hasExpired ? 'HAS EXPIRED CERT' : 'VALID');
+
+        let roleText = 'Field Worker';
+        if (w.role === 'SUPERVISOR') roleText = 'Site Supervisor (Applicant Only)';
+        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Working Supervisor (Dual Role: Applicant & Crew)';
+
+        const certSummary = certs.map((c, i) => {
+          let desc = `${i + 1}. ${c.cert_type}`;
+          if (c.cert_no) desc += ` [Ref: ${c.cert_no}]`;
+          if (c.issuer) desc += ` - ${c.issuer}`;
+          if (c.cert_expiry) desc += ` (Expires: ${c.cert_expiry})`;
+          return desc;
+        }).join(' | ');
+
+        const certLinks = certs.map(c => {
+          if (!c.cert_file_url) return `${c.cert_type}: No File`;
+          const fullUrl = c.cert_file_url.startsWith('http') ? c.cert_file_url : `${originUrl}${c.cert_file_url}`;
+          return `${c.cert_type}: ${fullUrl}`;
+        }).join(' | ');
+
+        return [
+          `"${(w.worker_id || '').replace(/"/g, '""')}"`,
+          `"${(w.name || '').replace(/"/g, '""')}"`,
+          `"${roleText}"`,
+          `"${(w.wp_no || '').replace(/"/g, '""')}"`,
+          `"${(w.fin_no || '').replace(/"/g, '""')}"`,
+          `"${(w.ic_no || '').replace(/"/g, '""')}"`,
+          `"${(w.trade || '').replace(/"/g, '""')}"`,
+          `"${overallStatus}"`,
+          certs.length,
+          `"${certSummary.replace(/"/g, '""')}"`,
+          `"${certLinks.replace(/"/g, '""')}"`,
+          `"${(w.phone || '').replace(/"/g, '""')}"`,
+          `"${(w.email || '').replace(/"/g, '""')}"`
+        ];
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      const dateTag = new Date().toISOString().substring(0, 10);
+      link.setAttribute('download', `Worker_Roster_Summary_${dateTag}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast(`Exported ${targetWorkers.length} worker(s) to Excel CSV successfully!`, 'success');
+    };
+
+    // 2. Download Complete Compliance ZIP (Excel Roster + All Scanned PDFs/Certs)
+    window.exportWorkersComplianceZip = async function() {
+      const dropdown = document.getElementById('exportMenuDropdown');
+      if (dropdown) dropdown.style.display = 'none';
+
+      if (!window.JSZip) {
+        showToast('ZIP packaging engine is loading, please try in a moment.', 'info');
+        return;
+      }
+
+      let targetWorkers = [];
+      if (selectedWorkerIds.size > 0) {
+        targetWorkers = workerData.filter(w => selectedWorkerIds.has(w.worker_id));
+      } else {
+        targetWorkers = getProcessedWorkerData();
+      }
+
+      if (targetWorkers.length === 0) {
+        showToast('No workers selected to export.', 'error');
+        return;
+      }
+
+      showToast(`Packaging compliance pack for ${targetWorkers.length} worker(s)...`, 'info');
+
+      const zip = new JSZip();
+      const dateTag = new Date().toISOString().substring(0, 10);
+      const originUrl = window.location.origin;
+
+      const headers = [
+        'Worker ID',
+        'Full Name',
+        'System Role',
+        'Work Permit No',
+        'FIN No',
+        'NRIC / IC No',
+        'Trade / Designation',
+        'Overall Validity',
+        'Total Certifications',
+        'Active Certifications List',
+        'Certificate File Paths in ZIP',
+        'Contact Phone',
+        'Email Address'
+      ];
+
+      const rows = [];
+
+      for (const w of targetWorkers) {
+        const certs = w.certificates || [];
+        const hasExpired = certs.some(c => c.cert_expiry && c.cert_expiry < dateTag);
+        const overallStatus = certs.length === 0 ? 'NO CERTS' : (hasExpired ? 'HAS EXPIRED CERT' : 'VALID');
+
+        let roleText = 'Field Worker';
+        if (w.role === 'SUPERVISOR') roleText = 'Site Supervisor (Applicant Only)';
+        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Working Supervisor (Dual Role: Applicant & Crew)';
+
+        const cleanWorkerName = (w.name || 'Worker').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
+        const workerFolderName = `${cleanWorkerName}_${w.worker_id}`;
+        const workerFolder = zip.folder(workerFolderName);
+
+        const certPaths = [];
+        const certSummary = certs.map((c, i) => {
+          let desc = `${i + 1}. ${c.cert_type}`;
+          if (c.cert_no) desc += ` [Ref: ${c.cert_no}]`;
+          if (c.issuer) desc += ` - ${c.issuer}`;
+          if (c.cert_expiry) desc += ` (Expires: ${c.cert_expiry})`;
+          return desc;
+        }).join(' | ');
+
+        for (let cIdx = 0; cIdx < certs.length; cIdx++) {
+          const c = certs[cIdx];
+          if (c.cert_file_url) {
+            try {
+              const fileUrl = c.cert_file_url.startsWith('http') ? c.cert_file_url : `${originUrl}${c.cert_file_url}`;
+              const cleanCertName = (c.cert_type || 'Cert').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
+              const ext = c.cert_file_url.split('.').pop().split('?')[0] || 'pdf';
+              const fileName = `${cIdx + 1}_${cleanCertName}.${ext}`;
+              
+              certPaths.push(`${workerFolderName}/${fileName}`);
+
+              const fileRes = await fetch(fileUrl);
+              if (fileRes.ok) {
+                const arrayBuffer = await fileRes.arrayBuffer();
+                workerFolder.file(fileName, arrayBuffer);
+              }
+            } catch (fetchErr) {
+              console.warn(`Failed to package cert file for ${w.name}:`, fetchErr);
+            }
+          }
+        }
+
+        rows.push([
+          `"${(w.worker_id || '').replace(/"/g, '""')}"`,
+          `"${(w.name || '').replace(/"/g, '""')}"`,
+          `"${roleText}"`,
+          `"${(w.wp_no || '').replace(/"/g, '""')}"`,
+          `"${(w.fin_no || '').replace(/"/g, '""')}"`,
+          `"${(w.ic_no || '').replace(/"/g, '""')}"`,
+          `"${(w.trade || '').replace(/"/g, '""')}"`,
+          `"${overallStatus}"`,
+          certs.length,
+          `"${certSummary.replace(/"/g, '""')}"`,
+          `"${certPaths.join(' | ')}"`,
+          `"${(w.phone || '').replace(/"/g, '""')}"`,
+          `"${(w.email || '').replace(/"/g, '""')}"`
+        ]);
+      }
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+      zip.file(`Worker_Roster_Summary_${dateTag}.csv`, csvContent);
+
+      showToast('Generating compressed ZIP archive...', 'info');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `Worker_Compliance_Package_${dateTag}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+
+      showToast(`ZIP Compliance Package downloaded successfully (${targetWorkers.length} worker(s))!`, 'success');
+    };
+
     // Toggle Row Accordion Drawer
     window.toggleWorkerDrawer = function(workerId) {
       if (expandedWorkers.has(workerId)) {
@@ -2034,9 +2353,10 @@ Return ONLY valid JSON matching this schema:
       if (!data || data.length === 0) {
         workerTableBody.innerHTML = `
           <tr>
-            <td colspan="9" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
+            <td colspan="10" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
           </tr>
         `;
+        updateSelectionUI();
         return;
       }
 
@@ -2091,6 +2411,9 @@ Return ONLY valid JSON matching this schema:
         // Main Worker Row (1 row per worker)
         rowsHTML += `
           <tr class="${rowClass}">
+            <td style="text-align: center;">
+              <input type="checkbox" class="worker-select-checkbox" value="${escapeHtml(item.worker_id)}" ${selectedWorkerIds.has(item.worker_id) ? 'checked' : ''} onchange="toggleSelectWorker('${escapeHtml(item.worker_id)}', this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+            </td>
             <td style="text-align: center;">
               <button class="btn-expand" onclick="toggleWorkerDrawer('${escapeHtml(item.worker_id)}')">${expandIcon}</button>
             </td>
@@ -2149,7 +2472,36 @@ Return ONLY valid JSON matching this schema:
 
           rowsHTML += `
             <tr class="drawer-row">
-              <td colspan="9">
+              <td colspan="10">
+                <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
+                  📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
+                </div>
+                <table class="drawer-table">
+                  <thead>
+                    <tr>
+                      <th>Certificate Name / Type</th>
+                      <th>Cert / Ref No</th>
+                      <th>Issuer</th>
+                      <th>Issued Date</th>
+                      <th>Expiry Date</th>
+                      <th style="text-align: center;">Status</th>
+                      <th style="text-align: center;">Document</th>
+                      <th style="text-align: center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${drawerCertsHTML}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      workerTableBody.innerHTML = rowsHTML;
+      updateSelectionUI();
+    }
                 <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
                   📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
                 </div>
