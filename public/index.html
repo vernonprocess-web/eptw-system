@@ -4443,7 +4443,9 @@ Return ONLY valid JSON matching this schema:
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
               <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">1. APPLICANT / SUPERVISOR</div>
               <div style="margin-top: 6px;">${applicantSigHtml}</div>
-              <div style="font-size: 0.75rem; margin-top: 4px;">Date: ${escapeHtml(item.created_at || 'Saved')}</div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b; margin-top: 4px;">👤 ${escapeHtml(item.applicant_name || 'Site Supervisor')}</div>
+              ${item.applicant_email ? `<div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(item.applicant_email)}</div>` : ''}
+              <div style="font-size: 0.75rem; margin-top: 4px; color: #64748b;">Date: ${escapeHtml(item.created_at || 'Saved')}</div>
             </div>
 
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">

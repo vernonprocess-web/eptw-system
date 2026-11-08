@@ -46,6 +46,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  document.getElementById('applicant_supervisor_select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val) {
+      const nameInput = document.getElementById('applicant_name_input');
+      if (nameInput) nameInput.value = val;
+    }
+  });
+
   document.getElementById('btnClearSig')?.addEventListener('click', () => {
     if (supervisorSigPad) supervisorSigPad.clear();
     const badge = document.getElementById('sigCacheBadge');
@@ -112,6 +120,11 @@ function initUserSession() {
 
   const nameEl = document.getElementById('userNameText');
   if (nameEl) nameEl.textContent = activeName || activeEmail;
+
+  const applicantInput = document.getElementById('applicant_name_input');
+  if (applicantInput && !applicantInput.value) {
+    applicantInput.value = activeName || '';
+  }
   return true;
 }
 
@@ -131,6 +144,9 @@ function confirmProfileSwitch() {
 
   const nameEl = document.getElementById('userNameText');
   if (nameEl) nameEl.textContent = name;
+
+  const applicantInput = document.getElementById('applicant_name_input');
+  if (applicantInput) applicantInput.value = name || '';
 
   document.getElementById('loginModal').style.display = 'none';
   showToast(`Switched profile to ${name} (${role})`, 'success');
@@ -222,6 +238,29 @@ async function loadWorkersChecklist() {
         </label>
         `;
       }).join('');
+
+      // Populate Applicant Supervisor Dropdown
+      const supSelect = document.getElementById('applicant_supervisor_select');
+      if (supSelect) {
+        const supervisors = certifiedWorkers.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
+        let supOpts = '<option value="">-- Select Supervisor to Auto-Fill --</option>';
+        supOpts += supervisors.map(s => {
+          const roleLabel = s.role === 'SUPERVISOR_WORKER' ? '⚡ Working Sup' : '🛡️ Site Sup';
+          return `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)} [${roleLabel}] (${escapeHtml(s.fin_no || s.wp_no || 'ID')})</option>`;
+        }).join('');
+        supSelect.innerHTML = supOpts;
+
+        // Auto-select if active_user_name matches a supervisor
+        const activeName = localStorage.getItem('active_user_name') || '';
+        if (activeName) {
+          const matching = supervisors.find(s => s.name.toLowerCase() === activeName.toLowerCase());
+          if (matching) {
+            supSelect.value = matching.name;
+            const nameInput = document.getElementById('applicant_name_input');
+            if (nameInput && !nameInput.value) nameInput.value = matching.name;
+          }
+        }
+      }
     }
   } catch (err) {
     console.error('Failed to load workers checklist:', err);
@@ -311,6 +350,13 @@ window.editSupervisorDraft = function(ptwId) {
   if (permit.start_datetime) document.getElementById('start_datetime').value = permit.start_datetime;
   if (permit.valid_until) document.getElementById('valid_until').value = permit.valid_until;
 
+  if (permit.applicant_name) {
+    const nameInput = document.getElementById('applicant_name_input');
+    if (nameInput) nameInput.value = permit.applicant_name;
+    const supSelect = document.getElementById('applicant_supervisor_select');
+    if (supSelect) supSelect.value = permit.applicant_name;
+  }
+
   document.getElementById('draftPtwIdBadge').textContent = `Editing ${permit.ptw_id}`;
   window.switchSupervisorTab('draftTab');
   showToast(`Editing draft permit ${permit.ptw_id}`, 'info');
@@ -326,6 +372,14 @@ async function savePermitForm(isDraft = false) {
 
   if (!projectId || !workDesc) {
     showToast('Active Project Site and Work Description are required.', 'error');
+    return;
+  }
+
+  const applicantNameInput = document.getElementById('applicant_name_input');
+  const applicantName = applicantNameInput?.value?.trim() || localStorage.getItem('active_user_name') || 'Site Supervisor';
+
+  if (!isDraft && !applicantName) {
+    showToast('Applicant / Supervisor Full Name is required.', 'error');
     return;
   }
 
@@ -347,7 +401,6 @@ async function savePermitForm(isDraft = false) {
   }
 
   const applicantEmail = localStorage.getItem('active_user_email') || 'budi.supervisor@contractor.sg';
-  const applicantName = localStorage.getItem('active_user_name') || 'Budi Santoso';
 
   const payload = {
     ptw_id: ptwId,
@@ -383,6 +436,8 @@ async function savePermitForm(isDraft = false) {
       document.getElementById('ptw_id').value = '';
       if (supervisorSigPad) supervisorSigPad.clear();
       document.getElementById('draftPtwIdBadge').textContent = 'New Draft';
+      const nameInput = document.getElementById('applicant_name_input');
+      if (nameInput) nameInput.value = localStorage.getItem('active_user_name') || '';
 
       // Switch to permits list tab
       window.switchSupervisorTab('permitsTab');

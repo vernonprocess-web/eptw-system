@@ -239,7 +239,7 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
     }
   </style>
-  <script src="assets/js/supervisor.js?v=10" type="module"></script>
+  <script src="assets/js/supervisor.js?v=11" type="module"></script>
 </head>
 <body>
 
@@ -343,9 +343,27 @@
             </div>
           </div>
 
-          <!-- Digital Signature Pad -->
+          <!-- Digital Signature Pad & Applicant Selection -->
           <div class="form-group-touch">
-            <label>✍️ Applicant / Supervisor Digital Signature *</label>
+            <label style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; display: block;">✍️ Applicant / Supervisor Digital Signature *</label>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
+              <div>
+                <label for="applicant_supervisor_select" style="font-size: 0.8rem; color: #475569; margin-bottom: 4px; display: block; font-weight: 600;">
+                  🛡️ Select Registered Supervisor:
+                </label>
+                <select id="applicant_supervisor_select" class="select-touch">
+                  <option value="">-- Select Supervisor to Auto-Fill --</option>
+                </select>
+              </div>
+              <div>
+                <label for="applicant_name_input" style="font-size: 0.8rem; color: #475569; margin-bottom: 4px; display: block; font-weight: 600;">
+                  Applicant Full Name *:
+                </label>
+                <input type="text" id="applicant_name_input" class="input-touch" required placeholder="e.g. Budi Santoso">
+              </div>
+            </div>
+
             <div class="sig-touch-box">
               <canvas id="supervisorSigCanvas"></canvas>
             </div>

@@ -1467,7 +1467,7 @@ app.get('/api/ptw', async (c) => {
               COALESCE(wsho.phone, prj.wsho_phone) AS assigned_wsho_phone,
               COALESCE(pm.name, p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
               COALESCE(pm.email, p.assigned_pm_email, prj.pm_email) AS assigned_pm_email,
-              COALESCE(app.name, 'Site Supervisor') AS applicant_name
+              COALESCE(p.applicant_name, app.name, 'Site Supervisor') AS applicant_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
        LEFT JOIN users wsho ON p.assessor_user_id = wsho.id OR LOWER(p.assigned_wsho_email) = LOWER(wsho.email) OR LOWER(prj.wsho_email) = LOWER(wsho.email)
@@ -1495,7 +1495,7 @@ app.get('/api/ptw/:id', async (c) => {
               COALESCE(wsho.phone, prj.wsho_phone) AS assigned_wsho_phone,
               COALESCE(pm.name, p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
               COALESCE(pm.email, p.assigned_pm_email, prj.pm_email) AS assigned_pm_email,
-              COALESCE(app.name, 'Site Supervisor') AS applicant_name
+              COALESCE(p.applicant_name, app.name, 'Site Supervisor') AS applicant_name
        FROM PTW_Records p
        LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
        LEFT JOIN users wsho ON p.assessor_user_id = wsho.id OR LOWER(p.assigned_wsho_email) = LOWER(wsho.email) OR LOWER(prj.wsho_email) = LOWER(wsho.email)
@@ -1526,6 +1526,7 @@ app.post('/api/ptw', async (c) => {
       valid_until,
       applicant_signature,
       applicant_email,
+      applicant_name,
       assigned_wsho_name,
       assigned_wsho_email,
       assigned_pm_name,
@@ -1650,10 +1651,10 @@ app.post('/api/ptw', async (c) => {
       `INSERT INTO PTW_Records (
         ptw_id, project_id, ptw_type, work_description, 
         assigned_workers_json, selected_rams_json, status, start_datetime, valid_until,
-        applicant_signature, applicant_email, assigned_wsho_name, assigned_wsho_email,
+        applicant_signature, applicant_email, applicant_name, assigned_wsho_name, assigned_wsho_email,
         assigned_pm_name, assigned_pm_email, client_id, pm_user_id, assessor_user_id
       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       ptw_id,
       project_id,
@@ -1666,6 +1667,7 @@ app.post('/api/ptw', async (c) => {
       expiryStr,
       applicant_signature || null,
       applicant_email || null,
+      applicant_name || null,
       finalWshoName,
       finalWshoEmail,
       finalPmName,
@@ -1681,7 +1683,7 @@ app.post('/api/ptw', async (c) => {
       ptw_number: ptw_id,
       project_name: project?.project_name || 'Site Facility',
       work_description,
-      applicant_name: 'Site Supervisor',
+      applicant_name: applicant_name || 'Site Supervisor',
       applicant_email: applicant_email || undefined,
       assigned_wsho_name: finalWshoName,
       assigned_wsho_email: finalWshoEmail,
@@ -1758,7 +1760,7 @@ app.post('/api/ptw/:id/vet', async (c) => {
       ptw_number: existing.ptw_id,
       project_name: existing.project_name || 'Site Facility',
       work_description: existing.work_description,
-      applicant_name: 'Site Supervisor',
+      applicant_name: existing.applicant_name || 'Site Supervisor',
       applicant_email: existing.applicant_email,
       assigned_wsho_name: safety_officer_name || existing.assigned_wsho_name || 'WSHO Assessor',
       assigned_wsho_email: existing.assigned_wsho_email,
@@ -1853,7 +1855,7 @@ app.post('/api/ptw/:id/approve', async (c) => {
       ptw_number: existing.ptw_id,
       project_name: existing.project_name || 'Site Facility',
       work_description: existing.work_description,
-      applicant_name: 'Site Supervisor',
+      applicant_name: existing.applicant_name || 'Site Supervisor',
       applicant_email: existing.applicant_email,
       assigned_wsho_name: existing.assigned_wsho_name,
       assigned_wsho_email: existing.assigned_wsho_email,
@@ -1923,7 +1925,7 @@ app.post('/api/ptw/:id/reject', async (c) => {
       ptw_number: existing.ptw_id,
       project_name: existing.project_name || 'Site Facility',
       work_description: existing.work_description,
-      applicant_name: 'Site Supervisor',
+      applicant_name: existing.applicant_name || 'Site Supervisor',
       applicant_email: existing.applicant_email,
       assigned_wsho_name: existing.assigned_wsho_name,
       assigned_wsho_email: existing.assigned_wsho_email,
@@ -1964,6 +1966,7 @@ app.put('/api/ptw/:id', async (c) => {
       closing_remarks,
       deisolation_verified,
       applicant_email,
+      applicant_name,
       assigned_wsho_name,
       assigned_wsho_email,
       rejection_reason
@@ -1999,6 +2002,7 @@ app.put('/api/ptw/:id', async (c) => {
     const updatedPmSig = pm_signature !== undefined ? pm_signature : existing.pm_signature;
     const updatedRejection = rejection_reason !== undefined ? rejection_reason : existing.rejection_reason;
     const updatedApplicantEmail = applicant_email !== undefined ? applicant_email : existing.applicant_email;
+    const updatedApplicantName = applicant_name !== undefined ? applicant_name : existing.applicant_name;
     const updatedWshoName = assigned_wsho_name !== undefined ? assigned_wsho_name : existing.assigned_wsho_name;
     const updatedWshoEmail = assigned_wsho_email !== undefined ? assigned_wsho_email : existing.assigned_wsho_email;
 
@@ -2027,7 +2031,7 @@ app.put('/api/ptw/:id', async (c) => {
        SET project_id = ?, ptw_type = ?, work_description = ?, assigned_workers_json = ?, selected_rams_json = ?,
            status = ?, start_datetime = ?, valid_until = ?, applicant_signature = ?, safety_signature = ?, pm_signature = ?,
            safety_vetted_at = ?, pm_approved_at = ?, closed_at = ?, closing_signature = ?, closed_by_email = ?, closing_remarks = ?, deisolation_verified = ?,
-           rejection_reason = ?, applicant_email = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
+           rejection_reason = ?, applicant_email = ?, applicant_name = ?, assigned_wsho_name = ?, assigned_wsho_email = ?
        WHERE ptw_id = ?`
     ).bind(
       updatedProjectId,
@@ -2050,6 +2054,7 @@ app.put('/api/ptw/:id', async (c) => {
       updatedDeisolation,
       updatedRejection,
       updatedApplicantEmail,
+      updatedApplicantName,
       updatedWshoName,
       updatedWshoEmail,
       id
