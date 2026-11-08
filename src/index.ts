@@ -1944,6 +1944,50 @@ app.post('/api/ptw/:id/reject', async (c) => {
   }
 });
 
+// POST /api/ptw/:id/resend-notification - Re-dispatch email & Telegram alerts with production URLs
+app.post('/api/ptw/:id/resend-notification', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*, prj.project_name
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
+
+    if (!existing) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    const eventType = existing.status === 'Pending Safety Vetting' ? 'PERMIT_SUBMITTED'
+      : (existing.status === 'Pending PM Approval' ? 'PERMIT_VETTED'
+      : (existing.status === 'Active' ? 'PERMIT_APPROVED' : 'PERMIT_SUBMITTED'));
+
+    const notificationData: PTWRecordForNotification = {
+      id: existing.ptw_id,
+      ptw_number: existing.ptw_id,
+      project_name: existing.project_name || 'Site Facility',
+      work_description: existing.work_description,
+      applicant_name: existing.applicant_name || 'Site Supervisor',
+      applicant_email: existing.applicant_email,
+      assigned_wsho_name: existing.assigned_wsho_name,
+      assigned_wsho_email: existing.assigned_wsho_email,
+      assigned_pm_name: existing.assigned_pm_name,
+      assigned_pm_email: existing.assigned_pm_email,
+      status: existing.status
+    };
+
+    await dispatchPermitNotification(c.env, c.env.DB, notificationData, eventType as any);
+
+    return c.json({
+      success: true,
+      message: `Notification re-sent for ${existing.ptw_id} to ${existing.assigned_wsho_email || 'Safety Assessor'}`
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
 // PUT /api/ptw/:id - Update permit details or workflow signatures
 app.put('/api/ptw/:id', async (c) => {
   try {
