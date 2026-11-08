@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="assets/css/theme.css?v=12">
   <script src="assets/js/jszip.min.js"></script>
-  <script src="assets/js/app.js?v=12" type="module"></script>
+  <script src="assets/js/app.js?v=13" type="module"></script>
 </head>
 <body>
 
@@ -4502,8 +4502,15 @@ Return ONLY valid JSON matching this schema:
         return;
       }
       try {
-        const activeName = localStorage.getItem('active_user_name') || 'WSHO Assessor';
-        const activeEmail = localStorage.getItem('active_user_email') || '';
+        let item = (ptwData || []).find(p => p.ptw_id === ptwId);
+        const activeRole = localStorage.getItem('active_user_role');
+        const activeName = (activeRole === 'WSHO' || activeRole === 'SAFETY_ASSESSOR')
+          ? (localStorage.getItem('active_user_name') || item?.assigned_wsho_name || 'Safety Assessor')
+          : (item?.assigned_wsho_name || localStorage.getItem('active_user_name') || 'Safety Assessor');
+        const activeEmail = (activeRole === 'WSHO' || activeRole === 'SAFETY_ASSESSOR')
+          ? (localStorage.getItem('active_user_email') || item?.assigned_wsho_email || '')
+          : (item?.assigned_wsho_email || '');
+
         const response = await fetch(`/api/ptw/${encodeURIComponent(ptwId)}/vet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
