@@ -300,7 +300,6 @@ window.supervisorStanddown = async function(ptwId) {
     showToast('Failed to suspend permit: ' + err.message, 'error');
   }
 };
-}
 
 window.editSupervisorDraft = function(ptwId) {
   const permit = supervisorPermits.find(p => p.ptw_id === ptwId);
