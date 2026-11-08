@@ -4292,9 +4292,23 @@ Return ONLY valid JSON matching this schema:
     });
 
     // PERMIT DOCUMENT SUMMARY & MULTI-STAGE ENDORSEMENT MODAL
-    window.openPermitViewModal = function(ptwId) {
-      const item = ptwData.find(p => p.ptw_id === ptwId);
-      if (!item) return;
+    window.openPermitViewModal = async function(ptwId) {
+      let item = (ptwData || []).find(p => p.ptw_id === ptwId);
+      if (!item) {
+        try {
+          const res = await fetch(`/api/ptw/${encodeURIComponent(ptwId)}`);
+          const json = await res.json();
+          if (json.success && json.data) {
+            item = json.data;
+          }
+        } catch(e) {
+          console.error('Failed to load permit by ID:', e);
+        }
+      }
+      if (!item) {
+        showToast(`Permit record ${ptwId} could not be loaded.`, 'error');
+        return;
+      }
 
       document.getElementById('permitViewTitle').textContent = `📄 Digital ePTW Audit Summary — ${item.ptw_id}`;
 
@@ -4488,14 +4502,20 @@ Return ONLY valid JSON matching this schema:
         return;
       }
       try {
-        const response = await fetch(`/api/ptw/${ptwId}/vet`, {
+        const activeName = localStorage.getItem('active_user_name') || 'WSHO Assessor';
+        const activeEmail = localStorage.getItem('active_user_email') || '';
+        const response = await fetch(`/api/ptw/${encodeURIComponent(ptwId)}/vet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ safety_signature: sigData })
+          body: JSON.stringify({
+            safety_signature: sigData,
+            safety_officer_name: activeName,
+            user_email: activeEmail
+          })
         });
         const result = await response.json();
         if (result.success) {
-          showToast(`Permit ${ptwId} vetted by WSHO. PM authorization email sent!`);
+          showToast(`Permit ${ptwId} vetted by WSHO. PM authorization email sent!`, 'success');
           loadPtwData();
           closePermitViewModal();
         } else {
@@ -4673,7 +4693,7 @@ Return ONLY valid JSON matching this schema:
         const ptwTabBtn = document.querySelector('.tab-btn[onclick*="ptwTab"]');
         if (ptwTabBtn) ptwTabBtn.click();
         openPermitViewModal(deepPtwId);
-      }, 500);
+      }, 150);
     } else if (deepTbmId) {
       setTimeout(() => {
         const tbmTabBtn = document.querySelector('.tab-btn[onclick*="tbmTab"]');
