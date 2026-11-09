@@ -4696,11 +4696,8 @@ Return ONLY valid JSON matching this schema:
     const deepTbmId = urlParams.get('tbm');
 
     if (deepPtwId) {
-      setTimeout(() => {
-        const ptwTabBtn = document.querySelector('.tab-btn[onclick*="ptwTab"]');
-        if (ptwTabBtn) ptwTabBtn.click();
-        openPermitViewModal(deepPtwId);
-      }, 150);
+      window.location.replace(`/review.html?ptw=${encodeURIComponent(deepPtwId)}`);
+      return;
     } else if (deepTbmId) {
       setTimeout(() => {
         const tbmTabBtn = document.querySelector('.tab-btn[onclick*="tbmTab"]');

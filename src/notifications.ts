@@ -154,7 +154,7 @@ export async function dispatchPermitNotification(
     eventType: 'PERMIT_SUBMITTED' | 'PERMIT_VETTED' | 'PERMIT_APPROVED' | 'PERMIT_REJECTED'
 ): Promise<void> {
     const appUrl = env.APP_URL || 'https://eptw-system.vernon-process.workers.dev';
-    const permitLink = `${appUrl}/?ptw=${encodeURIComponent(ptw.ptw_number)}`;
+    const permitLink = `${appUrl}/review?ptw=${encodeURIComponent(ptw.ptw_number)}`;
 
     let subject = '';
     let emailHtml = '';

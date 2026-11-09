@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ePTW Document Review & Digital Endorsement Portal</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="assets/css/theme.css?v=13">
+  <style>
+    body {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      margin: 0;
+      padding: 16px 12px 40px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .review-portal-header {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    }
+
+    .portal-branding {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .portal-logo {
+      font-size: 1.5rem;
+    }
+
+    .portal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.01em;
+    }
+
+    .portal-sub {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    .review-doc-card {
+      width: 100%;
+      max-width: 860px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 8px 6px 30px;
+      }
+      .review-doc-card {
+        padding: 16px 12px;
+        border-radius: 10px;
+      }
+      .review-portal-header {
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+    }
+
+    .doc-official-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }
+
+    .doc-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 18px;
+      font-size: 0.88rem;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .meta-value {
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .desc-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #334155;
+      margin-bottom: 18px;
+      white-space: pre-wrap;
+    }
+
+    .items-list {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px 10px 28px;
+      font-size: 0.85rem;
+      color: #334155;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    .sigs-audit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .sig-audit-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .action-panel {
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .action-panel.wsho {
+      background: #fff7ed;
+      border: 2px dashed #f97316;
+    }
+
+    .action-panel.pm {
+      background: #eff6ff;
+      border: 2px dashed #3b82f6;
+    }
+
+    .action-panel.active-banner {
+      background: #ecfdf5;
+      border: 2px solid #10b981;
+    }
+
+    .action-panel.rejected-banner {
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+    }
+
+    .canvas-box {
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      border-radius: 6px;
+      margin: 10px 0;
+      touch-action: none;
+      width: 100%;
+      height: 120px;
+      cursor: crosshair;
+    }
+
+    .btn-action-primary {
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.15s, transform 0.05s;
+    }
+    .btn-action-primary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-action-reject {
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #b91c1c;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-action-reject:hover {
+      background: #fecaca;
+    }
+
+    .portal-footer-links {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .portal-footer-links a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 0 8px;
+    }
+    .portal-footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    #reviewToast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 10000;
+      display: none;
+    }
+    #reviewToast.success { background: #16a34a; }
+    #reviewToast.error { background: #dc2626; }
+    #reviewToast.info { background: #0284c7; }
+  </style>
+  <script src="assets/js/review.js?v=1" type="module"></script>
+</head>
+<body>
+
+  <!-- Top Slim Bar -->
+  <header class="review-portal-header no-print">
+    <div class="portal-branding">
+      <div class="portal-logo">🛡️</div>
+      <div>
+        <div class="portal-title">ePTW Review & Endorsement Portal</div>
+        <div class="portal-sub">Singapore MOM WSH Statutory Permit Authorization</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="login.html?switch=true" style="color: #cbd5e1; font-size: 0.78rem; text-decoration: none; border: 1px solid #475569; padding: 4px 10px; border-radius: 6px;">🚪 Switch User</a>
+      <a href="index.html" style="background: #2563eb; color: #ffffff; font-size: 0.78rem; text-decoration: none; padding: 4px 10px; border-radius: 6px; font-weight: 600;">HQ Control Center</a>
+    </div>
+  </header>
+
+  <!-- Main Standalone Document Card -->
+  <main id="reviewContainer" class="review-doc-card">
+    <div id="loadingState" style="text-align: center; padding: 60px 20px; color: #64748b;">
+      <div style="font-size: 2rem; margin-bottom: 12px;">⏳</div>
+      <div style="font-size: 1.1rem; font-weight: 700; color: #1e293b;">Loading ePTW Document...</div>
+      <div style="font-size: 0.85rem; margin-top: 6px;">Verifying permit audit trail against Singapore WSH records...</div>
+    </div>
+
+    <div id="documentContent" style="display: none;">
+      <!-- Populated via review.js -->
+    </div>
+
+    <div id="errorState" style="display: none; text-align: center; padding: 50px 20px;">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">⚠️</div>
+      <h2 style="color: #1e293b; margin: 0 0 8px;">Permit Record Not Found</h2>
+      <p id="errorMessage" style="color: #64748b; font-size: 0.9rem; max-width: 480px; margin: 0 auto 20px;">
+        The requested permit number could not be retrieved from the database. It may have been archived or the link might be incomplete.
+      </p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <a href="supervisor.html" style="background: #0284c7; color: #fff; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: 600;">👷 Supervisor Portal</a>
+        <a href="index.html" style="background: #f1f5f9; color: #334155; text-decoration: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; border: 1px solid #cbd5e1;">HQ Dashboard</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="portal-footer-links no-print">
+    Singapore Workplace Safety & Health (WSH) Act Compliant • Cloudflare D1 & R2 Protected
+    <div style="margin-top: 6px;">
+      <a href="supervisor.html">👷 Mobile Supervisor Portal</a> •
+      <a href="index.html">🖥️ HQ Master Dashboard</a> •
+      <a href="login.html">🔐 Central Login Gateway</a>
+    </div>
+  </footer>
+
+  <div id="reviewToast"></div>
+
+</body>
+</html>
+
