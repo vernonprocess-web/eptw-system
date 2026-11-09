@@ -15,9 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[App] Bootstrapping modular ePTW system...');
 
   // Security Lock Check: Verify authenticated session for HQ Admin Dashboard
-  // Skip redirect if opening a direct deep-link from notification email (?ptw=... or ?tbm=...)
   const urlParams = new URLSearchParams(window.location.search);
-  const isDeepLink = urlParams.has('ptw') || urlParams.has('tbm');
+  const deepPtw = urlParams.get('ptw');
+  if (deepPtw) {
+    window.location.replace(`/review.html?ptw=${encodeURIComponent(deepPtw)}`);
+    return;
+  }
+  const isDeepLink = urlParams.has('tbm');
 
   const activeEmail = localStorage.getItem('active_user_email');
   const activeRole = localStorage.getItem('active_user_role');
