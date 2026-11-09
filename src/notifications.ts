@@ -216,7 +216,7 @@ export async function dispatchPermitNotification(
 👉 <a href="${permitLink}">Authorize Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_APPROVED') {
-        const tbmLink = ptw.tbm_id ? `${appUrl}/?tbm=${encodeURIComponent(ptw.tbm_id)}` : permitLink;
+        const tbmLink = ptw.tbm_id ? `${appUrl}/tbm?tbm=${encodeURIComponent(ptw.tbm_id)}` : permitLink;
         subject = `✅ [ePTW] Permit APPROVED: ${ptw.ptw_number}${ptw.tbm_id ? ` — TBM Briefing ${ptw.tbm_id} Ready` : ''}`;
         if (ptw.applicant_email) recipients.push({ email: ptw.applicant_email, name: ptw.applicant_name, role: 'Site Supervisor' });
         if (ptw.assigned_wsho_email) recipients.push({ email: ptw.assigned_wsho_email, name: ptw.assigned_wsho_name, role: 'WSHO' });

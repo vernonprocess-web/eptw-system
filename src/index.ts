@@ -18,12 +18,16 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Edge Redirect Middleware: Automatically forward legacy ?ptw= query links to standalone /review.html
+// Edge Redirect Middleware: Automatically forward legacy query links to standalone portals
 app.use('*', async (c, next) => {
   const url = new URL(c.req.url);
   const ptw = url.searchParams.get('ptw');
-  if (ptw && (url.pathname === '/' || url.pathname === '/index.html')) {
-    return c.redirect(`/review.html?ptw=${encodeURIComponent(ptw)}`, 302);
+  if (ptw && (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/review.html')) {
+    return c.redirect(`/review?ptw=${encodeURIComponent(ptw)}`, 302);
+  }
+  const tbm = url.searchParams.get('tbm');
+  if (tbm && (url.pathname === '/' || url.pathname === '/index.html' || url.pathname === '/tbm.html')) {
+    return c.redirect(`/tbm?tbm=${encodeURIComponent(tbm)}`, 302);
   }
   await next();
 });

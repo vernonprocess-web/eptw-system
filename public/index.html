@@ -1,9 +1,16 @@
 <head>
   <script>
     (function() {
-      var p = new URLSearchParams(window.location.search).get('ptw');
+      var params = new URLSearchParams(window.location.search);
+      var p = params.get('ptw');
       if (p) {
-        window.location.replace('/review.html?ptw=' + encodeURIComponent(p));
+        window.location.replace('/review?ptw=' + encodeURIComponent(p));
+        return;
+      }
+      var t = params.get('tbm');
+      if (t) {
+        window.location.replace('/tbm?tbm=' + encodeURIComponent(t));
+        return;
       }
     })();
   </script>
@@ -4704,15 +4711,11 @@ Return ONLY valid JSON matching this schema:
     const deepTbmId = urlParams.get('tbm');
 
     if (deepPtwId) {
-      window.location.replace(`/review.html?ptw=${encodeURIComponent(deepPtwId)}`);
+      window.location.replace(`/review?ptw=${encodeURIComponent(deepPtwId)}`);
       return;
     } else if (deepTbmId) {
-      setTimeout(() => {
-        const tbmTabBtn = document.querySelector('.tab-btn[onclick*="tbmTab"]');
-        if (tbmTabBtn) tbmTabBtn.click();
-        if (typeof fetchTbmRecords === 'function') fetchTbmRecords();
-        if (typeof openTbmModal === 'function') openTbmModal(deepTbmId);
-      }, 600);
+      window.location.replace(`/tbm?tbm=${encodeURIComponent(deepTbmId)}`);
+      return;
     }
 
     if ('serviceWorker' in navigator) {

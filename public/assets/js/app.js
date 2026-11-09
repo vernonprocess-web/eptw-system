@@ -14,14 +14,18 @@ let applicantSigPad = null;
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[App] Bootstrapping modular ePTW system...');
 
-  // Security Lock Check: Verify authenticated session for HQ Admin Dashboard
+  // Deep Link Forwarder: Route directly to standalone portals without loading HQ Admin Dashboard
   const urlParams = new URLSearchParams(window.location.search);
   const deepPtw = urlParams.get('ptw');
   if (deepPtw) {
-    window.location.replace(`/review.html?ptw=${encodeURIComponent(deepPtw)}`);
+    window.location.replace(`/review?ptw=${encodeURIComponent(deepPtw)}`);
     return;
   }
-  const isDeepLink = urlParams.has('tbm');
+  const deepTbm = urlParams.get('tbm');
+  if (deepTbm) {
+    window.location.replace(`/tbm?tbm=${encodeURIComponent(deepTbm)}`);
+    return;
+  }
 
   const activeEmail = localStorage.getItem('active_user_email');
   const activeRole = localStorage.getItem('active_user_role');
