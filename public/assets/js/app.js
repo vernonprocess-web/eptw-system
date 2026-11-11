@@ -30,112 +30,101 @@ document.addEventListener('DOMContentLoaded', () => {
   const activeEmail = localStorage.getItem('active_user_email');
   const activeRole = localStorage.getItem('active_user_role');
 
-  if (!isDeepLink) {
-    if (!activeEmail || !activeRole) {
-      window.location.replace('/login.html');
-      return;
-    }
-
-    if (activeRole === 'SITE_SUPERVISOR') {
-      window.location.replace('/supervisor.html');
-      return;
-    }
+  if (!activeEmail || !activeRole) {
+    window.location.replace('/login.html');
+    return;
   }
+
+  if (activeRole === 'SITE_SUPERVISOR') {
+    window.location.replace('/supervisor.html');
+    return;
+  }
+
+  // Expose TBM module functions globally for index.html tab switching
+  window.initTbmTab = initTbmTab;
+  window.fetchTbmRecords = fetchTbmRecords;
 
   // Setup Offline Sync Listeners
   setupOfflineSyncListeners(() => {
-    loadPTWs('ptwTableBody');
+    if (typeof window.loadPtwData === 'function') window.loadPtwData();
+    else loadPTWs('ptwTableBody');
+    if (typeof window.loadRAMSData === 'function') window.loadRAMSData();
+    else loadRAMS('tableBody');
+  });
+
+  // Fallback Registration only if inline controller in index.html didn't define switchTab
+  if (typeof window.switchTab !== 'function') {
+    applicantSigPad = initSignaturePad('applicantSigCanvas', null);
     loadRAMS('tableBody');
-  });
 
-  // Initialize Signature Pad
-  applicantSigPad = initSignaturePad('applicantSigCanvas', null);
+    window.switchTab = function(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-  // Load initial RAMS data
-  loadRAMS('tableBody');
+      if (tabId === 'ramsTab') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('ramsTab').classList.add('active');
+        loadRAMS('tableBody');
+      } else if (tabId === 'workerTab') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('workerTab').classList.add('active');
+        if (typeof window.loadWorkerData === 'function') window.loadWorkerData();
+      } else if (tabId === 'projectTab') {
+        document.querySelectorAll('.tab-btn')[2].classList.add('active');
+        document.getElementById('projectTab').classList.add('active');
+        if (typeof window.loadProjectData === 'function') window.loadProjectData();
+      } else if (tabId === 'ptwTab') {
+        document.querySelectorAll('.tab-btn')[3].classList.add('active');
+        document.getElementById('ptwTab').classList.add('active');
+        loadPTWs('ptwTableBody');
+      } else if (tabId === 'tbmTab') {
+        document.querySelectorAll('.tab-btn')[4].classList.add('active');
+        document.getElementById('tbmTab').classList.add('active');
+        initTbmTab();
+      } else if (tabId === 'auditTab') {
+        document.querySelectorAll('.tab-btn')[5].classList.add('active');
+        if (document.getElementById('auditTab')) document.getElementById('auditTab').classList.add('active');
+        if (typeof window.loadAuditLogs === 'function') window.loadAuditLogs();
+      }
+    };
 
-  // Register Tab Navigation
-  window.switchTab = function(tabId) {
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    setupOCRScanner('certFileInput', 'certDropzone', 'ocrLoader', (ocrResult) => {
+      if (ocrResult.name) document.getElementById('worker_name').value = ocrResult.name;
+      if (ocrResult.ic_no) document.getElementById('ic_no').value = ocrResult.ic_no;
+      if (ocrResult.wp_no) document.getElementById('wp_no').value = ocrResult.wp_no;
+      if (ocrResult.fin_no) document.getElementById('fin_no').value = ocrResult.fin_no;
+      if (ocrResult.cert_type) document.getElementById('cert_type').value = ocrResult.cert_type;
+      if (ocrResult.cert_no) document.getElementById('cert_no').value = ocrResult.cert_no;
+      if (ocrResult.issuer) document.getElementById('issuer').value = ocrResult.issuer;
+    });
+    // Calculate RPN on input change
+    const severityEl = document.getElementById('severity_s');
+    const likelihoodEl = document.getElementById('likelihood_l');
+    const rpnInput = document.getElementById('rpn');
+    const rpnBadge = document.getElementById('rpnBadge');
 
-    if (tabId === 'ramsTab') {
-      document.querySelectorAll('.tab-btn')[0].classList.add('active');
-      document.getElementById('ramsTab').classList.add('active');
-      loadRAMS('tableBody');
-    } else if (tabId === 'workerTab') {
-      document.querySelectorAll('.tab-btn')[1].classList.add('active');
-      document.getElementById('workerTab').classList.add('active');
-      if (typeof window.loadWorkerData === 'function') window.loadWorkerData();
-    } else if (tabId === 'projectTab') {
-      document.querySelectorAll('.tab-btn')[2].classList.add('active');
-      document.getElementById('projectTab').classList.add('active');
-      if (typeof window.loadProjectData === 'function') window.loadProjectData();
-    } else if (tabId === 'ptwTab') {
-      document.querySelectorAll('.tab-btn')[3].classList.add('active');
-      document.getElementById('ptwTab').classList.add('active');
-      loadPTWs('ptwTableBody');
-    } else if (tabId === 'tbmTab') {
-      document.querySelectorAll('.tab-btn')[4].classList.add('active');
-      document.getElementById('tbmTab').classList.add('active');
-      initTbmTab();
-    } else if (tabId === 'auditTab') {
-      document.querySelectorAll('.tab-btn')[5].classList.add('active');
-      if (document.getElementById('auditTab')) document.getElementById('auditTab').classList.add('active');
-      if (typeof window.loadAuditLogs === 'function') window.loadAuditLogs();
+    function updateRPNPreview() {
+      if (!severityEl || !likelihoodEl || !rpnInput) return;
+      const rpn = calculateRPN(severityEl.value, likelihoodEl.value);
+      rpnInput.value = rpn;
+      if (rpnBadge) {
+        rpnBadge.className = `rpn-score-badge ${rpn >= 12 ? 'rpn-high' : rpn >= 5 ? 'rpn-med' : 'rpn-low'}`;
+        rpnBadge.textContent = `${rpn >= 12 ? 'HIGH RISK' : rpn >= 5 ? 'MEDIUM RISK' : 'LOW RISK'} (${rpn})`;
+      }
     }
-  };
 
-  // Register Global Helpers for Table Actions
-  window.handleSort = (col) => {
-    setRAMSSort(col);
-    renderRAMSTable('tableBody', document.getElementById('searchInput')?.value || '');
-  };
+    if (severityEl) severityEl.addEventListener('change', updateRPNPreview);
+    if (likelihoodEl) likelihoodEl.addEventListener('change', updateRPNPreview);
 
-  window.setFilterStatus = (status) => {
-    document.querySelectorAll('.filter-pill').forEach(pill => pill.classList.remove('active'));
-    const btn = document.querySelector(`.filter-pill[data-filter="${status}"]`);
-    if (btn) btn.classList.add('active');
-    setPTWFilter(status, 'ptwTableBody');
-  };
-
-  // Setup OCR scanner
-  setupOCRScanner('certFileInput', 'certDropzone', 'ocrLoader', (ocrResult) => {
-    if (ocrResult.name) document.getElementById('worker_name').value = ocrResult.name;
-    if (ocrResult.ic_no) document.getElementById('ic_no').value = ocrResult.ic_no;
-    if (ocrResult.wp_no) document.getElementById('wp_no').value = ocrResult.wp_no;
-    if (ocrResult.fin_no) document.getElementById('fin_no').value = ocrResult.fin_no;
-    if (ocrResult.cert_type) document.getElementById('cert_type').value = ocrResult.cert_type;
-    if (ocrResult.cert_no) document.getElementById('cert_no').value = ocrResult.cert_no;
-    if (ocrResult.issuer) document.getElementById('issuer').value = ocrResult.issuer;
-  });
-
-  // Calculate RPN on input change
-  const severityEl = document.getElementById('severity_s');
-  const likelihoodEl = document.getElementById('likelihood_l');
-  const rpnInput = document.getElementById('rpn');
-  const rpnBadge = document.getElementById('rpnBadge');
-
-  function updateRPNPreview() {
-    if (!severityEl || !likelihoodEl || !rpnInput) return;
-    const rpn = calculateRPN(severityEl.value, likelihoodEl.value);
-    rpnInput.value = rpn;
-    if (rpnBadge) {
-      rpnBadge.outerHTML = `<div id="rpnBadge" class="rpn-score-badge ${rpn >= 12 ? 'rpn-high' : rpn >= 5 ? 'rpn-med' : 'rpn-low'}">${rpn >= 12 ? 'HIGH RISK' : rpn >= 5 ? 'MEDIUM RISK' : 'LOW RISK'} (${rpn})</div>`;
+    // Search input listeners
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => renderRAMSTable('tableBody', e.target.value));
     }
-  }
 
-  if (severityEl) severityEl.addEventListener('change', updateRPNPreview);
-  if (likelihoodEl) likelihoodEl.addEventListener('change', updateRPNPreview);
-
-  // Search input listeners
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => renderRAMSTable('tableBody', e.target.value));
-  }
-
-  const ptwSearchInput = document.getElementById('ptwSearchInput');
-  if (ptwSearchInput) {
-    ptwSearchInput.addEventListener('input', (e) => renderPTWTable('ptwTableBody', e.target.value));
+    const ptwSearchInput = document.getElementById('ptwSearchInput');
+    if (ptwSearchInput) {
+      ptwSearchInput.addEventListener('input', (e) => renderPTWTable('ptwTableBody', e.target.value));
+    }
   }
 });

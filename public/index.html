@@ -24,7 +24,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="assets/css/theme.css?v=12">
   <script src="assets/js/jszip.min.js"></script>
-  <script src="assets/js/app.js?v=13" type="module"></script>
+  <script src="assets/js/app.js?v=14" type="module"></script>
 </head>
 <body>
 
@@ -1311,7 +1311,8 @@
       } else if (tabId === 'tbmTab') {
         document.querySelectorAll('.tab-btn')[4].classList.add('active');
         document.getElementById('tbmTab').classList.add('active');
-        if (typeof window.fetchTbmRecords === 'function') window.fetchTbmRecords();
+        if (typeof window.initTbmTab === 'function') window.initTbmTab();
+        else if (typeof window.fetchTbmRecords === 'function') window.fetchTbmRecords();
       } else if (tabId === 'auditTab') {
         document.querySelectorAll('.tab-btn')[5].classList.add('active');
         document.getElementById('auditTab').classList.add('active');
@@ -4712,10 +4713,8 @@ Return ONLY valid JSON matching this schema:
 
     if (deepPtwId) {
       window.location.replace(`/review?ptw=${encodeURIComponent(deepPtwId)}`);
-      return;
     } else if (deepTbmId) {
       window.location.replace(`/tbm?tbm=${encodeURIComponent(deepTbmId)}`);
-      return;
     }
 
     if ('serviceWorker' in navigator) {
