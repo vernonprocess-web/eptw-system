@@ -34,9 +34,9 @@
         <h1>
           ePTW System & Site Management 
           <span class="badge-tag">Cloudflare D1 + R2 + Hono</span>
-          <span id="offlineStatusBadge" class="offline-status-pill online">🟢 Online</span>
-          <a href="supervisor.html" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; margin-left: 10px;">📱 Mobile Supervisor Portal</a>
-          <button onclick="localStorage.clear(); window.location.replace('login.html');" style="background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; margin-left: 8px;">🚪 Logout</button>
+          <span id="offlineStatusBadge" class="offline-status-pill online">Online</span>
+          <a href="supervisor.html" style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; margin-left: 10px;">Mobile Supervisor Portal</a>
+          <button onclick="localStorage.clear(); window.location.replace('login.html');" style="background: #334155; color: #cbd5e1; border: 1px solid #475569; padding: 6px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; margin-left: 8px;">Logout</button>
         </h1>
         <div class="subtitle">Risk Assessment (RAMS) & Multi-Certificate Worker Compliance Registry</div>
       </div>
@@ -45,22 +45,22 @@
     <!-- Tab Navigation Bar -->
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('ramsTab')">
-        📋 Master RAMS Library
+        Master RAMS Library
       </button>
       <button class="tab-btn" onclick="switchTab('workerTab')">
-        👷 Worker Registry & Gemini OCR
+        Worker Registry & Gemini OCR
       </button>
       <button class="tab-btn" onclick="switchTab('projectTab')">
-        📁 Project Directory
+        Project Directory
       </button>
       <button class="tab-btn" onclick="switchTab('ptwTab')">
-        📄 Active PTWs (ePTW)
+        Active PTWs (ePTW)
       </button>
       <button class="tab-btn" onclick="switchTab('tbmTab')">
-        🗣️ TBM & Safety Briefings Log
+        TBM & Safety Briefings Log
       </button>
       <button class="tab-btn" onclick="switchTab('auditTab')">
-        📜 Audit Logs & WSH History
+        Audit Logs & WSH History
       </button>
     </div>
 
@@ -177,7 +177,7 @@
       <!-- OCR Upload Card -->
       <div class="upload-card" id="certDropzone">
         <div onclick="document.getElementById('certFileInput').click()" style="cursor: pointer;">
-          <div class="upload-title">📄 📷 Upload Work Permit, WSQ, or Safety Certificates for Automated OCR</div>
+          <div class="upload-title">Upload Work Permit, WSQ, or Safety Certificates for Automated OCR</div>
           <div class="upload-sub">Click to browse or drag & drop files (PDF, JPG, PNG) to run Gemini Vision AI & extract certificate details</div>
         </div>
         <input type="file" id="certFileInput" accept="image/*,application/pdf,.pdf" style="display: none;" onchange="handleCertUpload(this)">
@@ -186,7 +186,7 @@
           <div style="display: flex; align-items: center; gap: 8px;">
             <label for="targetWorkerSelect" style="font-size: 0.85rem; color: #0369a1; font-weight: 700;">Target Worker:</label>
             <select id="targetWorkerSelect" style="padding: 6px 10px; font-size: 0.85rem; border-color: #0284c7; min-width: 260px;">
-              <option value="">✨ Create New Worker Profile</option>
+              <option value="">Create New Worker Profile</option>
             </select>
           </div>
 
@@ -203,7 +203,7 @@
               <div class="spinner"></div>
               <span id="ocrStatusMsg">Analyzing document with Gemini Vision AI...</span>
             </div>
-            <div class="ocr-timer-badge" id="ocrTimerBadge">⏱️ 0s elapsed</div>
+            <div class="ocr-timer-badge" id="ocrTimerBadge">0s elapsed</div>
           </div>
           <div class="ocr-progress-track">
             <div class="ocr-progress-bar"></div>
@@ -265,15 +265,15 @@
 
             <div class="form-group" style="grid-column: span 2; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 12px;">
               <label for="worker_role" style="font-weight: 700; color: #0f172a; margin-bottom: 6px; display: block;">
-                🎯 Worker System Role & Portal Authorization *
+                Worker System Role & Portal Authorization *
               </label>
               <select id="worker_role" style="width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid #94a3b8; background: #ffffff; font-weight: 600; color: #0f172a; font-size: 0.95rem;">
-                <option value="WORKER">👷 Worker (Field Crew Only — Briefed under TBMs, cannot apply for ePTWs)</option>
-                <option value="SUPERVISOR">🛡️ Supervisor (Site Supervisor Only — Can apply & sign ePTWs in mobile portal)</option>
-                <option value="SUPERVISOR_WORKER">⚡ Supervisor + Worker (Dual Role — Can apply for ePTWs AND be selected on active crew)</option>
+                <option value="WORKER">Worker (Field Crew Only — Briefed under TBMs, cannot apply for ePTWs)</option>
+                <option value="SUPERVISOR">Supervisor (Site Supervisor Only — Can apply & sign ePTWs in mobile portal)</option>
+                <option value="SUPERVISOR_WORKER">Supervisor + Worker (Dual Role — Can apply for ePTWs AND be selected on active crew)</option>
               </select>
               <small style="color: #64748b; font-size: 0.78rem; display: block; margin-top: 6px;">
-                💡 <strong>Role Guide:</strong> "Supervisor + Worker" gives access to the Mobile Supervisor Portal to apply for permits AND allows inclusion in the active work crew.
+                <strong>Role Guide:</strong> "Supervisor + Worker" gives access to the Mobile Supervisor Portal to apply for permits AND allows inclusion in the active work crew.
               </small>
             </div>
 
@@ -313,7 +313,7 @@
           <div id="multiCertPreviewContainer" style="display: none; background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 10px; padding: 14px 18px; margin: 16px 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div style="font-weight: 700; color: #15803d; font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
-                <span>🎉</span>
+                <span></span>
                 <span id="multiCertCountText">Detected Multiple Certifications</span>
               </div>
               <span style="font-size: 0.75rem; background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 12px; font-weight: 700;">1-Click Auto-Batch Save</span>
@@ -347,11 +347,11 @@
             <!-- Dual Action Export Dropdown -->
             <div style="position: relative; display: inline-block;" id="exportDropdownContainer">
               <button type="button" id="btnExportMenu" class="btn-primary" style="background: #047857; border-color: #059669; font-weight: 600; padding: 7px 14px; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;" onclick="toggleExportMenu()">
-                <span>📥 Export</span> <span id="exportSelectedCount"></span> <span>▼</span>
+                <span>Export</span> <span id="exportSelectedCount"></span> <span>▼</span>
               </button>
               <div id="exportMenuDropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); z-index: 100; min-width: 290px; padding: 6px 0;">
                 <button type="button" onclick="exportWorkersCsv()" style="width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; font-size: 0.85rem; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
-                  <span style="font-size: 1.2rem;">📊</span>
+                  <span style="font-size: 1.2rem;"></span>
                   <div>
                     <strong>Export Excel / CSV</strong>
                     <div style="font-size: 0.75rem; color: #64748b;">Roster spreadsheet with live clickable cert links</div>
@@ -359,7 +359,7 @@
                 </button>
                 <div style="height: 1px; background: #e2e8f0; margin: 4px 0;"></div>
                 <button type="button" onclick="exportWorkersComplianceZip()" style="width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; font-size: 0.85rem; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
-                  <span style="font-size: 1.2rem;">📦</span>
+                  <span style="font-size: 1.2rem;"></span>
                   <div>
                     <strong>Download Compliance ZIP</strong>
                     <div style="font-size: 0.75rem; color: #64748b;">Bundle Excel + all original PDF certificates</div>
@@ -409,10 +409,10 @@
           <form id="projectForm">
             <input type="hidden" id="editingProjectId" value="">
 
-            <!-- SECTION 1: 🏗️ Project Profile, Location & Schedule -->
+            <!-- SECTION 1: Project Profile, Location & Schedule -->
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
               <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <span>🏗️</span> <span>Project Profile, Location & Schedule</span>
+                <span></span> <span>Project Profile, Location & Schedule</span>
               </div>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
                 <div class="form-group">
@@ -443,26 +443,26 @@
                 <div class="form-group">
                   <label for="project_status_input">Project Status</label>
                   <select id="project_status_input">
-                    <option value="Active" selected>Active 🟢</option>
-                    <option value="Upcoming">Upcoming 🟡</option>
-                    <option value="Completed">Completed ⚪</option>
-                    <option value="On Hold">On Hold 🔴</option>
+                    <option value="Active" selected>Active</option>
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="Completed">Completed</option>
+                    <option value="On Hold">On Hold</option>
                   </select>
                 </div>
               </div>
             </div>
 
-            <!-- SECTION 2: 👥 Key Site Personnel & Statutory Compliance Roles -->
+            <!-- SECTION 2: Key Site Personnel & Statutory Compliance Roles -->
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
               <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
-                <span>👥</span> <span>Key Site Personnel & Statutory Compliance Roles</span>
+                <span></span> <span>Key Site Personnel & Statutory Compliance Roles</span>
               </div>
 
               <!-- Role 1: Site Supervisor (Permit Applicant) -->
               <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                   <label for="supervisor_select_input" style="color: #c2410c; font-weight: 700; margin: 0; font-size: 0.9rem;">
-                    ⚡ 1. Designated Site Supervisor <span style="font-size: 0.78rem; font-weight: 500; color: #9a3412;">(Permit Applicant)</span>
+                    1. Designated Site Supervisor <span style="font-size: 0.78rem; font-weight: 500; color: #9a3412;">(Permit Applicant)</span>
                   </label>
                   <span style="font-size: 0.75rem; background: #ffedd5; color: #c2410c; padding: 2px 8px; border-radius: 4px; font-weight: 600;">Worker Registry Verified</span>
                 </div>
@@ -475,7 +475,7 @@
               <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                   <label for="wsho_select_input" style="color: #15803d; font-weight: 700; margin: 0; font-size: 0.9rem;">
-                    🛡️ 2. Designated WSHO / Safety Assessor <span style="font-size: 0.78rem; font-weight: 500; color: #166534;">(Safety Vetting Authority)</span>
+                    2. Designated WSHO / Safety Assessor <span style="font-size: 0.78rem; font-weight: 500; color: #166534;">(Safety Vetting Authority)</span>
                   </label>
                   <span style="font-size: 0.75rem; background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-weight: 600;">WSH Officer List</span>
                 </div>
@@ -504,7 +504,7 @@
               <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 14px 16px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                   <label for="pm_select_input" style="color: #0369a1; font-weight: 700; margin: 0; font-size: 0.9rem;">
-                    👔 3. Project Manager (PM) <span style="font-size: 0.78rem; font-weight: 500; color: #075985;">(MOM Permit Approving Authority)</span>
+                    3. Project Manager (PM) <span style="font-size: 0.78rem; font-weight: 500; color: #075985;">(MOM Permit Approving Authority)</span>
                   </label>
                   <span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600;">System Users</span>
                 </div>
@@ -661,7 +661,7 @@
               <label for="ptw_applicant_email">Applicant Email (for Alert Confirmations)</label>
               <div style="display: flex; gap: 8px; align-items: center;">
                 <input type="email" id="ptw_applicant_email" placeholder="supervisor@company.com" style="flex: 1; min-width: 0;">
-                <button type="button" class="btn-secondary" style="padding: 8px 12px; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" onclick="openTelegramPairingModal()">📲 Pair Telegram</button>
+                <button type="button" class="btn-secondary" style="padding: 8px 12px; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" onclick="openTelegramPairingModal()">Pair Telegram</button>
               </div>
             </div>
 
@@ -682,12 +682,12 @@
             <div class="form-group">
               <label for="ptw_type">High-Risk Permit Category *</label>
               <select id="ptw_type" required>
-                <option value="Work at Height" selected>🔴 Work at Height (WAH)</option>
-                <option value="Hot Work">🟠 Hot Work (Welding/Grinding)</option>
-                <option value="Electrical Work">⚡ Electrical Work (MSB/LOTO)</option>
-                <option value="Lifting Operation">🔵 Lifting Operation (Crane/Rigging)</option>
-                <option value="Confined Space">🟣 Confined Space Entry</option>
-                <option value="General Construction">🟢 General Construction</option>
+                <option value="Work at Height" selected>Work at Height (WAH)</option>
+                <option value="Hot Work">Hot Work (Welding/Grinding)</option>
+                <option value="Electrical Work">Electrical Work (MSB/LOTO)</option>
+                <option value="Lifting Operation">Lifting Operation (Crane/Rigging)</option>
+                <option value="Confined Space">Confined Space Entry</option>
+                <option value="General Construction">General Construction</option>
               </select>
             </div>
 
@@ -737,9 +737,9 @@
             <div class="form-group">
               <label for="ptw_status">Permit Submission Status</label>
               <select id="ptw_status">
-                <option value="Pending Safety Vetting" selected>Pending Safety Vetting 🟠 (Standard WSH Workflow)</option>
-                <option value="Draft">Draft 🟡</option>
-                <option value="Active">Direct Active 🟢 (Bypass Review)</option>
+                <option value="Pending Safety Vetting" selected>Pending Safety Vetting (Standard WSH Workflow)</option>
+                <option value="Draft">Draft</option>
+                <option value="Active">Direct Active (Bypass Review)</option>
               </select>
             </div>
           </div>
@@ -762,11 +762,11 @@
           <!-- Quick Workflow Filter Pills for On-Site Tablets -->
           <div class="filter-bar">
             <button type="button" class="filter-pill active" data-filter="all" onclick="setFilterStatus('all')">All Permits</button>
-            <button type="button" class="filter-pill" data-filter="Pending Safety Vetting" onclick="setFilterStatus('Pending Safety Vetting')">Pending Safety Vetting 🟠</button>
-            <button type="button" class="filter-pill" data-filter="Pending PM Approval" onclick="setFilterStatus('Pending PM Approval')">Pending PM Authorization 🔵</button>
-            <button type="button" class="filter-pill" data-filter="Active" onclick="setFilterStatus('Active')">Active 🟢</button>
-            <button type="button" class="filter-pill" data-filter="Closed" onclick="setFilterStatus('Closed')">Closed ⚪</button>
-            <button type="button" class="filter-pill" data-filter="Rejected" onclick="setFilterStatus('Rejected')">Rejected 🔴</button>
+            <button type="button" class="filter-pill" data-filter="Pending Safety Vetting" onclick="setFilterStatus('Pending Safety Vetting')">Pending Safety Vetting</button>
+            <button type="button" class="filter-pill" data-filter="Pending PM Approval" onclick="setFilterStatus('Pending PM Approval')">Pending PM Authorization</button>
+            <button type="button" class="filter-pill" data-filter="Active" onclick="setFilterStatus('Active')">Active</button>
+            <button type="button" class="filter-pill" data-filter="Closed" onclick="setFilterStatus('Closed')">Closed</button>
+            <button type="button" class="filter-pill" data-filter="Rejected" onclick="setFilterStatus('Rejected')">Rejected</button>
           </div>
         </div>
 
@@ -800,36 +800,36 @@
         <div class="table-toolbar" style="flex-direction: column; align-items: stretch; gap: 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
-              <h3 style="margin: 0;">🗣️ Toolbox Meetings (TBM) & Safety Briefings Ledger</h3>
+              <h3 style="margin: 0;">Toolbox Meetings (TBM) & Safety Briefings Ledger</h3>
               <div style="font-size: 0.8rem; color: var(--text-muted);">MOM Audit Compliance • Daily Pre-Work Briefing Logs & Worker Signatures</div>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <input type="text" id="tbmSearchInput" class="search-input" placeholder="Search TBM ref, PTW ID, supervisor, site..." oninput="fetchTbmRecords()">
-              <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openCreateTbmModal()">➕ Create Shift TBM</button>
+              <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="openCreateTbmModal()">Create Shift TBM</button>
             </div>
           </div>
 
           <!-- Multi-Parameter Filter Controls -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
             <div>
-              <label for="tbmSiteFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">🏢 Per-Site Filter:</label>
+              <label for="tbmSiteFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">Per-Site Filter:</label>
               <select id="tbmSiteFilter" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" onchange="fetchTbmRecords()">
-                <option value="ALL">🏢 All Sites / Projects</option>
+                <option value="ALL">All Sites / Projects</option>
               </select>
             </div>
 
             <div>
-              <label for="tbmStatusFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">📌 Briefing Status:</label>
+              <label for="tbmStatusFilter" style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">Briefing Status:</label>
               <select id="tbmStatusFilter" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" onchange="fetchTbmRecords()">
                 <option value="ALL">All Statuses</option>
-                <option value="PENDING_BRIEFING">🟡 PENDING BRIEFING</option>
-                <option value="COMPLETED">🟢 COMPLETED & SIGNED</option>
-                <option value="CLOSED">⚪ CLOSED / ARCHIVED</option>
+                <option value="PENDING_BRIEFING">PENDING BRIEFING</option>
+                <option value="COMPLETED">COMPLETED & SIGNED</option>
+                <option value="CLOSED">CLOSED / ARCHIVED</option>
               </select>
             </div>
 
             <div>
-              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">📅 Date Range:</label>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">Date Range:</label>
               <div style="display: flex; gap: 4px; align-items: center;">
                 <input type="date" id="tbmStartDate" style="padding: 4px 6px; font-size: 0.8rem; flex: 1;" onchange="fetchTbmRecords()">
                 <span style="font-size: 0.75rem;">to</span>
@@ -838,7 +838,7 @@
             </div>
 
             <div>
-              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">⚡ Quick Range Presets:</label>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #0369a1; display: block; margin-bottom: 4px;">Quick Range Presets:</label>
               <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                 <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="setTbmDateRange('TODAY')">Today</button>
                 <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="setTbmDateRange('WEEK')">This Week</button>
@@ -901,21 +901,21 @@
         <div class="table-toolbar" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-              <span>📜 Immutable WSH Audit Log Ledger</span>
+              <span>Immutable WSH Audit Log Ledger</span>
               <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">MOM Ready</span>
             </h3>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Non-Repudiable Event History • SGT (UTC+8) Timestamps • WSH Officer & Auditor Trail</div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportAuditLogsCsv()">📥 Export CSV</button>
-            <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="printAuditLedger()">🖨️ Print WSH Trail</button>
-            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="loadAuditLogs()">🔄 Refresh Logs</button>
+            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="exportAuditLogsCsv()">Export CSV</button>
+            <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="printAuditLedger()">Print WSH Trail</button>
+            <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="loadAuditLogs()">Refresh Logs</button>
           </div>
         </div>
 
         <!-- Filter Controls Toolbar -->
         <div style="padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-          <input type="text" id="auditSearchInput" class="search-input" style="flex: 1; min-width: 220px; margin: 0;" placeholder="🔍 Search by user, action, target ID, or keywords..." oninput="filterAuditLogsLocal()">
+          <input type="text" id="auditSearchInput" class="search-input" style="flex: 1; min-width: 220px; margin: 0;" placeholder="Search by user, action, target ID, or keywords..." oninput="filterAuditLogsLocal()">
           
           <select id="auditActionFilter" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem;" onchange="loadAuditLogs()">
             <option value="">All Action Events</option>
@@ -978,7 +978,7 @@
       <div class="modal-card" style="max-width: 600px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
           <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;">
-            <span>📜 Audit Event Ledger Entry</span>
+            <span>Audit Event Ledger Entry</span>
             <span id="auditModalIdBadge" class="badge" style="background: #e2e8f0; color: #1e293b;">#0</span>
           </h3>
           <button type="button" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;" onclick="closeAuditModal()">✖</button>
@@ -997,7 +997,7 @@
       <div class="modal-card" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
           <div>
-            <h3 id="tbmModalTitle" style="margin: 0; font-size: 1.15rem; color: #0f172a;">🗣️ Safety Briefing Sheet</h3>
+            <h3 id="tbmModalTitle" style="margin: 0; font-size: 1.15rem; color: #0f172a;">Safety Briefing Sheet</h3>
             <div id="tbmModalSub" style="font-size: 0.8rem; color: #0284c7; font-weight: 600;"></div>
           </div>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeTbmModal()">✕</button>
@@ -1007,28 +1007,28 @@
           <!-- Metadata Summary Box -->
           <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 14px; font-size: 0.85rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-              <div><strong>👤 Conductor:</strong> <span id="tbmModalConductor"></span></div>
-              <div><strong>📍 Location:</strong> <span id="tbmModalLocation"></span></div>
-              <div style="grid-column: span 2;"><strong>⏱️ Date & Time (SGT):</strong> <span id="tbmModalDateTime"></span></div>
+              <div><strong>Conductor:</strong> <span id="tbmModalConductor"></span></div>
+              <div><strong>Location:</strong> <span id="tbmModalLocation"></span></div>
+              <div style="grid-column: span 2;"><strong>Date & Time (SGT):</strong> <span id="tbmModalDateTime"></span></div>
             </div>
           </div>
 
           <!-- Task-Specific Hazards -->
           <div style="margin-bottom: 14px;">
-            <h4 style="margin: 0 0 6px 0; font-size: 0.9rem; color: #0369a1;">⚠️ Task-Specific Hazards & RAMS Controls Discussed:</h4>
+            <h4 style="margin: 0 0 6px 0; font-size: 0.9rem; color: #0369a1;">Task-Specific Hazards & RAMS Controls Discussed:</h4>
             <div id="tbmModalHazards" style="background: #fff; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px; font-size: 0.85rem; white-space: pre-wrap; color: #1e293b; max-height: 120px; overflow-y: auto;"></div>
           </div>
 
           <!-- MOM 2-Way Communication: Worker Concerns Raised -->
           <div style="margin-bottom: 16px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; border-radius: 6px;">
-            <h4 style="margin: 0 0 4px 0; font-size: 0.88rem; color: #15803d;">🗣️ Worker Feedback & Safety Concerns Raised (MOM 2-Way Communication):</h4>
+            <h4 style="margin: 0 0 4px 0; font-size: 0.88rem; color: #15803d;">Worker Feedback & Safety Concerns Raised (MOM 2-Way Communication):</h4>
             <div style="font-size: 0.75rem; color: #166534; margin-bottom: 6px;">Document any worker observations, equipment replacement requests, or site hazard feedback raised during the briefing.</div>
             <textarea id="tbmModalConcerns" style="width: 100%; box-sizing: border-box; height: 60px; padding: 8px; border: 1px solid #86efac; border-radius: 6px; font-size: 0.85rem; background: #ffffff;" placeholder="Enter worker feedback or type 'Nil / No concerns raised'..."></textarea>
           </div>
 
           <!-- Worker Attendance Roster & Signatures -->
           <div>
-            <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #0f172a;">👥 Attending Worker Sign-off Manifest (MOM Identity Binding):</h4>
+            <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #0f172a;">Attending Worker Sign-off Manifest (MOM Identity Binding):</h4>
             <div id="tbmWorkerRoster">
               <!-- Loaded dynamically via JS -->
             </div>
@@ -1037,7 +1037,7 @@
 
         <div class="form-actions" style="margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
           <button type="button" class="btn-secondary" onclick="closeTbmModal()">Close Window</button>
-          <button type="button" class="btn-primary" onclick="submitTbmBriefingSignatures()">🔒 Save & Complete Briefing</button>
+          <button type="button" class="btn-primary" onclick="submitTbmBriefingSignatures()">Save & Complete Briefing</button>
         </div>
       </div>
     </div>
@@ -1046,7 +1046,7 @@
     <div id="createTbmModal" class="modal-backdrop" style="display: none;">
       <div class="modal-card" style="max-width: 520px;">
         <div class="modal-header">
-          <h3>➕ Create Shift Toolbox Meeting (TBM)</h3>
+          <h3>Create Shift Toolbox Meeting (TBM)</h3>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeCreateTbmModal()">✕</button>
         </div>
         <form id="createTbmForm" onsubmit="handleCreateTbmSubmit(event)">
@@ -1070,7 +1070,7 @@
           </div>
           <div class="form-actions">
             <button type="button" class="btn-secondary" onclick="closeCreateTbmModal()">Cancel</button>
-            <button type="submit" class="btn-primary">🚀 Initialize Shift Briefing</button>
+            <button type="submit" class="btn-primary">Initialize Shift Briefing</button>
           </div>
         </form>
       </div>
@@ -1080,7 +1080,7 @@
     <div id="provisionalSiteModal" class="modal-backdrop">
       <div class="modal-card">
         <div class="modal-header">
-          <h3>⚡ Register Provisional Site Location</h3>
+          <h3>Register Provisional Site Location</h3>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeProvisionalSiteModal()">✕</button>
         </div>
         <form id="provisionalSiteForm">
@@ -1108,7 +1108,7 @@
     <div id="permitViewModal" class="modal-backdrop">
       <div class="modal-card" style="max-width: 700px;">
         <div class="modal-header">
-          <h3 id="permitViewTitle">📄 Permit to Work Document</h3>
+          <h3 id="permitViewTitle">Permit to Work Document</h3>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closePermitViewModal()">✕</button>
         </div>
         <div id="permitViewBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main);">
@@ -1116,7 +1116,7 @@
         </div>
         <div class="form-actions" style="margin-top: 20px;">
           <button type="button" class="btn-secondary" onclick="closePermitViewModal()">Close</button>
-          <button type="button" class="btn-primary" onclick="window.print()">🖨️ Print Permit</button>
+          <button type="button" class="btn-primary" onclick="window.print()">Print Permit</button>
         </div>
       </div>
     </div>
@@ -1125,7 +1125,7 @@
     <div id="workerViewModal" class="modal-backdrop" style="display: none;">
       <div class="modal-card" style="max-width: 740px; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
-          <h3 id="workerViewTitle">👤 Worker Details & Certificates</h3>
+          <h3 id="workerViewTitle">Worker Details & Certificates</h3>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeWorkerViewModal()">✕</button>
         </div>
         <div id="workerViewBody" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); overflow-y: auto; padding-right: 4px;">
@@ -1133,7 +1133,7 @@
         </div>
         <div class="form-actions" style="margin-top: 20px;">
           <button type="button" class="btn-secondary" onclick="closeWorkerViewModal()">Close</button>
-          <button type="button" class="btn-primary" id="workerViewEditBtn">✏️ Edit Worker Profile</button>
+          <button type="button" class="btn-primary" id="workerViewEditBtn">Edit Worker Profile</button>
         </div>
       </div>
     </div>
@@ -1142,7 +1142,7 @@
     <div id="certEditModal" class="modal-backdrop" style="display: none; z-index: 1050;">
       <div class="modal-card" style="max-width: 520px; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
-          <h3 id="certEditModalTitle">✏️ Edit Certificate Details</h3>
+          <h3 id="certEditModalTitle">Edit Certificate Details</h3>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeCertEditModal()">✕</button>
         </div>
         <form id="certEditForm" onsubmit="handleCertEditSubmit(event)">
@@ -1184,7 +1184,7 @@
       <div class="modal-card" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
           <div>
-            <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a;">🔒 Permit Closure & Site De-isolation</h3>
+            <h3 style="margin: 0; font-size: 1.15rem; color: #0f172a;">Permit Closure & Site De-isolation</h3>
             <div id="closePtwSubTitle" style="font-size: 0.8rem; color: #0284c7; font-weight: 600;">MOM WSH ePTW Compliance • Supervisor Site Handover Sign-off</div>
           </div>
           <button type="button" class="btn-secondary" style="padding: 4px 8px;" onclick="closeClosePermitModal()">✕</button>
@@ -1195,7 +1195,7 @@
 
           <!-- Safety Verification Checklist -->
           <div style="background: #fff7ed; border: 1px solid #ffedd5; padding: 12px; border-radius: 6px; margin-bottom: 14px;">
-            <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #c2410c;">⚠️ Required Site De-isolation & Housekeeping Checks *</h4>
+            <h4 style="margin: 0 0 8px 0; font-size: 0.88rem; color: #c2410c;">Required Site De-isolation & Housekeeping Checks *</h4>
             
             <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-bottom: 8px; cursor: pointer; color: #1e293b;">
               <input type="checkbox" id="chk_close_completed" required style="width: 16px; height: 16px; accent-color: #ea580c;">
@@ -1244,7 +1244,7 @@
 
           <div class="form-actions" style="margin-top: 14px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
             <button type="button" class="btn-secondary" onclick="closeClosePermitModal()">Cancel</button>
-            <button type="submit" id="btnConfirmClosePtw" class="btn-primary" style="background-color: #ea580c; border-color: #c2410c;">🔒 Confirm & Close Permit</button>
+            <button type="submit" id="btnConfirmClosePtw" class="btn-primary" style="background-color: #ea580c; border-color: #c2410c;">Confirm & Close Permit</button>
           </div>
         </form>
       </div>
@@ -1612,12 +1612,12 @@
 
     // Populate Target Worker Select Dropdown
     function populateTargetWorkerDropdown(selectedWorkerId = '') {
-      targetWorkerSelect.innerHTML = '<option value="">✨ Create New Worker Profile</option>';
+      targetWorkerSelect.innerHTML = '<option value="">Create New Worker Profile</option>';
       workerData.forEach(w => {
         const option = document.createElement('option');
         option.value = w.worker_id;
         const mainId = w.ic_no || w.wp_no || w.fin_no || w.ic_wp_no || 'No ID';
-        option.textContent = `👤 Attach to: ${w.name} (${mainId} / ${w.worker_id})`;
+        option.textContent = `Attach to: ${w.name} (${mainId} / ${w.worker_id})`;
         if (w.worker_id === selectedWorkerId) {
           option.selected = true;
         }
@@ -1780,18 +1780,18 @@ Return ONLY valid JSON matching this schema:
 
       if (cockpit) cockpit.style.display = 'flex';
       if (dropzone) dropzone.classList.add('scanning');
-      if (timerBadge) timerBadge.textContent = '⏱️ 0s elapsed';
+      if (timerBadge) timerBadge.textContent = '0s elapsed';
       if (stepDetail) stepDetail.textContent = 'Scanning Work Permit, BCSS, WAHS & Safety Certifications • Usually takes 5–8 seconds';
 
       ocrTimer = setInterval(() => {
         elapsedSeconds++;
-        if (timerBadge) timerBadge.textContent = `⏱️ ${elapsedSeconds}s elapsed`;
+        if (timerBadge) timerBadge.textContent = `${elapsedSeconds}s elapsed`;
         if (elapsedSeconds === 2 && stepDetail) {
-          stepDetail.textContent = '🔍 Reading text & identifying worker credentials...';
+          stepDetail.textContent = 'Reading text & identifying worker credentials...';
         } else if (elapsedSeconds === 4 && stepDetail) {
-          stepDetail.textContent = '📋 Parsing multiple certificates, course serials & dates...';
+          stepDetail.textContent = 'Parsing multiple certificates, course serials & dates...';
         } else if (elapsedSeconds >= 7 && stepDetail) {
-          stepDetail.textContent = '✨ Finalizing structured verification data...';
+          stepDetail.textContent = 'Finalizing structured verification data...';
         }
       }, 1000);
 
@@ -1821,7 +1821,7 @@ Return ONLY valid JSON matching this schema:
           if (!ocr.name || (result.ocr_error && result.ocr_error.includes('location'))) {
             const effectiveKey = apiKey || result.fallback_key;
             if (effectiveKey) {
-              if (stepDetail) stepDetail.textContent = '🌐 Rerouting scan directly via your Singapore connection...';
+              if (stepDetail) stepDetail.textContent = 'Rerouting scan directly via your Singapore connection...';
               try {
                 const clientOcr = await extractWithGeminiClientSide(file, effectiveKey);
                 if (clientOcr && clientOcr.name) {
@@ -1937,7 +1937,7 @@ Return ONLY valid JSON matching this schema:
                 </div>
               `).join('');
               multiContainer.style.display = 'block';
-              btnSubmitWorker.textContent = `💾 Save Worker & All ${currentOcrCertificates.length} Certificates`;
+              btnSubmitWorker.textContent = `Save Worker & All ${currentOcrCertificates.length} Certificates`;
               showToast(`Gemini Vision detected ${currentOcrCertificates.length} certificates on this document!`, 'success');
             } else if (multiContainer) {
               showToast(`Gemini Vision detected ${currentOcrCertificates.length} certificates on this document!`, 'success');
@@ -2175,9 +2175,9 @@ Return ONLY valid JSON matching this schema:
         const hasExpired = certs.some(c => c.cert_expiry && c.cert_expiry < todayStr);
         const overallStatus = certs.length === 0 ? 'NO CERTS' : (hasExpired ? 'HAS EXPIRED CERT' : 'VALID');
 
-        let roleText = 'Field Worker';
-        if (w.role === 'SUPERVISOR') roleText = 'Site Supervisor (Applicant Only)';
-        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Working Supervisor (Dual Role: Applicant & Crew)';
+        let roleText = 'Worker';
+        if (w.role === 'SUPERVISOR') roleText = 'Supervisor';
+        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Sup + Worker';
 
         const certSummary = certs.map((c, i) => {
           let desc = `${i + 1}. ${c.cert_type}`;
@@ -2276,9 +2276,9 @@ Return ONLY valid JSON matching this schema:
         const hasExpired = certs.some(c => c.cert_expiry && c.cert_expiry < dateTag);
         const overallStatus = certs.length === 0 ? 'NO CERTS' : (hasExpired ? 'HAS EXPIRED CERT' : 'VALID');
 
-        let roleText = 'Field Worker';
-        if (w.role === 'SUPERVISOR') roleText = 'Site Supervisor (Applicant Only)';
-        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Working Supervisor (Dual Role: Applicant & Crew)';
+        let roleText = 'Worker';
+        if (w.role === 'SUPERVISOR') roleText = 'Supervisor';
+        else if (w.role === 'SUPERVISOR_WORKER') roleText = 'Sup + Worker';
 
         const cleanWorkerName = (w.name || 'Worker').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_');
         const workerFolderName = `${cleanWorkerName}_${w.worker_id}`;
@@ -2441,11 +2441,11 @@ Return ONLY valid JSON matching this schema:
 
         let roleBadge = '';
         if (item.role === 'SUPERVISOR') {
-          roleBadge = `<span class="status-badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">🛡️ Supervisor</span>`;
+          roleBadge = `<span class="status-badge" style="background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Supervisor</span>`;
         } else if (item.role === 'SUPERVISOR_WORKER') {
-          roleBadge = `<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">⚡ Sup + Worker</span>`;
+          roleBadge = `<span class="status-badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Sup + Worker</span>`;
         } else {
-          roleBadge = `<span class="status-badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">👷 Worker</span>`;
+          roleBadge = `<span class="status-badge" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap;">Worker</span>`;
         }
 
         // Consolidated Identification cell (WP / FIN / NRIC)
@@ -2481,7 +2481,7 @@ Return ONLY valid JSON matching this schema:
             <td style="text-align: center;">${overallStatusHTML}</td>
             <td style="text-align: center; white-space: nowrap;">
               <div class="action-btn-group">
-                <button class="btn-action-view" onclick="openWorkerDetailModal('${escapeHtml(item.worker_id)}')">👤 Details</button>
+                <button class="btn-action-view" onclick="openWorkerDetailModal('${escapeHtml(item.worker_id)}')">Details</button>
                 <button class="btn-action-view" onclick="prepareAddCert('${escapeHtml(item.worker_id)}')">+ Add Cert</button>
                 <button class="btn-action-edit" onclick="startEditWorker('${escapeHtml(item.worker_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deleteWorker('${escapeHtml(item.worker_id)}')">Delete</button>
@@ -2529,7 +2529,7 @@ Return ONLY valid JSON matching this schema:
             <tr class="drawer-row">
               <td colspan="10">
                 <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
-                  📜 Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
+                  Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
                 </div>
                 <table class="drawer-table">
                   <thead>
@@ -2639,7 +2639,7 @@ Return ONLY valid JSON matching this schema:
         const result = await response.json();
         if (result.success) {
           const successMsg = result.cert_count && result.cert_count > 1
-            ? `🎉 Saved worker profile and all ${result.cert_count} certificates!`
+            ? `Saved worker profile and all ${result.cert_count} certificates!`
             : (isEditingWorkerProfile ? 'Worker profile updated!' : 'Certificate saved to worker registry!');
           showToast(successMsg, 'success');
           resetWorkerForm();
@@ -2734,7 +2734,7 @@ Return ONLY valid JSON matching this schema:
 
       const modalTitle = document.getElementById('certEditModalTitle');
       if (modalTitle && foundWorker) {
-        modalTitle.textContent = `✏️ Edit Cert - ${foundWorker.name}`;
+        modalTitle.textContent = `Edit Cert - ${foundWorker.name}`;
       }
 
       const modal = document.getElementById('certEditModal');
@@ -2827,7 +2827,7 @@ Return ONLY valid JSON matching this schema:
       const body = document.getElementById('workerViewBody');
       const editBtn = document.getElementById('workerViewEditBtn');
 
-      title.textContent = `👤 Worker Profile: ${item.name} (${item.worker_id})`;
+      title.textContent = `Worker Profile: ${item.name} (${item.worker_id})`;
       if (editBtn) {
         editBtn.onclick = function() {
           closeWorkerViewModal();
@@ -2879,13 +2879,13 @@ Return ONLY valid JSON matching this schema:
             <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">IC No (NRIC)</span> <code>${escapeHtml(item.ic_no || '-')}</code></div>
             <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Work Permit (WP)</span> <code>${escapeHtml(item.wp_no || '-')}</code></div>
             <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">FIN No</span> <code>${escapeHtml(item.fin_no || '-')}</code></div>
-            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">System Role</span> <strong>${item.role === 'SUPERVISOR' ? '🛡️ Supervisor (Applicant Only)' : (item.role === 'SUPERVISOR_WORKER' ? '⚡ Supervisor + Worker (Dual Role)' : '👷 Worker (Crew Only)')}</strong></div>
+            <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">System Role</span> <strong>${item.role === 'SUPERVISOR' ? 'Supervisor (Applicant Only)' : (item.role === 'SUPERVISOR_WORKER' ? 'Supervisor + Worker (Dual Role)' : 'Worker (Crew Only)')}</strong></div>
             <div style="min-width: 0; word-break: break-all; overflow-wrap: anywhere;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Email</span> <span style="font-weight: 600; font-size: 0.85rem; color: #1e293b;">${escapeHtml(item.email || '-')}</span></div>
             <div style="min-width: 0; word-break: break-word;"><span style="color: #64748b; font-size: 0.8rem; display: block;">Phone</span> <code style="font-weight: 600; font-size: 0.85rem;">${escapeHtml(item.phone || '-')}</code></div>
           </div>
         </div>
 
-        <h4 style="margin: 16px 0 8px 0; color: #1e293b;">📜 Certificates & Accreditations (${certs.length})</h4>
+        <h4 style="margin: 16px 0 8px 0; color: #1e293b;">Certificates & Accreditations (${certs.length})</h4>
         <table class="drawer-table" style="width: 100%;">
           <thead>
             <tr>
@@ -3098,7 +3098,7 @@ Return ONLY valid JSON matching this schema:
         pms.forEach(pm => {
           const opt = document.createElement('option');
           opt.value = pm.id;
-          opt.textContent = `👔 ${pm.name} (${pm.email})`;
+          opt.textContent = `${pm.name} (${pm.email})`;
           opt.dataset.name = pm.name;
           opt.dataset.email = pm.email;
           opt.dataset.phone = pm.phone || '';
@@ -3112,7 +3112,7 @@ Return ONLY valid JSON matching this schema:
         wshos.forEach(w => {
           const opt = document.createElement('option');
           opt.value = w.id;
-          opt.textContent = `🛡️ ${w.name} - ${w.role} (${w.email})`;
+          opt.textContent = `${w.name} - ${w.role} (${w.email})`;
           opt.dataset.name = w.name;
           opt.dataset.email = w.email;
           opt.dataset.phone = w.phone || '';
@@ -3122,7 +3122,7 @@ Return ONLY valid JSON matching this schema:
           if (w.trade && (w.trade.toLowerCase().includes('wsho') || w.trade.toLowerCase().includes('safety') || w.trade.toLowerCase().includes('officer'))) {
             const opt = document.createElement('option');
             opt.value = `wrk_${w.worker_id}`;
-            opt.textContent = `👷 ${w.name} - ${w.trade} (${w.email || w.phone || w.worker_id})`;
+            opt.textContent = `${w.name} - ${w.trade} (${w.email || w.phone || w.worker_id})`;
             opt.dataset.name = w.name;
             opt.dataset.email = w.email || '';
             opt.dataset.phone = w.phone || '';
@@ -3144,8 +3144,8 @@ Return ONLY valid JSON matching this schema:
           supervisors.forEach(w => {
             const opt = document.createElement('option');
             opt.value = w.worker_id;
-            const roleTag = w.role === 'SUPERVISOR' ? '🛡️ [Site Supervisor]' : '⚡ [Working Supervisor]';
-            const contactInfo = [w.phone ? '☎️ ' + w.phone : '', w.email ? '✉️ ' + w.email : ''].filter(Boolean).join(' ');
+            const roleTag = w.role === 'SUPERVISOR' ? '[Site Supervisor]' : '[Working Supervisor]';
+            const contactInfo = [w.phone ? '' + w.phone : '', w.email ? '' + w.email : ''].filter(Boolean).join(' ');
             opt.textContent = `${roleTag} ${w.name} (${w.trade || 'General'})${contactInfo ? ' - ' + contactInfo : ''}`;
             opt.dataset.name = w.name;
             opt.dataset.email = w.email || '';
@@ -3273,10 +3273,10 @@ Return ONLY valid JSON matching this schema:
 
     function getProjectStatusBadge(status) {
       const s = (status || 'Active').toLowerCase();
-      if (s === 'active') return '<span class="status-badge status-project-active">ACTIVE 🟢</span>';
-      if (s === 'upcoming') return '<span class="status-badge status-project-upcoming">UPCOMING 🟡</span>';
-      if (s === 'completed') return '<span class="status-badge status-project-completed">COMPLETED ⚪</span>';
-      if (s === 'on hold' || s === 'onhold') return '<span class="status-badge status-project-onhold">ON HOLD 🔴</span>';
+      if (s === 'active') return '<span class="status-badge status-project-active">ACTIVE</span>';
+      if (s === 'upcoming') return '<span class="status-badge status-project-upcoming">UPCOMING</span>';
+      if (s === 'completed') return '<span class="status-badge status-project-completed">COMPLETED</span>';
+      if (s === 'on hold' || s === 'onhold') return '<span class="status-badge status-project-onhold">ON HOLD</span>';
       return `<span class="status-badge status-project-active">${escapeHtml(status)}</span>`;
     }
 
@@ -3294,10 +3294,10 @@ Return ONLY valid JSON matching this schema:
         const statusBadge = getProjectStatusBadge(item.status);
         const pmText = item.project_manager || 'TBD';
         const pmContactText = item.pm_phone || item.pm_email
-          ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.pm_phone ? '☎️ ' + item.pm_phone : '')}${item.pm_phone && item.pm_email ? ' ' : ''}${escapeHtml(item.pm_email || '')}</div>`
+          ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.pm_phone ? '' + item.pm_phone : '')}${item.pm_phone && item.pm_email ? ' ' : ''}${escapeHtml(item.pm_email || '')}</div>`
           : '';
         const wshoText = item.wsho_name || 'Unassigned';
-        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone ? '☎️ ' + item.wsho_phone : '')}${item.wsho_phone && item.wsho_email ? ' ' : ''}${escapeHtml(item.wsho_email || '')}</div>` : '';
+        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone ? '' + item.wsho_phone : '')}${item.wsho_phone && item.wsho_email ? ' ' : ''}${escapeHtml(item.wsho_email || '')}</div>` : '';
 
         return `
           <tr>
@@ -3317,7 +3317,7 @@ Return ONLY valid JSON matching this schema:
             <td style="text-align: center;">${statusBadge}</td>
             <td style="text-align: center;">
               <div class="action-btn-group">
-                <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">📊 View Dashboard</button>
+                <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">View Dashboard</button>
                 <button class="btn-action-edit" onclick="startEditProject('${escapeHtml(item.project_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deleteProject('${escapeHtml(item.project_id)}')">Delete</button>
               </div>
@@ -3503,7 +3503,7 @@ Return ONLY valid JSON matching this schema:
         const option = document.createElement('option');
         option.value = p.project_id;
         const wshoInfo = p.wsho_name ? ` | WSHO: ${p.wsho_name}` : '';
-        option.textContent = `📍 ${p.project_name} (${p.project_id} | ${p.location}${wshoInfo})`;
+        option.textContent = `${p.project_name} (${p.project_id} | ${p.location}${wshoInfo})`;
         if (p.project_id === selectedProjectId) {
           option.selected = true;
         }
@@ -3530,7 +3530,7 @@ Return ONLY valid JSON matching this schema:
 
         const expiredCert = certs.find(c => c.cert_expiry && c.cert_expiry < todayStr);
         const expiredBadge = expiredCert 
-          ? `<span style="background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; margin-left: 6px;">⛔ EXPIRED: ${escapeHtml(expiredCert.cert_type)}</span>` 
+          ? `<span style="background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem; margin-left: 6px;">EXPIRED: ${escapeHtml(expiredCert.cert_type)}</span>` 
           : '';
 
         return `
@@ -3681,24 +3681,24 @@ Return ONLY valid JSON matching this schema:
         const diffMs = expiryTime - now;
 
         if (diffMs <= 0) {
-          return '<span class="status-badge status-ptw-rejected" style="background: #fee2e2; color: #b91c1c;">EXPIRED 🔴</span>';
+          return '<span class="status-badge status-ptw-rejected" style="background: #fee2e2; color: #b91c1c;">EXPIRED</span>';
         } else if (diffMs < 3600000) { // Less than 1 hr
           const mins = Math.max(1, Math.floor(diffMs / 60000));
-          expiryBadge = `<div style="font-size: 0.72rem; color: #d97706; font-weight: 800; margin-top: 3px;">⏳ Expiring Soon (${mins}m left) 🟡</div>`;
+          expiryBadge = `<div style="font-size: 0.72rem; color: #d97706; font-weight: 800; margin-top: 3px;">Expiring Soon (${mins}m left)</div>`;
         } else {
           const hours = Math.floor(diffMs / 3600000);
           const mins = Math.floor((diffMs % 3600000) / 60000);
-          expiryBadge = `<div style="font-size: 0.72rem; color: #15803d; font-weight: 700; margin-top: 3px;">⏱️ ${hours}h ${mins}m left</div>`;
+          expiryBadge = `<div style="font-size: 0.72rem; color: #15803d; font-weight: 700; margin-top: 3px;">${hours}h ${mins}m left</div>`;
         }
       }
 
       let baseBadge = `<span class="status-badge status-ptw-active">${escapeHtml(status)}</span>`;
-      if (s === 'active') baseBadge = '<span class="status-badge status-ptw-active">ACTIVE 🟢</span>';
-      else if (s === 'pending safety vetting' || s === 'pending safety') baseBadge = '<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>';
-      else if (s === 'pending pm approval' || s === 'pending pm') baseBadge = '<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>';
-      else if (s === 'draft') baseBadge = '<span class="status-badge status-ptw-draft">DRAFT 🟡</span>';
-      else if (s === 'closed') baseBadge = '<span class="status-badge status-ptw-closed">CLOSED ⚪</span>';
-      else if (s === 'rejected') baseBadge = '<span class="status-badge status-ptw-rejected">REJECTED 🔴</span>';
+      if (s === 'active') baseBadge = '<span class="status-badge status-ptw-active">ACTIVE</span>';
+      else if (s === 'pending safety vetting' || s === 'pending safety') baseBadge = '<span class="status-badge status-ptw-pending-safety">SAFETY VETTING</span>';
+      else if (s === 'pending pm approval' || s === 'pending pm') baseBadge = '<span class="status-badge status-ptw-pending-pm">PM APPROVAL</span>';
+      else if (s === 'draft') baseBadge = '<span class="status-badge status-ptw-draft">DRAFT</span>';
+      else if (s === 'closed') baseBadge = '<span class="status-badge status-ptw-closed">CLOSED</span>';
+      else if (s === 'rejected') baseBadge = '<span class="status-badge status-ptw-rejected">REJECTED</span>';
 
       return `${baseBadge}${expiryBadge}`;
     }
@@ -3755,11 +3755,11 @@ Return ONLY valid JSON matching this schema:
         if (item.status === 'Draft') {
           stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #ffedd5; color: #c2410c;" onclick="updatePtwStatus('${escapeHtml(item.ptw_id)}', 'Pending Safety Vetting')">Submit for Vetting</button>`;
         } else if (item.status === 'Pending Safety Vetting') {
-          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #ffedd5; color: #c2410c;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Endorse (Safety)</button>`;
+          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #ffedd5; color: #c2410c;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">Endorse (Safety)</button>`;
         } else if (item.status === 'Pending PM Approval') {
-          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #e0e7ff; color: #3730a3;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Authorize (PM)</button>`;
+          stageActionBtn = `<button class="btn-action-dashboard" style="background-color: #e0e7ff; color: #3730a3;" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">Authorize (PM)</button>`;
         } else if (item.status === 'Active') {
-          stageActionBtn = `<button class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="openClosePermitModal('${escapeHtml(item.ptw_id)}')">🔒 Close Permit</button>`;
+          stageActionBtn = `<button class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="openClosePermitModal('${escapeHtml(item.ptw_id)}')">Close Permit</button>`;
         }
 
         return `
@@ -3768,7 +3768,7 @@ Return ONLY valid JSON matching this schema:
             <td>
               <strong>${escapeHtml(item.project_name || item.project_id)}</strong>
               <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.location || '')}</div>
-              ${item.wsho_name ? `<div style="font-size: 0.72rem; color: #0284c7;">🛡️ ${escapeHtml(item.wsho_name)}</div>` : ''}
+              ${item.wsho_name ? `<div style="font-size: 0.72rem; color: #0284c7;">${escapeHtml(item.wsho_name)}</div>` : ''}
             </td>
             <td><strong>${escapeHtml(item.ptw_type || 'Work at Height')}</strong></td>
             <td>${escapeHtml(item.work_description)}</td>
@@ -3779,7 +3779,7 @@ Return ONLY valid JSON matching this schema:
             <td style="text-align: center;">${statusBadge}</td>
             <td style="text-align: center;">
               <div class="action-btn-group">
-                <button class="btn-action-view" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ Review</button>
+                <button class="btn-action-view" onclick="openPermitViewModal('${escapeHtml(item.ptw_id)}')">Review</button>
                 ${stageActionBtn}
                 <button class="btn-action-edit" onclick="startEditPtw('${escapeHtml(item.ptw_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deletePtw('${escapeHtml(item.ptw_id)}')">Delete</button>
@@ -3807,7 +3807,7 @@ Return ONLY valid JSON matching this schema:
       const expiredWorker = selectedWorkerCheckboxes.find(cb => cb.dataset.hasExpiredCert === 'true');
       if (expiredWorker) {
         const workerName = expiredWorker.dataset.workerName || 'Assigned worker';
-        showToast(`⛔ Safety Safeguard: Cannot submit permit! ${workerName} has an EXPIRED safety certificate!`, 'error');
+        showToast(`Safety Safeguard: Cannot submit permit! ${workerName} has an EXPIRED safety certificate!`, 'error');
         return;
       }
 
@@ -4069,7 +4069,7 @@ Return ONLY valid JSON matching this schema:
     window.loadAuditLogs = async function() {
       const container = document.getElementById('auditLogTableBody');
       if (!container) return;
-      container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">⏳ Fetching non-repudiable audit ledger...</td></tr>`;
+      container.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">Fetching non-repudiable audit ledger...</td></tr>`;
 
       try {
         const action = document.getElementById('auditActionFilter')?.value || '';
@@ -4152,7 +4152,7 @@ Return ONLY valid JSON matching this schema:
             </td>
             <td style="font-size:0.85rem; color:#334155; max-width:320px; line-height:1.4;">${shortDetails}</td>
             <td style="text-align:center;">
-              <button type="button" class="btn-secondary" style="padding:3px 8px; font-size:0.75rem;" onclick="showAuditDetailModal(${log.log_id})">🔍 View</button>
+              <button type="button" class="btn-secondary" style="padding:3px 8px; font-size:0.75rem;" onclick="showAuditDetailModal(${log.log_id})">View</button>
             </td>
           </tr>
         `;
@@ -4326,7 +4326,7 @@ Return ONLY valid JSON matching this schema:
         return;
       }
 
-      document.getElementById('permitViewTitle').textContent = `📄 Digital ePTW Audit Summary — ${item.ptw_id}`;
+      document.getElementById('permitViewTitle').textContent = `Digital ePTW Audit Summary — ${item.ptw_id}`;
 
       let workerIds = [];
       try { workerIds = typeof item.assigned_workers_json === 'string' ? JSON.parse(item.assigned_workers_json) : (item.assigned_workers_json || []); } catch(e){}
@@ -4390,7 +4390,7 @@ Return ONLY valid JSON matching this schema:
       if (s === 'pending safety vetting' || s === 'pending safety') {
         endorsementPanelHtml = `
           <div style="background: #fff7ed; border: 2px dashed #f97316; padding: 16px; border-radius: 8px; margin-top: 16px;">
-            <h4 style="color: #c2410c; margin-bottom: 8px;">🛡️ Safety Assessor (WSHO) Endorsement Panel</h4>
+            <h4 style="color: #c2410c; margin-bottom: 8px;">Safety Assessor (WSHO) Endorsement Panel</h4>
             <p style="font-size: 0.85rem; color: #475569; margin-bottom: 10px;">
               Target Safety Assessor: <strong>${escapeHtml(item.wsho_name || 'Designated Site WSHO')}</strong> (${escapeHtml(item.wsho_email || item.wsho_phone || 'Contact pending')})
             </p>
@@ -4406,14 +4406,14 @@ Return ONLY valid JSON matching this schema:
       } else if (s === 'pending pm approval' || s === 'pending pm') {
         endorsementPanelHtml = `
           <div style="background: #eff6ff; border: 2px dashed #3b82f6; padding: 16px; border-radius: 8px; margin-top: 16px;">
-            <h4 style="color: #1d4ed8; margin-bottom: 8px;">👔 Project Manager Final Authorization Panel</h4>
+            <h4 style="color: #1d4ed8; margin-bottom: 8px;">Project Manager Final Authorization Panel</h4>
             <p style="font-size: 0.85rem; color: #475569; margin-bottom: 10px;">
               Target Project Manager: <strong>${escapeHtml(item.assigned_pm_name || item.project_manager || 'Site PM')}</strong> (${escapeHtml(item.assigned_pm_email || item.pm_email || 'Email pending')})
             </p>
             <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 6px;">Sign below for final site permit issuance:</label>
             <canvas id="modalPmSigCanvas" width="400" height="100" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 400px; height: 100px; border: 1px dashed #3b82f6; border-radius: 4px; background: #fff;"></canvas>
             <div style="margin-top: 8px; display: flex; gap: 10px;">
-              <button type="button" class="btn-primary" style="background-color: #2563eb;" onclick="submitPmAuthorization('${escapeHtml(item.ptw_id)}')">Authorize & Issue Active Permit 🟢</button>
+              <button type="button" class="btn-primary" style="background-color: #2563eb;" onclick="submitPmAuthorization('${escapeHtml(item.ptw_id)}')">Authorize & Issue Active Permit</button>
               <button type="button" class="btn-secondary" onclick="clearSignatureCanvas('modalPmSigCanvas')">Clear</button>
               <button type="button" class="btn-secondary" style="background-color: #fee2e2; color: #b91c1c;" onclick="rejectPermit('${escapeHtml(item.ptw_id)}')">Reject Permit</button>
             </div>
@@ -4431,7 +4431,7 @@ Return ONLY valid JSON matching this schema:
           </div>
           <div style="display: flex; align-items: center; gap: 12px;">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${qrUrl}" alt="ePTW QR" style="width: 54px; height: 54px; border-radius: 4px; border: 1px solid #ffffff; background: #ffffff; padding: 2px;">
-            <button type="button" class="btn-secondary no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer;">🖨️ Print Pass</button>
+            <button type="button" class="btn-secondary no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer;">Print Pass</button>
           </div>
         </div>
         ${stepperHtml}
@@ -4468,12 +4468,12 @@ Return ONLY valid JSON matching this schema:
 
         <!-- Digital Signatures Audit Grid -->
         <div style="border-top: 2px solid #e2e8f0; pt-14; margin-top: 16px; padding-top: 14px;">
-          <h4 style="font-size: 0.95rem; margin-bottom: 10px;">✍️ Digital Signatures & Authorization Audit Trail</h4>
+          <h4 style="font-size: 0.95rem; margin-bottom: 10px;">Digital Signatures & Authorization Audit Trail</h4>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
             <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px;">
               <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">1. APPLICANT / SUPERVISOR</div>
               <div style="margin-top: 6px;">${applicantSigHtml}</div>
-              <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b; margin-top: 4px;">👤 ${escapeHtml(item.applicant_name || 'Site Supervisor')}</div>
+              <div style="font-size: 0.8rem; font-weight: 700; color: #1e293b; margin-top: 4px;">${escapeHtml(item.applicant_name || 'Site Supervisor')}</div>
               ${item.applicant_email ? `<div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(item.applicant_email)}</div>` : ''}
               <div style="font-size: 0.75rem; margin-top: 4px; color: #64748b;">Date: ${escapeHtml(item.created_at || 'Saved')}</div>
             </div>
@@ -4732,7 +4732,7 @@ Return ONLY valid JSON matching this schema:
   <div id="telegramPairingModal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="max-width: 480px; padding: 0;">
       <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="font-size: 1.1rem; font-weight: 700;">📲 1-Tap Telegram Alert Signup</h3>
+        <h3 style="font-size: 1.1rem; font-weight: 700;">1-Tap Telegram Alert Signup</h3>
         <button class="modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;" onclick="closeTelegramPairingModal()">×</button>
       </div>
       <div style="padding: 20px;">
@@ -4745,10 +4745,10 @@ Return ONLY valid JSON matching this schema:
         </div>
         <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 16px;">
           <button id="btnGeneratePairingLink" class="btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;" onclick="generateTelegramPairingLink()">
-            🔗 Open Telegram Bot & Tap Start
+            Open Telegram Bot & Tap Start
           </button>
           <button type="button" class="btn-secondary" style="width: 100%; padding: 10px; font-size: 0.9rem; background-color: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1;" onclick="triggerTestAlert()">
-            📲 Send 1-Click Test Alert Notification
+            Send 1-Click Test Alert Notification
           </button>
         </div>
         <div id="pairingLinkResult" style="margin-top: 16px; display: none; text-align: center; font-size: 0.85rem;"></div>

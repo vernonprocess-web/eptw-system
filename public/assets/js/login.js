@@ -34,9 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select || !preview) return;
     const [email, name, role] = select.value.split('|');
     if (role === 'SITE_SUPERVISOR') {
-      preview.innerHTML = `📲 <strong>Smart Routing for ${name}:</strong> Will launch <strong>Mobile Supervisor Portal</strong> (<code>supervisor.html</code>).`;
+      preview.innerHTML = `<strong>Smart Routing for ${name}:</strong> Will launch <strong>Mobile Supervisor Portal</strong> (<code>supervisor.html</code>).`;
     } else {
-      preview.innerHTML = `🖥️ <strong>Smart Routing for ${name}:</strong> Will launch <strong>HQ Master Dashboard</strong> (<code>index.html</code>).`;
+      preview.innerHTML = `<strong>Smart Routing for ${name}:</strong> Will launch <strong>HQ Master Dashboard</strong> (<code>index.html</code>).`;
     }
   }
 
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const supervisors = result.data.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
         if (supervisors.length > 0 && select) {
           const group = document.createElement('optgroup');
-          group.label = "🛡️ Verified Site Supervisors (From Worker Registry)";
+          group.label = "Verified Site Supervisors (From Worker Registry)";
           supervisors.forEach(s => {
             const opt = document.createElement('option');
             const email = s.email || `${(s.name || 'supervisor').toLowerCase().replace(/[^a-z0-9]/g, '.')}@site.sg`;

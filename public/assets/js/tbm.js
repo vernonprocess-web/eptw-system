@@ -20,7 +20,7 @@ async function loadSiteFilterOptions() {
     const res = await fetch('/api/projects');
     const result = await res.json();
     if (result.success) {
-      siteSelect.innerHTML = '<option value="ALL">🏢 All Sites / Projects</option>';
+      siteSelect.innerHTML = '<option value="ALL">All Sites / Projects</option>';
       (result.data || []).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.project_id;
@@ -98,7 +98,7 @@ function renderTbmTable(records) {
     tbody.innerHTML = `
       <tr>
         <td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">
-          🗣️ No Toolbox Meeting records found matching the active filters.
+          No Toolbox Meeting records found matching the active filters.
         </td>
       </tr>`;
     return;
@@ -107,11 +107,11 @@ function renderTbmTable(records) {
   tbody.innerHTML = records.map(r => {
     let statusBadge = '';
     if (r.status === 'COMPLETED') {
-      statusBadge = '<span class="status-badge status-active">🟢 COMPLETED & SIGNED</span>';
+      statusBadge = '<span class="status-badge status-active">COMPLETED & SIGNED</span>';
     } else if (r.status === 'PENDING_BRIEFING') {
-      statusBadge = '<span class="status-badge status-vetted">🟡 PENDING BRIEFING</span>';
+      statusBadge = '<span class="status-badge status-vetted">PENDING BRIEFING</span>';
     } else {
-      statusBadge = '<span class="status-badge status-draft">⚪ CLOSED / ARCHIVED</span>';
+      statusBadge = '<span class="status-badge status-draft">CLOSED / ARCHIVED</span>';
     }
 
     const formattedDate = r.conducted_at ? new Date(r.conducted_at.replace(' ', 'T')).toLocaleString('en-SG', {
@@ -127,28 +127,28 @@ function renderTbmTable(records) {
         </td>
         <td>
           <div style="font-weight: 600; color: #0f172a;">${escapeHtml(r.project_name || r.project_id)}</div>
-          <div style="font-size: 0.75rem; color: #64748b;">📍 ${escapeHtml(r.project_location || 'Site Location')}</div>
+          <div style="font-size: 0.75rem; color: #64748b;">${escapeHtml(r.project_location || 'Site Location')}</div>
         </td>
         <td>
-          <div style="font-weight: 600;">👤 ${escapeHtml(r.supervisor_name)}</div>
-          <div style="font-size: 0.75rem; color: #475569;">${escapeHtml(r.supervisor_role || 'Supervisor')} ${r.supervisor_phone ? '• ☎️ ' + escapeHtml(r.supervisor_phone) : ''}</div>
+          <div style="font-weight: 600;">${escapeHtml(r.supervisor_name)}</div>
+          <div style="font-size: 0.75rem; color: #475569;">${escapeHtml(r.supervisor_role || 'Supervisor')} ${r.supervisor_phone ? '• ' + escapeHtml(r.supervisor_phone) : ''}</div>
         </td>
         <td>
-          <div style="font-size: 0.85rem; font-weight: 600; color: #334155;">⏱️ ${formattedDate}</div>
+          <div style="font-size: 0.85rem; font-weight: 600; color: #334155;">${formattedDate}</div>
         </td>
         <td style="text-align: center;">
           <span style="background: #e0f2fe; color: #0369a1; font-weight: 700; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem;">
-            👥 ${r.attendance_count || 0} Workers Signed
+            ${r.attendance_count || 0} Workers Signed
           </span>
         </td>
         <td style="text-align: center;">${statusBadge}</td>
         <td style="text-align: center;">
           <div style="display: flex; gap: 6px; justify-content: center;">
             <button class="btn-action btn-edit" title="View or Sign Briefing Sheet" onclick="openTbmModal('${r.tbm_id}')">
-              👁️ View / Sign
+              View / Sign
             </button>
             <button class="btn-action btn-pdf" title="Export MOM Legal PDF" onclick="printTbmPdf('${r.tbm_id}')">
-              📄 MOM PDF
+              MOM PDF
             </button>
           </div>
         </td>
@@ -172,7 +172,7 @@ window.openTbmModal = async function(tbmId) {
     }
 
     const tbm = result.data;
-    document.getElementById('tbmModalTitle').textContent = `🗣️ Safety Briefing Sheet: ${tbm.tbm_id}`;
+    document.getElementById('tbmModalTitle').textContent = `Safety Briefing Sheet: ${tbm.tbm_id}`;
     document.getElementById('tbmModalSub').textContent = `Project: ${tbm.project_name || tbm.project_id} | Linked Permit: ${tbm.ptw_id}`;
     
     // Fill Metadata
@@ -234,7 +234,7 @@ window.openCreateTbmModal = async function() {
   const select = document.getElementById('createTbmPtwSelect');
   if (!modal || !select) return;
 
-  select.innerHTML = '<option value="">⏳ Loading Active Permits...</option>';
+  select.innerHTML = '<option value="">Loading Active Permits...</option>';
   modal.style.display = 'flex';
 
   try {
@@ -244,7 +244,7 @@ window.openCreateTbmModal = async function() {
       // Filter strictly for Active permits (MOM State Gating)
       activePermitsCache = (result.data || []).filter(p => p.status === 'Active');
       if (activePermitsCache.length === 0) {
-        select.innerHTML = '<option value="">⚠️ No Active Permits Found (Approval Required)</option>';
+        select.innerHTML = '<option value="">No Active Permits Found (Approval Required)</option>';
         return;
       }
 
@@ -309,7 +309,7 @@ window.handleCreateTbmSubmit = async function(event) {
 
     const result = await res.json();
     if (result.success) {
-      alert(`✅ Shift TBM Briefing ${result.id} initialized successfully!`);
+      alert(`Shift TBM Briefing ${result.id} initialized successfully!`);
       closeCreateTbmModal();
       fetchTbmRecords();
     } else {
@@ -370,14 +370,14 @@ function renderWorkerAttendanceRoster(assignedWorkers, existingSignatures, isLoc
       <div class="worker-sig-card" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div>
-            <strong style="color: #0f172a; font-size: 0.95rem;">👷 ${escapeHtml(workerName)}</strong>
+            <strong style="color: #0f172a; font-size: 0.95rem;">${escapeHtml(workerName)}</strong>
             <span style="font-size: 0.8rem; color: #475569; margin-left: 8px;">[Trade: ${escapeHtml(workerTrade)}]</span>
             <div style="font-size: 0.75rem; color: #64748b;">ID/FIN: <strong>${escapeHtml(workerFin)}</strong></div>
           </div>
           <div>
             ${isSigned 
-              ? `<span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px;">✅ Signed at ${escapeHtml(existing.signed_at || '')}</span>`
-              : `<span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px;">⏳ Signature Required</span>`
+              ? `<span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px;">Signed at ${escapeHtml(existing.signed_at || '')}</span>`
+              : `<span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem; padding: 4px 8px; border-radius: 12px;">Signature Required</span>`
             }
           </div>
         </div>
@@ -570,7 +570,7 @@ window.submitTbmBriefingSignatures = async function() {
 
     const saveResult = await saveRes.json();
     if (saveResult.success) {
-      alert(`✅ TBM Safety Briefing ${activeTbmModalId} locked and completed successfully!`);
+      alert(`TBM Safety Briefing ${activeTbmModalId} locked and completed successfully!`);
       closeTbmModal();
       fetchTbmRecords();
     } else {
@@ -667,11 +667,11 @@ window.printTbmPdf = async function(tbmId) {
       </head>
       <body>
         <div class="no-print" style="margin-bottom: 16px; text-align: right;">
-          <button onclick="window.print()" style="padding: 8px 16px; background: #0284c7; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">🖨️ Print / Save as PDF</button>
+          <button onclick="window.print()" style="padding: 8px 16px; background: #0284c7; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Print / Save as PDF</button>
         </div>
 
         <div class="header">
-          <h2>🇸🇬 Official Toolbox Meeting (TBM) & Daily Safety Briefing Record</h2>
+          <h2>Official Toolbox Meeting (TBM) & Daily Safety Briefing Record</h2>
           <p>MOM Workplace Safety & Health (WSH) Legal Compliance Document</p>
         </div>
 
@@ -690,25 +690,25 @@ window.printTbmPdf = async function(tbmId) {
           </div>
           <div class="meta-item">
             <label>Exact Site Location</label>
-            <div>📍 ${escapeHtml(tbm.project_location || 'Site Location')}</div>
+            <div>${escapeHtml(tbm.project_location || 'Site Location')}</div>
           </div>
           <div class="meta-item">
             <label>Briefing Date & Exact Time (SGT)</label>
-            <div>⏱️ <strong>${formattedDate}</strong></div>
+            <div><strong>${formattedDate}</strong></div>
           </div>
           <div class="meta-item">
             <label>Conducting Supervisor / WSHO</label>
-            <div>👤 ${escapeHtml(tbm.supervisor_name)} (${escapeHtml(tbm.supervisor_role || 'Supervisor')}) ${tbm.supervisor_phone ? '• ' + escapeHtml(tbm.supervisor_phone) : ''}</div>
+            <div>${escapeHtml(tbm.supervisor_name)} (${escapeHtml(tbm.supervisor_role || 'Supervisor')}) ${tbm.supervisor_phone ? '• ' + escapeHtml(tbm.supervisor_phone) : ''}</div>
           </div>
         </div>
 
-        <div class="section-title">⚠️ Task-Specific RAMS Hazards & Safety Controls Briefed</div>
+        <div class="section-title">Task-Specific RAMS Hazards & Safety Controls Briefed</div>
         <div class="hazard-box">${escapeHtml(tbm.hazard_summary || 'N/A')}</div>
 
-        <div class="section-title">🗣️ Worker Feedback & Safety Concerns Raised (MOM 2-Way Briefing)</div>
+        <div class="section-title">Worker Feedback & Safety Concerns Raised (MOM 2-Way Briefing)</div>
         <div class="concerns-box">${escapeHtml(tbm.worker_concerns_raised || 'Nil / No concerns raised')}</div>
 
-        <div class="section-title">👥 Attending Workers Digital Signature Roster (${signatures.length} Workers Verified)</div>
+        <div class="section-title">Attending Workers Digital Signature Roster (${signatures.length} Workers Verified)</div>
         <table>
           <thead>
             <tr>

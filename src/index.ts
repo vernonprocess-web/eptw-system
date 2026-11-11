@@ -1393,7 +1393,7 @@ app.post('/api/telegram/webhook', async (c) => {
                  ON CONFLICT(email) DO UPDATE SET telegram_chat_id = excluded.telegram_chat_id, full_name = excluded.full_name`
               ).bind(email.toLowerCase(), chatId, senderName).run();
 
-              const confirmText = `<b>✅ Telegram Notifications Paired Successfully!</b>\n\nWelcome, <b>${senderName}</b>!\nYour Telegram account is bound to: <b>${email}</b>.\nYou will receive instant permit alerts & sign-off links here.`;
+              const confirmText = `<b>Telegram Notifications Paired Successfully!</b>\n\nWelcome, <b>${senderName}</b>!\nYour Telegram account is bound to: <b>${email}</b>.\nYou will receive instant permit alerts & sign-off links here.`;
               
               const botToken = c.env.TELEGRAM_BOT_TOKEN;
               if (botToken) {

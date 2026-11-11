@@ -128,19 +128,19 @@ function renderDocument(item) {
   const qrUrl = encodeURIComponent(window.location.origin + '/review?ptw=' + item.ptw_id);
 
   // Status Badge
-  let statusBadgeHtml = `<span style="background: #eab308; color: #000; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">DRAFT 🟡</span>`;
+  let statusBadgeHtml = `<span style="background: #eab308; color: #000; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">DRAFT</span>`;
   if (item.status === 'Pending Safety Vetting') {
-    statusBadgeHtml = `<span style="background: #f97316; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">SAFETY VETTING PENDING 🟠</span>`;
+    statusBadgeHtml = `<span style="background: #f97316; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">SAFETY VETTING PENDING</span>`;
   } else if (item.status === 'Pending PM Approval') {
-    statusBadgeHtml = `<span style="background: #2563eb; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">PM AUTHORIZATION PENDING 🔵</span>`;
+    statusBadgeHtml = `<span style="background: #2563eb; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">PM AUTHORIZATION PENDING</span>`;
   } else if (item.status === 'Active') {
-    statusBadgeHtml = `<span style="background: #16a34a; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">AUTHORIZED & ACTIVE 🟢</span>`;
+    statusBadgeHtml = `<span style="background: #16a34a; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">AUTHORIZED & ACTIVE</span>`;
   } else if (item.status === 'Suspended') {
-    statusBadgeHtml = `<span style="background: #dc2626; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">WORK SUSPENDED (STAND-DOWN) 🔴</span>`;
+    statusBadgeHtml = `<span style="background: #dc2626; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">WORK SUSPENDED (STAND-DOWN)</span>`;
   } else if (item.status === 'Rejected') {
-    statusBadgeHtml = `<span style="background: #dc2626; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">REJECTED 🔴</span>`;
+    statusBadgeHtml = `<span style="background: #dc2626; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">REJECTED</span>`;
   } else if (item.status === 'Closed') {
-    statusBadgeHtml = `<span style="background: #64748b; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">CLOSED ⚪</span>`;
+    statusBadgeHtml = `<span style="background: #64748b; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">CLOSED</span>`;
   }
 
   // Signatures display
@@ -163,7 +163,7 @@ function renderDocument(item) {
       <div class="action-panel wsho no-print">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
           <div>
-            <h3 style="margin: 0; color: #c2410c; font-size: 1.05rem;">🛡️ Safety Assessor (WSHO) Statutory Endorsement Panel</h3>
+            <h3 style="margin: 0; color: #c2410c; font-size: 1.05rem;">Safety Assessor (WSHO) Statutory Endorsement Panel</h3>
             <div style="font-size: 0.8rem; color: #7c2d12; margin-top: 3px;">
               Target Safety Assessor: <strong>${escapeHtml(item.assigned_wsho_name || 'Designated Site WSHO')}</strong> (${escapeHtml(item.assigned_wsho_email || 'Email pending')})
             </div>
@@ -173,19 +173,19 @@ function renderDocument(item) {
         <p style="font-size: 0.82rem; color: #475569; margin: 8px 0 12px; line-height: 1.4;">
           As the Workplace Safety and Health Officer, verify on-site hazard controls, worker certifications, and fall prevention / gas testing measures before digital sign-off.
         </p>
-        <label style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: block;">✍️ Draw Digital Endorsement Signature Below (Touch or Stylus):</label>
+        <label style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: block;">Draw Digital Endorsement Signature Below (Touch or Stylus):</label>
         <canvas id="reviewSigCanvas" class="canvas-box" width="700" height="120"></canvas>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; gap: 8px;">
             <button type="button" id="btnEndorseWsho" class="btn-action-primary" style="background: #ea580c;">
-              🛡️ Endorse & Forward to PM ➔
+              Endorse & Forward to PM ➔
             </button>
             <button type="button" id="btnClearSig" style="background: none; border: 1px solid #cbd5e1; padding: 10px 14px; border-radius: 8px; color: #475569; font-weight: 600; cursor: pointer;">
               Clear
             </button>
           </div>
           <button type="button" id="btnRejectPermit" class="btn-action-reject">
-            ❌ Reject Application
+            Reject Application
           </button>
         </div>
       </div>
@@ -195,7 +195,7 @@ function renderDocument(item) {
       <div class="action-panel pm no-print">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
           <div>
-            <h3 style="margin: 0; color: #1d4ed8; font-size: 1.05rem;">👔 Project Manager (MOM Approving Authority) Authorization</h3>
+            <h3 style="margin: 0; color: #1d4ed8; font-size: 1.05rem;">Project Manager (MOM Approving Authority) Authorization</h3>
             <div style="font-size: 0.8rem; color: #1e40af; margin-top: 3px;">
               Target PM Approver: <strong>${escapeHtml(item.assigned_pm_name || item.project_manager || 'Project Manager')}</strong> (${escapeHtml(item.assigned_pm_email || 'Email pending')})
             </div>
@@ -205,19 +205,19 @@ function renderDocument(item) {
         <p style="font-size: 0.82rem; color: #475569; margin: 8px 0 12px; line-height: 1.4;">
           Safety Assessor has vetted this permit. By signing below, you authorize high-risk site operations to commence under Singapore WSH (General Provisions) Regulations.
         </p>
-        <label style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: block;">✍️ Draw Digital Authorization Signature Below (Touch or Stylus):</label>
+        <label style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: block;">Draw Digital Authorization Signature Below (Touch or Stylus):</label>
         <canvas id="reviewSigCanvas" class="canvas-box" width="700" height="120"></canvas>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
           <div style="display: flex; gap: 8px;">
             <button type="button" id="btnApprovePm" class="btn-action-primary" style="background: #2563eb;">
-              ✍️ Authorize & Issue Permit 🟢
+              Authorize & Issue Permit
             </button>
             <button type="button" id="btnClearSig" style="background: none; border: 1px solid #cbd5e1; padding: 10px 14px; border-radius: 8px; color: #475569; font-weight: 600; cursor: pointer;">
               Clear
             </button>
           </div>
           <button type="button" id="btnRejectPermit" class="btn-action-reject">
-            ❌ Reject Application
+            Reject Application
           </button>
         </div>
       </div>
@@ -227,17 +227,17 @@ function renderDocument(item) {
       <div class="action-panel active-banner no-print">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h3 style="margin: 0; color: #047857; font-size: 1.05rem;">🟢 Permit Is AUTHORIZED & ACTIVE</h3>
+            <h3 style="margin: 0; color: #047857; font-size: 1.05rem;">Permit Is AUTHORIZED & ACTIVE</h3>
             <div style="font-size: 0.82rem; color: #065f46; margin-top: 4px;">
               High-risk work is authorized on site. Ensure daily Toolbox Meeting (TBM) briefing is held with certified workers before work commencement.
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
             <button type="button" onclick="window.print()" class="btn-action-primary" style="background: #0284c7; padding: 10px 16px;">
-              🖨️ Print Site Pass
+              Print Site Pass
             </button>
             <button type="button" id="btnEmergencyStanddown" style="background: #dc2626; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer;">
-              🛑 Stand-Down Work
+              Stand-Down Work
             </button>
           </div>
         </div>
@@ -246,7 +246,7 @@ function renderDocument(item) {
   } else if (item.status === 'Rejected') {
     actionPanelHtml = `
       <div class="action-panel rejected-banner no-print">
-        <h3 style="margin: 0; color: #b91c1c; font-size: 1.05rem;">🔴 Permit Application Has Been Rejected</h3>
+        <h3 style="margin: 0; color: #b91c1c; font-size: 1.05rem;">Permit Application Has Been Rejected</h3>
         <p style="font-size: 0.85rem; color: #7f1d1d; margin: 6px 0 0;">
           <strong>Rejection Reason:</strong> ${escapeHtml(item.rejection_reason || 'Safety controls did not meet statutory requirements.')}
         </p>
@@ -265,7 +265,7 @@ function renderDocument(item) {
       </div>
       <div style="display: flex; align-items: center; gap: 12px;">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${qrUrl}" alt="ePTW QR" style="width: 50px; height: 50px; border-radius: 4px; border: 1px solid #ffffff; background: #ffffff; padding: 2px;">
-        <button type="button" class="no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">🖨️ Print</button>
+        <button type="button" class="no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Print</button>
       </div>
     </div>
 
@@ -301,22 +301,22 @@ function renderDocument(item) {
       </div>
       <div class="meta-item">
         <span class="meta-label">Designated WSHO</span>
-        <span class="meta-value">🛡️ ${escapeHtml(item.assigned_wsho_name || 'Designated WSHO')}</span>
+        <span class="meta-value">${escapeHtml(item.assigned_wsho_name || 'Designated WSHO')}</span>
         <small style="color: #64748b; font-size: 0.72rem;">${escapeHtml(item.assigned_wsho_email || '')}</small>
       </div>
       <div class="meta-item">
         <span class="meta-label">MOM Approving PM</span>
-        <span class="meta-value">👔 ${escapeHtml(item.assigned_pm_name || item.project_manager || 'Project Manager')}</span>
+        <span class="meta-value">${escapeHtml(item.assigned_pm_name || item.project_manager || 'Project Manager')}</span>
         <small style="color: #64748b; font-size: 0.72rem;">${escapeHtml(item.assigned_pm_email || '')}</small>
       </div>
     </div>
 
     <!-- Detailed Work Description -->
-    <div class="section-title">📋 Work Activity & Scope Description</div>
+    <div class="section-title">Work Activity & Scope Description</div>
     <div class="desc-box">${escapeHtml(item.work_description || 'No description provided.')}</div>
 
     <!-- Assigned Certified Workers -->
-    <div class="section-title">👷 Assigned Certified Site Personnel (${assignedWorkers.length})</div>
+    <div class="section-title">Assigned Certified Site Personnel (${assignedWorkers.length})</div>
     <ul class="items-list">
       ${assignedWorkers.length > 0 
         ? assignedWorkers.map(w => `<li>${w}</li>`).join('') 
@@ -324,7 +324,7 @@ function renderDocument(item) {
     </ul>
 
     <!-- Linked RAMS Safety Controls -->
-    <div class="section-title">⚡ Linked RAMS Risk Controls (${assignedRams.length})</div>
+    <div class="section-title">Linked RAMS Risk Controls (${assignedRams.length})</div>
     <ul class="items-list">
       ${assignedRams.length > 0 
         ? assignedRams.map(r => `<li>${r}</li>`).join('') 
@@ -332,14 +332,14 @@ function renderDocument(item) {
     </ul>
 
     <!-- Digital Signatures Audit Trail -->
-    <div class="section-title" style="margin-top: 22px;">✍️ Digital Signatures & Authorization Audit Trail</div>
+    <div class="section-title" style="margin-top: 22px;">Digital Signatures & Authorization Audit Trail</div>
     <div class="sigs-audit-grid">
       <!-- 1. Applicant Supervisor -->
       <div class="sig-audit-card">
         <div>
           <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">1. APPLICANT / SUPERVISOR</div>
           <div style="min-height: 54px; display: flex; align-items: center;">${applicantSigHtml}</div>
-          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">👤 ${escapeHtml(item.applicant_name || 'Site Supervisor')}</div>
+          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">${escapeHtml(item.applicant_name || 'Site Supervisor')}</div>
           <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(item.applicant_email || '')}</div>
         </div>
         <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 4px;">
@@ -352,7 +352,7 @@ function renderDocument(item) {
         <div>
           <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">2. SAFETY ASSESSOR (WSHO)</div>
           <div style="min-height: 54px; display: flex; align-items: center;">${safetySigHtml}</div>
-          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">🛡️ ${escapeHtml(item.assigned_wsho_name || 'Designated WSHO')}</div>
+          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">${escapeHtml(item.assigned_wsho_name || 'Designated WSHO')}</div>
           <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(item.assigned_wsho_email || '')}</div>
         </div>
         <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 4px;">
@@ -365,7 +365,7 @@ function renderDocument(item) {
         <div>
           <div style="font-size: 0.75rem; font-weight: 700; color: #64748b;">3. MOM APPROVING AUTHORITY (PM)</div>
           <div style="min-height: 54px; display: flex; align-items: center;">${pmSigHtml}</div>
-          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">👔 ${escapeHtml(item.assigned_pm_name || item.project_manager || 'Project Manager')}</div>
+          <div style="font-size: 0.82rem; font-weight: 700; color: #1e293b; margin-top: 4px;">${escapeHtml(item.assigned_pm_name || item.project_manager || 'Project Manager')}</div>
           <div style="font-size: 0.72rem; color: #64748b;">${escapeHtml(item.assigned_pm_email || '')}</div>
         </div>
         <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; border-top: 1px solid #f1f5f9; padding-top: 4px;">
@@ -465,7 +465,7 @@ async function submitPmAuthorization(ptwId) {
     });
 
     if (res.success) {
-      showToast(`Permit ${ptwId} AUTHORIZED! Status is now ACTIVE 🟢`, 'success');
+      showToast(`Permit ${ptwId} AUTHORIZED! Status is now ACTIVE`, 'success');
       setTimeout(() => loadPermitDocument(ptwId), 1200);
     } else {
       showToast(`Authorization failed: ${res.error}`, 'error');

@@ -43,9 +43,9 @@ function renderTbmDocument(tbm) {
 
   const isCompleted = (tbm.status === 'COMPLETED' || tbm.status === 'CLOSED');
 
-  let statusBadgeHtml = `<span style="background: #f97316; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">PENDING BRIEFING 🟠</span>`;
+  let statusBadgeHtml = `<span style="background: #f97316; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">PENDING BRIEFING</span>`;
   if (isCompleted) {
-    statusBadgeHtml = `<span style="background: #16a34a; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">COMPLETED & LOCKED 🟢</span>`;
+    statusBadgeHtml = `<span style="background: #16a34a; color: #fff; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">COMPLETED & LOCKED</span>`;
   }
 
   // Parse existing worker signatures
@@ -88,7 +88,7 @@ function renderTbmDocument(tbm) {
         </div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <button type="button" class="no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">🖨️ Print Sheet</button>
+        <button type="button" class="no-print" onclick="window.print()" style="background: #38bdf8; color: #0f172a; font-weight: 800; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Print Sheet</button>
       </div>
     </div>
 
@@ -117,7 +117,7 @@ function renderTbmDocument(tbm) {
         </div>
         <div class="meta-item">
           <span class="meta-label">Conductor / Supervisor</span>
-          <span class="meta-val">👤 ${escapeHtml(tbm.supervisor_name || 'Site Supervisor')}</span>
+          <span class="meta-val">${escapeHtml(tbm.supervisor_name || 'Site Supervisor')}</span>
           <small style="color: #64748b; font-size: 0.72rem;">${escapeHtml(tbm.supervisor_role || 'Site Supervisor')}</small>
         </div>
         <div class="meta-item">
@@ -128,13 +128,13 @@ function renderTbmDocument(tbm) {
     </div>
 
     <!-- Task Hazards & Controls -->
-    <div class="section-heading">⚠️ Task Hazards & Specific Safety Controls Discussed</div>
+    <div class="section-heading">Task Hazards & Specific Safety Controls Discussed</div>
     <div class="hazards-box">${escapeHtml(tbm.hazard_summary || 'Task-specific hazards and control measures discussed.')}</div>
 
     <!-- 2-Way Communication: Worker Concerns Raised -->
     <div class="concerns-box">
       <div style="font-weight: 700; color: #166534; font-size: 0.9rem; margin-bottom: 2px;">
-        🗣️ Worker Feedback & Safety Concerns (MOM 2-Way Communication)
+        Worker Feedback & Safety Concerns (MOM 2-Way Communication)
       </div>
       <div style="font-size: 0.75rem; color: #15803d; margin-bottom: 6px;">
         Record any worker observations, ground condition changes, or PPE replenishment requests raised during briefing.
@@ -143,7 +143,7 @@ function renderTbmDocument(tbm) {
     </div>
 
     <!-- Worker Attendance Manifest & Signatures -->
-    <div class="section-heading">👥 Attending Worker Sign-off Manifest (${assignedWorkers.length} Assigned)</div>
+    <div class="section-heading">Attending Worker Sign-off Manifest (${assignedWorkers.length} Assigned)</div>
     <div id="workerRosterContainer">
       ${renderWorkersList(assignedWorkers, existingSignatures, isCompleted)}
     </div>
@@ -151,17 +151,17 @@ function renderTbmDocument(tbm) {
     <!-- Supervisor Sign-Off & Lock -->
     ${!isCompleted ? `
       <div style="background: #ffffff; border: 2px solid #2563eb; border-radius: 10px; padding: 18px; margin-top: 20px;">
-        <h4 style="margin: 0 0 4px 0; color: #1d4ed8; font-size: 0.95rem;">✍️ Conductor / Supervisor Final Verification</h4>
+        <h4 style="margin: 0 0 4px 0; color: #1d4ed8; font-size: 0.95rem;">Conductor / Supervisor Final Verification</h4>
         <div style="font-size: 0.8rem; color: #475569; margin-bottom: 10px;">
           By submitting below, you verify that all attending workers have undergone safety briefing, acknowledged hazards, and completed their digital signatures.
         </div>
         <button type="button" id="btnSubmitBriefing" class="btn-submit-tbm">
-          🔒 Complete & Lock Daily TBM Briefing Sheet
+          Complete & Lock Daily TBM Briefing Sheet
         </button>
       </div>
     ` : `
       <div style="background: #ecfdf5; border: 2px solid #10b981; border-radius: 10px; padding: 16px; margin-top: 20px; text-align: center;">
-        <div style="font-size: 1.1rem; font-weight: 700; color: #047857;">✅ TBM Briefing Completed & Locked</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: #047857;">TBM Briefing Completed & Locked</div>
         <div style="font-size: 0.85rem; color: #065f46; margin-top: 4px;">
           Statutory worker attendance manifest verified. High-risk operations on active permit <strong>${escapeHtml(tbm.ptw_id)}</strong> may proceed.
         </div>
@@ -207,14 +207,14 @@ function renderWorkersList(assignedWorkers, existingSignatures, isLocked) {
       <div class="worker-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div>
-            <strong style="color: #0f172a; font-size: 0.95rem;">👷 ${escapeHtml(workerName)}</strong>
+            <strong style="color: #0f172a; font-size: 0.95rem;">${escapeHtml(workerName)}</strong>
             <span style="font-size: 0.8rem; color: #475569; margin-left: 6px;">[Trade: ${escapeHtml(workerTrade)}]</span>
             <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">FIN/ID: <strong>${escapeHtml(workerFin)}</strong></div>
           </div>
           <div>
             ${isSigned 
-              ? `<span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px;">✅ Signed at ${escapeHtml(existing.signed_at || 'Briefing')}</span>`
-              : `<span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px;">⏳ Sign-off Required</span>`
+              ? `<span style="background: #dcfce7; color: #15803d; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px;">Signed at ${escapeHtml(existing.signed_at || 'Briefing')}</span>`
+              : `<span style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.75rem; padding: 4px 10px; border-radius: 12px;">Sign-off Required</span>`
             }
           </div>
         </div>

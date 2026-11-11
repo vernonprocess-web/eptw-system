@@ -225,8 +225,8 @@ async function loadWorkersChecklist() {
         const isDual = w.role === 'SUPERVISOR_WORKER';
         const isPureSup = w.role === 'SUPERVISOR';
         const roleTag = isDual
-          ? `<span style="background: #ecfdf5; color: #047857; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">⚡ Working Sup</span>`
-          : (isPureSup ? `<span style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">🛡️ Site Sup</span>` : '');
+          ? `<span style="background: #ecfdf5; color: #047857; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Sup + Worker</span>`
+          : (isPureSup ? `<span style="background: #e0e7ff; color: #4338ca; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px;">Supervisor</span>` : '');
 
         return `
         <label class="touch-item-card">
@@ -245,7 +245,7 @@ async function loadWorkersChecklist() {
         const supervisors = certifiedWorkers.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
         let supOpts = '<option value="">-- Select Supervisor to Auto-Fill --</option>';
         supOpts += supervisors.map(s => {
-          const roleLabel = s.role === 'SUPERVISOR_WORKER' ? '⚡ Working Sup' : '🛡️ Site Sup';
+          const roleLabel = s.role === 'SUPERVISOR_WORKER' ? 'Sup + Worker' : 'Supervisor';
           return `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)} [${roleLabel}] (${escapeHtml(s.fin_no || s.wp_no || 'ID')})</option>`;
         }).join('');
         supSelect.innerHTML = supOpts;
@@ -291,11 +291,11 @@ function renderSupervisorPtwTable() {
 
   tbody.innerHTML = supervisorPermits.map(item => {
     let statusBadge = `<span style="background: #eab308; color: #000000; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">DRAFT</span>`;
-    if (item.status === 'Active') statusBadge = `<span style="background: #22c55e; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">ACTIVE 🟢</span>`;
-    if (item.status === 'Suspended') statusBadge = `<span style="background: #dc2626; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">SUSPENDED 🔴</span>`;
-    if (item.status === 'Pending Safety Vetting') statusBadge = `<span style="background: #f97316; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">VETTING 🟠</span>`;
-    if (item.status === 'Pending PM Approval') statusBadge = `<span style="background: #3b82f6; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">APPROVAL 🔵</span>`;
-    if (item.status === 'Closed') statusBadge = `<span style="background: #64748b; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">CLOSED ⚪</span>`;
+    if (item.status === 'Active') statusBadge = `<span style="background: #22c55e; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">ACTIVE</span>`;
+    if (item.status === 'Suspended') statusBadge = `<span style="background: #dc2626; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">SUSPENDED</span>`;
+    if (item.status === 'Pending Safety Vetting') statusBadge = `<span style="background: #f97316; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">VETTING</span>`;
+    if (item.status === 'Pending PM Approval') statusBadge = `<span style="background: #3b82f6; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">APPROVAL</span>`;
+    if (item.status === 'Closed') statusBadge = `<span style="background: #64748b; color: #ffffff; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.75rem;">CLOSED</span>`;
 
     return `
       <tr style="border-bottom: 1px solid #334155;">
@@ -304,14 +304,14 @@ function renderSupervisorPtwTable() {
           <div style="font-weight: 600;">${escapeHtml(item.ptw_type || 'General Work')}</div>
           <div style="font-size: 0.78rem; color: #cbd5e1;">${escapeHtml(item.work_description || '')}</div>
           <div style="font-size: 0.72rem; color: #94a3b8;">Applicant: ${escapeHtml(item.applicant_name || item.applicant_email)}</div>
-          ${item.rejection_reason ? `<div style="font-size: 0.72rem; color: #f43f5e;">⚠️ ${escapeHtml(item.rejection_reason)}</div>` : ''}
+          ${item.rejection_reason ? `<div style="font-size: 0.72rem; color: #f43f5e;">${escapeHtml(item.rejection_reason)}</div>` : ''}
         </td>
         <td style="padding: 10px;">${statusBadge}</td>
         <td style="padding: 10px; text-align: center;">
-          ${item.status === 'Draft' ? `<button type="button" style="background: #3b82f6; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="window.editSupervisorDraft('${escapeHtml(item.ptw_id)}')">✏️ Edit</button>` : ''}
+          ${item.status === 'Draft' ? `<button type="button" style="background: #3b82f6; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="window.editSupervisorDraft('${escapeHtml(item.ptw_id)}')">Edit</button>` : ''}
           ${item.status === 'Active' ? `
-            <button type="button" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="switchSupervisorTab('tbmTab');">🗣️ TBM</button>
-            <button type="button" style="background: #dc2626; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 4px;" onclick="window.supervisorStanddown('${escapeHtml(item.ptw_id)}')">🛑 Stand-Down</button>
+            <button type="button" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="switchSupervisorTab('tbmTab');">TBM</button>
+            <button type="button" style="background: #dc2626; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 4px;" onclick="window.supervisorStanddown('${escapeHtml(item.ptw_id)}')">Stand-Down</button>
           ` : ''}
           ${item.status === 'Suspended' ? `<span style="font-size: 0.72rem; color: #f97316;">Awaiting WSHO Clearance to Resume</span>` : ''}
         </td>

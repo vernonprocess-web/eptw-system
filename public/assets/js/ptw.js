@@ -9,13 +9,13 @@ let currentFilter = 'all';
 
 export function getStatusBadgeHTML(status) {
   const s = status || 'Draft';
-  if (s === 'Active') return `<span class="status-badge status-ptw-active">ACTIVE 🟢</span>`;
-  if (s === 'Suspended') return `<span class="status-badge" style="background: #dc2626; color: #ffffff; font-weight: 700; padding: 3px 8px; border-radius: 4px;">SUSPENDED 🔴</span>`;
-  if (s === 'Pending Safety Vetting') return `<span class="status-badge status-ptw-pending-safety">SAFETY VETTING 🟠</span>`;
-  if (s === 'Pending PM Approval') return `<span class="status-badge status-ptw-pending-pm">PM APPROVAL 🔵</span>`;
-  if (s === 'Closed') return `<span class="status-badge status-ptw-closed">CLOSED ⚪</span>`;
-  if (s === 'Rejected') return `<span class="status-badge status-ptw-rejected">REJECTED 🔴</span>`;
-  return `<span class="status-badge status-ptw-draft">DRAFT 🟡</span>`;
+  if (s === 'Active') return `<span class="status-badge status-ptw-active">ACTIVE</span>`;
+  if (s === 'Suspended') return `<span class="status-badge" style="background: #dc2626; color: #ffffff; font-weight: 700; padding: 3px 8px; border-radius: 4px;">SUSPENDED</span>`;
+  if (s === 'Pending Safety Vetting') return `<span class="status-badge status-ptw-pending-safety">SAFETY VETTING</span>`;
+  if (s === 'Pending PM Approval') return `<span class="status-badge status-ptw-pending-pm">PM APPROVAL</span>`;
+  if (s === 'Closed') return `<span class="status-badge status-ptw-closed">CLOSED</span>`;
+  if (s === 'Rejected') return `<span class="status-badge status-ptw-rejected">REJECTED</span>`;
+  return `<span class="status-badge status-ptw-draft">DRAFT</span>`;
 }
 
 export async function loadPTWs(tableBodyId, showToast) {
@@ -64,18 +64,18 @@ export function renderPTWTable(tableBodyId, query = '') {
   tbody.innerHTML = filtered.map(item => {
     let stageActionBtn = '';
     if (item.status === 'Pending Safety Vetting') {
-      stageActionBtn = `<button type="button" class="btn-bypass" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">🛡️ Vet</button>`;
+      stageActionBtn = `<button type="button" class="btn-bypass" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">Vet</button>`;
     } else if (item.status === 'Pending PM Approval') {
-      stageActionBtn = `<button type="button" class="btn-action-dashboard" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">✍️ Approve</button>`;
+      stageActionBtn = `<button type="button" class="btn-action-dashboard" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">Approve</button>`;
     } else if (item.status === 'Active') {
       stageActionBtn = `
-        <button type="button" class="btn-action-view" style="background: #0284c7; color: #ffffff; border: none; font-weight: 600;" onclick="switchTab('tbmTab'); if (typeof fetchTbmRecords === 'function') fetchTbmRecords();" title="Open Site Shift TBM Briefing Sheet">🗣️ TBM Sheet</button>
-        <button type="button" class="btn-action-edit" style="background: #dc2626; color: #ffffff; border: none; font-weight: 600;" onclick="window.standdownPermit('${escapeHtml(item.ptw_id)}')">🛑 Stand-Down</button>
-        <button type="button" class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="window.openClosePermitModal('${escapeHtml(item.ptw_id)}')">🔒 Close Permit</button>
+        <button type="button" class="btn-action-view" style="background: #0284c7; color: #ffffff; border: none; font-weight: 600;" onclick="switchTab('tbmTab'); if (typeof fetchTbmRecords === 'function') fetchTbmRecords();" title="Open Site Shift TBM Briefing Sheet">TBM Sheet</button>
+        <button type="button" class="btn-action-edit" style="background: #dc2626; color: #ffffff; border: none; font-weight: 600;" onclick="window.standdownPermit('${escapeHtml(item.ptw_id)}')">Stand-Down</button>
+        <button type="button" class="btn-action-edit" style="background: #ea580c; color: #ffffff; border: none; font-weight: 600;" onclick="window.openClosePermitModal('${escapeHtml(item.ptw_id)}')">Close Permit</button>
       `;
     } else if (item.status === 'Suspended') {
       stageActionBtn = `
-        <button type="button" class="btn-bypass" style="background: #16a34a; color: #ffffff; border: none; font-weight: 700;" onclick="window.resumePermit('${escapeHtml(item.ptw_id)}')">▶️ Resume Work</button>
+        <button type="button" class="btn-bypass" style="background: #16a34a; color: #ffffff; border: none; font-weight: 700;" onclick="window.resumePermit('${escapeHtml(item.ptw_id)}')">▶Resume Work</button>
       `;
     }
 
@@ -87,7 +87,7 @@ export function renderPTWTable(tableBodyId, query = '') {
         <td>
           <strong>${escapeHtml(item.project_name || item.project_id || 'Facility Site')}</strong>
           <div style="font-size: 0.75rem; color: #64748b;">${escapeHtml(item.location || '')}</div>
-          ${wshoName ? `<div style="font-size: 0.72rem; color: #0284c7;">🛡️ ${escapeHtml(wshoName)}</div>` : ''}
+          ${wshoName ? `<div style="font-size: 0.72rem; color: #0284c7;">${escapeHtml(wshoName)}</div>` : ''}
         </td>
         <td><span class="badge-tag">${escapeHtml(item.ptw_type || 'General Work')}</span></td>
         <td>${escapeHtml(item.work_description || '')}</td>
@@ -98,7 +98,7 @@ export function renderPTWTable(tableBodyId, query = '') {
         <td style="text-align: center;">${getStatusBadgeHTML(item.status)}</td>
         <td style="text-align: center;">
           <div class="action-btn-group">
-            <button type="button" class="btn-action-view" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">👁️ Review</button>
+            <button type="button" class="btn-action-view" onclick="window.openPermitViewModal('${escapeHtml(item.ptw_id)}')">Review</button>
             ${stageActionBtn}
             <button type="button" class="btn-action-edit" onclick="window.startEditPtw('${escapeHtml(item.ptw_id)}')">Edit</button>
             <button type="button" class="btn-action-delete" onclick="window.deletePtw('${escapeHtml(item.ptw_id)}')">Delete</button>

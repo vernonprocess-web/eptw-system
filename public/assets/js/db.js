@@ -137,13 +137,13 @@ export async function updateNetworkBadge() {
   
   if (!navigator.onLine) {
     badgeEl.className = 'offline-status-pill offline';
-    badgeEl.innerHTML = `🟡 Offline (${count} Pending)`;
+    badgeEl.innerHTML = `Offline (${count} Pending)`;
   } else if (count > 0) {
     badgeEl.className = 'offline-status-pill offline';
-    badgeEl.innerHTML = `🔄 Syncing ${count} Items...`;
+    badgeEl.innerHTML = `Syncing ${count} Items...`;
   } else {
     badgeEl.className = 'offline-status-pill online';
-    badgeEl.innerHTML = `🟢 Online`;
+    badgeEl.innerHTML = `Online`;
   }
 }
 

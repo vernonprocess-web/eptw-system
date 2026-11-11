@@ -162,7 +162,7 @@ export async function dispatchPermitNotification(
     const recipients: Array<{ email?: string; name?: string; role: string }> = [];
 
     if (eventType === 'PERMIT_SUBMITTED') {
-        subject = `⚠️ [ePTW] Safety Vetting Required: ${ptw.ptw_number}`;
+        subject = `[ePTW] Safety Vetting Required: ${ptw.ptw_number}`;
         if (ptw.assigned_wsho_email) {
             recipients.push({ email: ptw.assigned_wsho_email, name: ptw.assigned_wsho_name, role: 'WSHO' });
         }
@@ -180,16 +180,16 @@ export async function dispatchPermitNotification(
         `;
 
         telegramHtml = `
-<b>⚠️ Action Required: Safety Vetting</b>
+<b>Action Required: Safety Vetting</b>
 <b>Permit:</b> ${ptw.ptw_number}
 <b>Project:</b> ${ptw.project_name}
 <b>Applicant:</b> ${ptw.applicant_name || 'Site Supervisor'}
 <b>Work:</b> ${ptw.work_description || 'N/A'}
 
-👉 <a href="${permitLink}">Open & Sign Permit</a>
+<a href="${permitLink}">Open & Sign Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_VETTED') {
-        subject = `📋 [ePTW] PM Authorization Required: ${ptw.ptw_number}`;
+        subject = `[ePTW] PM Authorization Required: ${ptw.ptw_number}`;
         // PM notification
         const pmEmail = ptw.assigned_pm_email || ptw.assigned_wsho_email;
         if (pmEmail) {
@@ -208,21 +208,21 @@ export async function dispatchPermitNotification(
         `;
 
         telegramHtml = `
-<b>📋 Action Required: PM Authorization</b>
+<b>Action Required: PM Authorization</b>
 <b>Permit:</b> ${ptw.ptw_number}
 <b>Project:</b> ${ptw.project_name}
 <b>Vetted By:</b> ${ptw.assigned_wsho_name || 'WSHO Assessor'}
 
-👉 <a href="${permitLink}">Authorize Permit</a>
+<a href="${permitLink}">Authorize Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_APPROVED') {
         const tbmLink = ptw.tbm_id ? `${appUrl}/tbm?tbm=${encodeURIComponent(ptw.tbm_id)}` : permitLink;
-        subject = `✅ [ePTW] Permit APPROVED: ${ptw.ptw_number}${ptw.tbm_id ? ` — TBM Briefing ${ptw.tbm_id} Ready` : ''}`;
+        subject = `[ePTW] Permit APPROVED: ${ptw.ptw_number}${ptw.tbm_id ? ` — TBM Briefing ${ptw.tbm_id} Ready` : ''}`;
         if (ptw.applicant_email) recipients.push({ email: ptw.applicant_email, name: ptw.applicant_name, role: 'Site Supervisor' });
         if (ptw.assigned_wsho_email) recipients.push({ email: ptw.assigned_wsho_email, name: ptw.assigned_wsho_name, role: 'WSHO' });
 
         emailHtml = `
-            <h2>Permit Status: ACTIVE & APPROVED 🟢</h2>
+            <h2>Permit Status: ACTIVE & APPROVED</h2>
             <p>Permit <b>${ptw.ptw_number}</b> has been authorized by Project Manager. High-risk work may safely commence once mandatory Toolbox Meeting (TBM) briefing is completed.</p>
             <ul>
                 <li><b>Permit No:</b> ${ptw.ptw_number}</li>
@@ -231,23 +231,23 @@ export async function dispatchPermitNotification(
                 ${ptw.tbm_id ? `<li><b>Toolbox Meeting (TBM) Form Ref:</b> <code>${ptw.tbm_id}</code></li>` : ''}
             </ul>
             <div style="margin-top: 20px;">
-                ${ptw.tbm_id ? `<a href="${tbmLink}" style="background:#0284c7;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;margin-right:10px;">🗣️ Open TBM Briefing Sheet</a>` : ''}
+                ${ptw.tbm_id ? `<a href="${tbmLink}" style="background:#0284c7;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;margin-right:10px;">Open TBM Briefing Sheet</a>` : ''}
                 <a href="${permitLink}" style="background:#16a34a;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:bold;">View Approved Permit</a>
             </div>
         `;
 
         telegramHtml = `
-<b>✅ Permit APPROVED & ACTIVE</b>
+<b>Permit APPROVED & ACTIVE</b>
 <b>Permit:</b> ${ptw.ptw_number}
 <b>Project:</b> ${ptw.project_name}
 <b>Status:</b> ACTIVE
 ${ptw.tbm_id ? `<b>TBM Form Ref:</b> <code>${ptw.tbm_id}</code>\n` : ''}
-⚠️ <i>Site Supervisor must conduct TBM Briefing before work commences.</i>
+<i>Site Supervisor must conduct TBM Briefing before work commences.</i>
 
-${ptw.tbm_id ? `👉 <a href="${tbmLink}">🗣️ Conduct TBM Briefing (${ptw.tbm_id})</a>\n` : ''}👉 <a href="${permitLink}">View Approved Permit</a>
+${ptw.tbm_id ? `<a href="${tbmLink}">Conduct TBM Briefing (${ptw.tbm_id})</a>\n` : ''}<a href="${permitLink}">View Approved Permit</a>
         `.trim();
     } else if (eventType === 'PERMIT_REJECTED') {
-        subject = `❌ [ePTW] Permit REJECTED: ${ptw.ptw_number}`;
+        subject = `[ePTW] Permit REJECTED: ${ptw.ptw_number}`;
         if (ptw.applicant_email) recipients.push({ email: ptw.applicant_email, name: ptw.applicant_name, role: 'Applicant' });
 
         emailHtml = `
@@ -262,12 +262,12 @@ ${ptw.tbm_id ? `👉 <a href="${tbmLink}">🗣️ Conduct TBM Briefing (${ptw.tb
         `;
 
         telegramHtml = `
-<b>❌ Permit REJECTED</b>
+<b>Permit REJECTED</b>
 <b>Permit:</b> ${ptw.ptw_number}
 <b>Project:</b> ${ptw.project_name}
 <b>Reason:</b> ${ptw.rejection_reason || 'Safety criteria not met'}
 
-👉 <a href="${permitLink}">Review Details</a>
+<a href="${permitLink}">Review Details</a>
         `.trim();
     }
 
