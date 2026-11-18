@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
           group.label = "Verified Site Supervisors (From Worker Registry)";
           supervisors.forEach(s => {
             const opt = document.createElement('option');
-            const email = s.email || `${(s.name || 'supervisor').toLowerCase().replace(/[^a-z0-9]/g, '.')}@site.sg`;
+            const email = (s.email || '').trim();
             opt.value = `${email}|${s.name}|SITE_SUPERVISOR`;
             const roleTitle = s.role === 'SUPERVISOR_WORKER' ? 'Working Supervisor (Dual Role)' : 'Site Supervisor';
             opt.textContent = `${s.name} — ${roleTitle} (${s.fin_no || s.wp_no || s.worker_id})`;
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (existingEmail) {
             for (let i = 0; i < select.options.length; i++) {
-              if (select.options[i].value.startsWith(existingEmail)) {
+              if (select.options[i].value.startsWith(existingEmail + '|')) {
                 select.selectedIndex = i;
                 break;
               }

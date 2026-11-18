@@ -46,14 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.getElementById('applicant_supervisor_select')?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (val) {
-      const nameInput = document.getElementById('applicant_name_input');
-      if (nameInput) nameInput.value = val;
-    }
-  });
-
   document.getElementById('btnClearSig')?.addEventListener('click', () => {
     if (supervisorSigPad) supervisorSigPad.clear();
     const badge = document.getElementById('sigCacheBadge');
@@ -79,10 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     savePermitForm(false);
   });
 
-  document.getElementById('btnLoginSubmit')?.addEventListener('click', () => {
-    confirmProfileSwitch();
-  });
-
   // Global Navigation Helper
   window.switchSupervisorTab = function(tabId) {
     document.querySelectorAll('.kiosk-nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -101,19 +89,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       initTbmTab();
     }
   };
-
-  window.openLoginModal = function() {
-    const modal = document.getElementById('loginModal');
-    if (modal) modal.style.display = 'flex';
-  };
 });
 
 function initUserSession() {
-  let activeEmail = localStorage.getItem('active_user_email');
-  let activeName = localStorage.getItem('active_user_name');
-  let activeRole = localStorage.getItem('active_user_role');
+  const activeEmail = (localStorage.getItem('active_user_email') || '').trim();
+  const activeName = (localStorage.getItem('active_user_name') || '').trim();
+  const activeRole = (localStorage.getItem('active_user_role') || '').trim();
 
-  if (!activeEmail || !activeRole) {
+  if ((!activeEmail && !activeName) || !activeRole) {
     window.location.replace('/login.html');
     return false;
   }
@@ -122,36 +105,10 @@ function initUserSession() {
   if (nameEl) nameEl.textContent = activeName || activeEmail;
 
   const applicantInput = document.getElementById('applicant_name_input');
-  if (applicantInput && !applicantInput.value) {
+  if (applicantInput) {
     applicantInput.value = activeName || '';
   }
   return true;
-}
-
-function confirmProfileSwitch() {
-  const select = document.getElementById('modalProfileSelect');
-  if (!select) return;
-
-  const [email, name, role] = select.value.split('|');
-  localStorage.setItem('active_user_email', email);
-  localStorage.setItem('active_user_name', name);
-  localStorage.setItem('active_user_role', role);
-
-  if (role !== 'SITE_SUPERVISOR') {
-    window.location.replace('/index.html');
-    return;
-  }
-
-  const nameEl = document.getElementById('userNameText');
-  if (nameEl) nameEl.textContent = name;
-
-  const applicantInput = document.getElementById('applicant_name_input');
-  if (applicantInput) applicantInput.value = name || '';
-
-  document.getElementById('loginModal').style.display = 'none';
-  showToast(`Switched profile to ${name} (${role})`, 'success');
-
-  loadSupervisorPermits();
 }
 
 async function loadActiveProjects() {
@@ -238,29 +195,6 @@ async function loadWorkersChecklist() {
         </label>
         `;
       }).join('');
-
-      // Populate Applicant Supervisor Dropdown
-      const supSelect = document.getElementById('applicant_supervisor_select');
-      if (supSelect) {
-        const supervisors = certifiedWorkers.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
-        let supOpts = '<option value="">-- Select Supervisor to Auto-Fill --</option>';
-        supOpts += supervisors.map(s => {
-          const roleLabel = s.role === 'SUPERVISOR_WORKER' ? 'Sup + Worker' : 'Supervisor';
-          return `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)} [${roleLabel}] (${escapeHtml(s.fin_no || s.wp_no || 'ID')})</option>`;
-        }).join('');
-        supSelect.innerHTML = supOpts;
-
-        // Auto-select if active_user_name matches a supervisor
-        const activeName = localStorage.getItem('active_user_name') || '';
-        if (activeName) {
-          const matching = supervisors.find(s => s.name.toLowerCase() === activeName.toLowerCase());
-          if (matching) {
-            supSelect.value = matching.name;
-            const nameInput = document.getElementById('applicant_name_input');
-            if (nameInput && !nameInput.value) nameInput.value = matching.name;
-          }
-        }
-      }
     }
   } catch (err) {
     console.error('Failed to load workers checklist:', err);
@@ -350,12 +284,9 @@ window.editSupervisorDraft = function(ptwId) {
   if (permit.start_datetime) document.getElementById('start_datetime').value = permit.start_datetime;
   if (permit.valid_until) document.getElementById('valid_until').value = permit.valid_until;
 
-  if (permit.applicant_name) {
-    const nameInput = document.getElementById('applicant_name_input');
-    if (nameInput) nameInput.value = permit.applicant_name;
-    const supSelect = document.getElementById('applicant_supervisor_select');
-    if (supSelect) supSelect.value = permit.applicant_name;
-  }
+  const activeName = (localStorage.getItem('active_user_name') || '').trim();
+  const nameInput = document.getElementById('applicant_name_input');
+  if (nameInput) nameInput.value = activeName;
 
   document.getElementById('draftPtwIdBadge').textContent = `Editing ${permit.ptw_id}`;
   window.switchSupervisorTab('draftTab');
@@ -375,11 +306,17 @@ async function savePermitForm(isDraft = false) {
     return;
   }
 
-  const applicantNameInput = document.getElementById('applicant_name_input');
-  const applicantName = applicantNameInput?.value?.trim() || localStorage.getItem('active_user_name') || 'Site Supervisor';
+  const applicantName = (localStorage.getItem('active_user_name') || '').trim();
+  const applicantEmail = (localStorage.getItem('active_user_email') || '').trim();
 
-  if (!isDraft && !applicantName) {
-    showToast('Applicant / Supervisor Full Name is required.', 'error');
+  if (!applicantName) {
+    showToast('Submission Blocked: Active supervisor session not found. Please log in again.', 'error');
+    return;
+  }
+
+  // Data Integrity Guard: Block submission if supervisor profile has no registered email
+  if (!applicantEmail) {
+    showToast('Submission Blocked: Your supervisor profile is missing a registered email address. Please contact the System Admin to update the Worker Registry before applying for a permit.', 'error');
     return;
   }
 
@@ -399,8 +336,6 @@ async function savePermitForm(isDraft = false) {
     showToast('Digital Signature is required before submitting permit for vetting.', 'error');
     return;
   }
-
-  const applicantEmail = localStorage.getItem('active_user_email') || 'budi.supervisor@contractor.sg';
 
   const payload = {
     ptw_id: ptwId,
