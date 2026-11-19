@@ -1,5 +1,6 @@
 // ============================================================================
 // STRUCTURED PTW + TBM COMPLIANCE PACK PDF GENERATOR (jsPDF)
+// Matches official ePTW & TBM form card layouts with strict SGT & DD/MM/YYYY
 // ============================================================================
 
 import { fetchAPI } from './api.js';
@@ -19,12 +20,35 @@ function formatDDMMYYYY(raw) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-function formatDDMMYYYYTime(raw) {
+function formatSgtDDMMYYYYTime(raw) {
   if (!raw) return 'N/A';
   const s = String(raw).trim();
   const datePart = formatDDMMYYYY(s);
   const timeMatch = s.match(/(\d{2}:\d{2})/);
   return timeMatch ? `${datePart} ${timeMatch[1]}` : datePart;
+}
+
+function formatUtcToSgtDDMMYYYYTime(raw) {
+  if (!raw) return 'N/A';
+  const s = String(raw).trim();
+  const normalized = s.includes('T') ? s : s.replace(' ', 'T');
+  const utcStr = /([zZ]|[+-]\d{2}:?\d{2})$/.test(normalized) ? normalized : `${normalized}Z`;
+  const d = new Date(utcStr);
+  if (isNaN(d.getTime())) return formatSgtDDMMYYYYTime(s);
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Singapore',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).formatToParts(d);
+
+  const map = {};
+  parts.forEach(p => { map[p.type] = p.value; });
+  return `${map.day}/${map.month}/${map.year} ${map.hour}:${map.minute}`;
 }
 
 function safeAddSigImage(doc, dataUrl, x, y, maxW, maxH) {
@@ -61,6 +85,11 @@ export async function buildPtwTbmPdfPack(ptwId) {
   const contentW = pageW - margin * 2;
   let y = 14;
 
+  const workerIdMap = new Map();
+  workers.forEach(w => {
+    if (w.worker_id) workerIdMap.set(w.worker_id, w);
+  });
+
   const ensureSpace = (neededMm) => {
     if (y + neededMm > pageH - 16) {
       doc.addPage();
@@ -68,201 +97,279 @@ export async function buildPtwTbmPdfPack(ptwId) {
     }
   };
 
-  const drawSectionHeader = (title) => {
-    ensureSpace(12);
-    doc.setFillColor(226, 232, 240);
-    doc.rect(margin, y, contentW, 7, 'F');
-    doc.setFillColor(2, 132, 199);
-    doc.rect(margin, y, 2.2, 7, 'F');
+  const drawCardTitle = (title) => {
+    ensureSpace(10);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text(title, margin + 5, y + 4.8);
-    y += 10;
-  };
-
-  const drawKeyValueRow = (label, value, xOffset = 0, colW = contentW) => {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(label, margin + xOffset, y);
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(15, 23, 42);
-    const lines = doc.splitTextToSize(String(value || 'N/A'), colW - 2);
-    doc.text(lines, margin + xOffset, y + 4);
-    return lines.length * 4.2 + 5;
+    doc.text(title, margin, y);
+    y += 3.5;
   };
 
-  // Top Header Banner
-  doc.setFillColor(15, 23, 42);
-  doc.rect(margin, y, contentW, 18, 'F');
+  const drawTextCard = (lines, options = {}) => {
+    const {
+      fill = [255, 255, 255],
+      border = [203, 213, 225],
+      textColor = [30, 41, 59],
+      fontSize = 8.4,
+      lineHeight = 3.9,
+      pad = 4
+    } = options;
+    const h = Math.max(10, lines.length * lineHeight + pad * 2);
+    ensureSpace(h + 3);
+    doc.setFillColor(...fill);
+    doc.setDrawColor(...border);
+    doc.roundedRect(margin, y, contentW, h, 2, 2, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(fontSize);
+    doc.setTextColor(...textColor);
+    doc.text(lines, margin + pad, y + pad + 3);
+    y += h + 4;
+  };
+
+  // ==========================================================================
+  // PAGE 1: OFFICIAL PERMIT TO WORK (ePTW)
+  // ==========================================================================
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(255, 255, 255);
-  doc.text('PERMIT-TO-WORK (PTW) & TBM COMPLIANCE PACK', margin + 4, y + 7);
+  doc.setFontSize(14);
+  doc.setTextColor(2, 132, 199);
+  doc.text('OFFICIAL PERMIT TO WORK (ePTW)', margin, y + 4);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text(`Singapore WSH Audit Record  |  Permit: ${permit.ptw_id}  |  Status: ${permit.status || 'Active'}`, margin + 4, y + 13.5);
-  y += 22;
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Singapore Site Safety Compliance Document | Ref: ${permit.ptw_id}`, margin, y + 9.5);
+  doc.setDrawColor(226, 232, 240);
+  doc.line(margin, y + 12.5, pageW - margin, y + 12.5);
+  y += 16;
 
-  // Section 1: Permit Details
-  drawSectionHeader('1. Permit-to-Work (PTW) Details');
-  const h1 = drawKeyValueRow('Project / Site:', `${permit.project_name || permit.project_id} (${permit.location || 'Site'})`, 0, contentW / 2 - 2);
-  const h2 = drawKeyValueRow('Client / Main-Con:', permit.client_name || 'N/A', contentW / 2 + 2, contentW / 2 - 2);
-  y += Math.max(h1, h2);
+  // 4-Step Workflow Status Bar
+  const st = (permit.status || '').toLowerCase();
+  const isVetted = Boolean(permit.safety_vetted_at) || st.includes('pm') || st === 'active' || st === 'closed';
+  const isApproved = Boolean(permit.pm_approved_at) || st === 'active' || st === 'closed';
+  const isActive = st === 'active' || st === 'closed';
 
-  const h3 = drawKeyValueRow('Permit Type:', permit.ptw_type || 'General Work', 0, contentW / 2 - 2);
-  const h4 = drawKeyValueRow('Shift Validity:', `${formatDDMMYYYYTime(permit.start_datetime)} to ${formatDDMMYYYYTime(permit.valid_until)}`, contentW / 2 + 2, contentW / 2 - 2);
-  y += Math.max(h3, h4);
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, y, contentW, 8.5, 1.5, 1.5, 'FD');
+  const steps = [
+    { label: '1. Application', done: true },
+    { label: '2. Safety Vetting', done: isVetted },
+    { label: '3. PM Authorization', done: isApproved },
+    { label: '4. Active / Issued', done: isActive }
+  ];
+  const stepW = contentW / 4;
+  steps.forEach((step, idx) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.8);
+    if (step.done) {
+      doc.setTextColor(idx === 3 ? 2 : 22, idx === 3 ? 132 : 163, idx === 3 ? 199 : 74);
+    } else {
+      doc.setTextColor(148, 163, 184);
+    }
+    doc.text(`${step.done ? '[OK] ' : ''}${step.label}`, margin + idx * stepW + 3, y + 5.5);
+  });
+  y += 12;
 
-  const h5 = drawKeyValueRow('Work Description / Scope:', permit.work_description || 'N/A', 0, contentW);
-  y += h5 + 2;
+  // Rounded Metadata Card
+  const metaH = 42;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(margin, y, contentW, metaH, 2, 2, 'FD');
+  const col1X = margin + 4;
+  const col2X = margin + contentW / 2 + 4;
 
-  // Section 2: RAMS Safety Controls
-  drawSectionHeader(`2. RAMS Hazard & Control Measures (${rams.length})`);
-  if (rams.length === 0) {
-    ensureSpace(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text('No RAMS controls linked.', margin + 2, y);
-    y += 7;
-  } else {
-    rams.forEach((r, idx) => {
-      const titleText = `${idx + 1}. [${r.activity_category || 'General'}] ${r.work_activity || ''}`;
-      const detailText = `Hazard: ${r.hazard || 'N/A'} | Controls: ${r.control_measures || 'N/A'}`;
-      const titleLines = doc.splitTextToSize(titleText, contentW - 4);
-      const detailLines = doc.splitTextToSize(detailText, contentW - 6);
-      const blockH = titleLines.length * 4 + detailLines.length * 3.8 + 4;
-      ensureSpace(blockH);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.8);
-      doc.setTextColor(15, 23, 42);
-      doc.text(titleLines, margin + 2, y);
-      y += titleLines.length * 4;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.2);
-      doc.setTextColor(51, 65, 85);
-      doc.text(detailLines, margin + 4, y);
-      y += detailLines.length * 3.8 + 3;
-    });
-  }
+  const drawMetaField = (x, fy, label, value, valColor = [15, 23, 42]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    doc.text(label.toUpperCase(), x, fy);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.8);
+    doc.setTextColor(...valColor);
+    const lines = doc.splitTextToSize(String(value || 'N/A'), contentW / 2 - 8);
+    doc.text(lines[0] || 'N/A', x, fy + 4);
+  };
 
-  // Section 3: Assigned Workers & Certificate Validity (Text Only)
-  drawSectionHeader(`3. Assigned Workers & Safety Certificate Validity (${workers.length})`);
+  drawMetaField(col1X, y + 5.5, 'Permit ID', permit.ptw_id, [2, 132, 199]);
+  drawMetaField(col2X, y + 5.5, 'Current Status', (permit.status || 'Active').toUpperCase(), [100, 116, 139]);
+  drawMetaField(col1X, y + 14.5, 'Project Site / Facility', `${permit.project_name || permit.project_id}`);
+  drawMetaField(col2X, y + 14.5, 'High-Risk Category', permit.ptw_type || 'General Work');
+  drawMetaField(col1X, y + 23.5, 'Work Shift Start (SGT)', formatSgtDDMMYYYYTime(permit.start_datetime));
+  drawMetaField(col2X, y + 23.5, 'Work Shift Expiry (SGT)', formatSgtDDMMYYYYTime(permit.valid_until), [220, 38, 38]);
+  drawMetaField(col1X, y + 32.5, 'Designated WSHO', `${permit.assigned_wsho_name || 'N/A'} (${permit.assigned_wsho_email || ''})`);
+  drawMetaField(col2X, y + 32.5, 'MOM Approving PM', `${permit.assigned_pm_name || 'N/A'} (${permit.assigned_pm_email || ''})`);
+  y += metaH + 5;
+
+  // Work Activity & Scope Description
+  drawCardTitle('Work Activity & Scope Description');
+  const scopeLines = doc.splitTextToSize(String(permit.work_description || 'N/A'), contentW - 8);
+  drawTextCard(scopeLines);
+
+  // Assigned Certified Site Personnel
+  drawCardTitle(`Assigned Certified Site Personnel (${workers.length})`);
   if (workers.length === 0) {
-    ensureSpace(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text('No assigned workers recorded.', margin + 2, y);
-    y += 7;
+    drawTextCard(['No assigned workers recorded.'], { textColor: [100, 116, 139] });
   } else {
-    workers.forEach((w, idx) => {
-      const certSummary = (w.certs && w.certs.length > 0)
+    const workerLines = [];
+    workers.forEach((w) => {
+      const idStr = w.id_number || w.worker_id || 'N/A';
+      const certsText = (w.certs && w.certs.length > 0)
         ? w.certs.map(c => `${c.cert_type} (Exp: ${formatDDMMYYYY(c.cert_expiry)} - ${c.cert_valid ? 'Valid' : 'Expired'})`).join('; ')
         : 'No certificates on file';
-      const line1 = `${idx + 1}. ${w.name} (${w.trade || 'Worker'})`;
-      const line2 = `Certificates: ${certSummary}`;
-      const l1 = doc.splitTextToSize(line1, contentW - 4);
-      const l2 = doc.splitTextToSize(line2, contentW - 6);
-      const blockH = l1.length * 4 + l2.length * 3.8 + 3;
-      ensureSpace(blockH);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.8);
-      doc.setTextColor(15, 23, 42);
-      doc.text(l1, margin + 2, y);
-      y += l1.length * 4;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.2);
-      doc.setTextColor(51, 65, 85);
-      doc.text(l2, margin + 4, y);
-      y += l2.length * 3.8 + 2.5;
+      const header = `• ${w.name} (${w.trade || 'Worker'} | ID: ${idStr})`;
+      const certLines = doc.splitTextToSize(`   Certs: ${certsText}`, contentW - 10);
+      workerLines.push(header, ...certLines);
     });
+    drawTextCard(workerLines, { fontSize: 8, lineHeight: 3.7 });
   }
 
-  // Section 4: PTW Endorsements & Digital Signatures
-  drawSectionHeader('4. PTW Endorsements & Digital Signatures');
-  ensureSpace(34);
+  // Linked RAMS Risk Controls
+  drawCardTitle(`Linked RAMS Risk Controls (${rams.length})`);
+  if (rams.length === 0) {
+    drawTextCard(['No RAMS controls linked.'], { textColor: [100, 116, 139] });
+  } else {
+    const ramsLines = [];
+    rams.forEach((r, idx) => {
+      const rTitle = `${idx + 1}. [${r.activity_category || 'General'}] ${r.work_activity || ''} — Hazard: ${r.hazard || 'N/A'} (RPN: ${r.rpn || 'N/A'})`;
+      const rCtrl = `   Controls: ${r.control_measures || 'N/A'}`;
+      ramsLines.push(...doc.splitTextToSize(rTitle, contentW - 8), ...doc.splitTextToSize(rCtrl, contentW - 10));
+    });
+    drawTextCard(ramsLines, { fontSize: 7.9, lineHeight: 3.6 });
+  }
+
+  // Digital Signatures & Authorization Audit Trail (3 cards in 1 row)
+  drawCardTitle('Digital Signatures & Authorization Audit Trail');
+  ensureSpace(38);
   const sigBoxW = (contentW - 6) / 3;
+  const sigBoxH = 34;
   const sigBoxes = [
     {
-      role: 'Applicant (Supervisor)',
-      name: permit.applicant_name || permit.applicant_email || 'N/A',
-      time: formatDDMMYYYYTime(permit.created_at),
+      role: '1. APPLICANT / SUPERVISOR',
+      name: permit.applicant_name || 'Site Supervisor',
+      email: permit.applicant_email || '',
+      time: `Applied: ${formatUtcToSgtDDMMYYYYTime(permit.created_at)}`,
       sig: permit.applicant_signature
     },
     {
-      role: 'Safety Assessor (WSHO)',
+      role: '2. SAFETY ASSESSOR (WSHO)',
       name: permit.assigned_wsho_name || 'N/A',
-      time: permit.safety_vetted_at ? formatDDMMYYYYTime(permit.safety_vetted_at) : 'Pending',
+      email: permit.assigned_wsho_email || '',
+      time: permit.safety_vetted_at ? `Vetted: ${formatUtcToSgtDDMMYYYYTime(permit.safety_vetted_at)}` : 'Vetted: Pending',
       sig: permit.safety_signature
     },
     {
-      role: 'Project Manager (PM)',
+      role: '3. MOM APPROVING PM',
       name: permit.assigned_pm_name || 'N/A',
-      time: permit.pm_approved_at ? formatDDMMYYYYTime(permit.pm_approved_at) : 'Pending',
+      email: permit.assigned_pm_email || '',
+      time: permit.pm_approved_at ? `Authorized: ${formatSgtDDMMYYYYTime(permit.pm_approved_at)}` : 'Authorized: Pending',
       sig: permit.pm_signature
     }
   ];
 
   sigBoxes.forEach((box, i) => {
     const bx = margin + i * (sigBoxW + 3);
+    doc.setFillColor(255, 255, 255);
     doc.setDrawColor(203, 213, 225);
-    doc.rect(bx, y, sigBoxW, 30);
+    doc.roundedRect(bx, y, sigBoxW, sigBoxH, 2, 2, 'FD');
+
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(3, 105, 161);
-    doc.text(box.role, bx + 2, y + 4.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.2);
-    doc.setTextColor(15, 23, 42);
-    const nameLines = doc.splitTextToSize(box.name, sigBoxW - 4);
-    doc.text(nameLines[0] || '', bx + 2, y + 9);
-    const hasImg = safeAddSigImage(doc, box.sig, bx + 3, y + 10.5, sigBoxW - 6, 13);
+    doc.setFontSize(6.8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(box.role, bx + 2.5, y + 4.5);
+
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(bx + 2.5, y + 6, sigBoxW - 5, 12.5);
+    const hasImg = safeAddSigImage(doc, box.sig, bx + 3.5, y + 6.5, sigBoxW - 7, 11.5);
     if (!hasImg) {
       doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(box.sig ? String(box.sig).slice(0, 24) : 'Not signed', bx + 3, y + 18);
+      doc.setFontSize(7.2);
+      doc.setTextColor(148, 163, 184);
+      doc.text(box.sig ? String(box.sig).slice(0, 22) : 'Pending Signature', bx + 4, y + 13.5);
     }
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.2);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`Date: ${box.time}`, bx + 2, y + 27.8);
-  });
-  y += 35;
 
-  // Section 5: Linked Daily Toolbox Meeting (TBM) Record(s)
-  drawSectionHeader(`5. Linked Daily Toolbox Meeting (TBM) Record(s) (${tbms.length})`);
-  if (tbms.length === 0) {
-    ensureSpace(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.8);
+    doc.setTextColor(15, 23, 42);
+    doc.text(doc.splitTextToSize(box.name, sigBoxW - 5)[0] || '', bx + 2.5, y + 22.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(doc.splitTextToSize(box.email, sigBoxW - 5)[0] || '', bx + 2.5, y + 26.2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.8);
     doc.setTextColor(100, 116, 139);
-    doc.text('No Toolbox Meeting (TBM) sheet recorded for this permit yet.', margin + 2, y);
-    y += 7;
+    doc.text(box.time, bx + 2.5, y + 31);
+  });
+
+  // ==========================================================================
+  // PAGE 2+: DAILY SAFETY TOOLBOX MEETING (TBM)
+  // ==========================================================================
+  doc.addPage();
+  y = 14;
+
+  if (tbms.length === 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(2, 132, 199);
+    doc.text('DAILY SAFETY TOOLBOX MEETING (TBM)', margin, y + 4);
+    y += 14;
+    drawTextCard(['No Toolbox Meeting (TBM) sheet recorded for this permit yet.'], { textColor: [100, 116, 139] });
   } else {
-    tbms.forEach((tbm) => {
-      ensureSpace(22);
-      const tDate = formatDDMMYYYYTime(tbm.conducted_at || tbm.created_at);
+    tbms.forEach((tbm, tIdx) => {
+      if (tIdx > 0) {
+        doc.addPage();
+        y = 14;
+      }
+
+      const isTbmCompleted = tbm.status === 'COMPLETED' || tbm.status === 'CLOSED';
+      const tbmDateStr = formatSgtDDMMYYYYTime(tbm.conducted_at || tbm.created_at);
+
+      // TBM Header
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${tbm.tbm_id}  [${tbm.status || 'PENDING_BRIEFING'}]`, margin + 2, y);
-      y += 4.5;
+      doc.setFontSize(14);
+      doc.setTextColor(2, 132, 199);
+      doc.text('DAILY SAFETY TOOLBOX MEETING (TBM)', margin, y + 4);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
-      doc.setTextColor(51, 65, 85);
-      doc.text(`Conducted By: ${tbm.supervisor_name || 'Supervisor'}  |  Date: ${tDate}  |  Attendance: ${tbm.attendance_count || 0}`, margin + 2, y);
-      y += 4.5;
-      const concernLines = doc.splitTextToSize(`Worker Feedback / Concerns: ${tbm.worker_concerns_raised || 'Nil / No concerns raised'}`, contentW - 4);
-      ensureSpace(concernLines.length * 4 + 4);
-      doc.text(concernLines, margin + 2, y);
-      y += concernLines.length * 4 + 3;
+      doc.setTextColor(100, 116, 139);
+      doc.text(`MOM WSH Pre-Work Briefing • Ref: ${tbm.tbm_id}`, margin, y + 9.5);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(margin, y + 12.5, pageW - margin, y + 12.5);
+      y += 16;
 
+      // TBM Metadata Card
+      const tbmMetaH = 30;
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(margin, y, contentW, tbmMetaH, 2, 2, 'FD');
+
+      drawMetaField(col1X, y + 5.5, 'Briefing Ref', tbm.tbm_id, [2, 132, 199]);
+      drawMetaField(col2X, y + 5.5, 'Status', isTbmCompleted ? 'COMPLETED & LOCKED' : 'PENDING BRIEFING', isTbmCompleted ? [22, 163, 74] : [217, 119, 6]);
+      drawMetaField(col1X, y + 14.5, 'Linked Active Permit', tbm.ptw_id || permit.ptw_id, [2, 132, 199]);
+      drawMetaField(col2X, y + 14.5, 'Site / Facility', permit.project_name || permit.project_id);
+      drawMetaField(col1X, y + 23.5, 'Conductor / Supervisor', `${tbm.supervisor_name || 'Supervisor'} (${tbm.supervisor_role || 'Site Supervisor'})`);
+      drawMetaField(col2X, y + 23.5, 'Briefing Timestamp (SGT)', tbmDateStr);
+      y += tbmMetaH + 5;
+
+      // Task Hazards & Specific Safety Controls Discussed
+      drawCardTitle('Task Hazards & Specific Safety Controls Discussed');
+      const hazardLines = doc.splitTextToSize(String(tbm.hazard_summary || 'N/A'), contentW - 8);
+      drawTextCard(hazardLines, { fontSize: 8.1, lineHeight: 3.8, border: [186, 230, 253] });
+
+      // Worker Feedback & Safety Concerns (Green Box)
+      drawCardTitle('Worker Feedback & Safety Concerns (MOM 2-Way Communication)');
+      const concernLines = doc.splitTextToSize(String(tbm.worker_concerns_raised || 'Nil / No concerns raised'), contentW - 8);
+      drawTextCard(concernLines, {
+        fill: [240, 253, 244],
+        border: [134, 239, 172],
+        textColor: [22, 101, 52],
+        fontSize: 8.4,
+        lineHeight: 4
+      });
+
+      // Attending Worker Sign-off Manifest
       let sigs = [];
       try {
         sigs = typeof tbm.worker_signatures === 'string'
@@ -272,43 +379,62 @@ export async function buildPtwTbmPdfPack(ptwId) {
         sigs = [];
       }
 
-      if (Array.isArray(sigs) && sigs.length > 0) {
+      drawCardTitle(`Attending Worker Sign-off Manifest (${sigs.length} Signed)`);
+      if (!Array.isArray(sigs) || sigs.length === 0) {
+        drawTextCard(['No worker signatures recorded yet.'], { textColor: [100, 116, 139] });
+      } else {
         sigs.forEach((s, idx) => {
-          ensureSpace(16);
-          doc.setDrawColor(226, 232, 240);
-          doc.rect(margin + 2, y, contentW - 4, 14);
+          const workerMeta = workerIdMap.get(s.worker_id);
+          const resolvedId = (s.ic_wp_fin_last4 && s.ic_wp_fin_last4 !== 'N/A')
+            ? s.ic_wp_fin_last4
+            : (workerMeta?.id_number || s.worker_id || 'N/A');
+          const resolvedName = (s.full_name && s.full_name !== 'Worker')
+            ? s.full_name
+            : (workerMeta?.name || s.worker_id || 'Worker');
+          const resolvedTrade = (s.trade && s.trade !== 'General Worker')
+            ? s.trade
+            : (workerMeta?.trade || 'Worker');
+
+          const cardH = 22;
+          ensureSpace(cardH + 3);
+          doc.setFillColor(255, 255, 255);
+          doc.setDrawColor(203, 213, 225);
+          doc.roundedRect(margin, y, contentW, cardH, 2, 2, 'FD');
+
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8.3);
+          doc.setFontSize(8.8);
           doc.setTextColor(15, 23, 42);
-          doc.text(`${idx + 1}. ${s.full_name || s.worker_id || 'Worker'}`, margin + 4, y + 5);
+          doc.text(`${idx + 1}. ${resolvedName}`, margin + 4, y + 5.5);
+
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.8);
           doc.setTextColor(71, 85, 105);
-          doc.text(`Trade: ${s.trade || 'Worker'}  |  ID: ${s.ic_wp_fin_last4 || s.worker_id || 'N/A'}  |  Signed: ${s.signed_at || ''}`, margin + 4, y + 10.5);
-          safeAddSigImage(doc, s.signature_base64, pageW - margin - 42, y + 1.5, 36, 11);
-          y += 15.5;
+          doc.text(`Trade: ${resolvedTrade}  |  FIN/ID: ${resolvedId}`, margin + 4, y + 10.5);
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.8);
+          doc.setTextColor(22, 163, 74);
+          doc.text(s.signed_at ? `Signed at ${s.signed_at} SGT` : 'Signed', pageW - margin - 4, y + 5.5, { align: 'right' });
+
+          doc.setDrawColor(226, 232, 240);
+          doc.rect(margin + 4, y + 12.2, contentW - 8, 8.2);
+          safeAddSigImage(doc, s.signature_base64, margin + contentW / 2 - 18, y + 12.6, 36, 7.4);
+
+          y += cardH + 3;
         });
-      } else {
-        ensureSpace(7);
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(8.2);
-        doc.setTextColor(100, 116, 139);
-        doc.text('No worker signatures recorded yet.', margin + 4, y);
-        y += 6;
       }
-      y += 3;
     });
   }
 
-  // Footer on every page
+  // Footer on every page (strict SGT)
   const totalPages = doc.getNumberOfPages();
-  const generatedStr = formatDDMMYYYYTime(new Date().toISOString());
+  const generatedStr = formatUtcToSgtDDMMYYYYTime(new Date().toISOString());
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184);
-    doc.text(`Unified ePTW & TBM Compliance Pack • Generated ${generatedStr} • Page ${p} of ${totalPages}`, margin, pageH - 7);
+    doc.text(`Unified ePTW & TBM Compliance Pack • Generated ${generatedStr} SGT • Page ${p} of ${totalPages}`, margin, pageH - 7);
   }
 
   const filename = `${permit.ptw_id}_PTW_TBM_Pack.pdf`;
@@ -335,7 +461,6 @@ export async function shareOrDownloadPtwPack(ptwId, showToastFn) {
       return;
     } catch (err) {
       if (err && err.name === 'AbortError') return;
-      // Fall through to download if share fails
     }
   }
 

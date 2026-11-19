@@ -1583,7 +1583,7 @@ app.get('/api/ptw/:id/pack', async (c) => {
     const workers: any[] = [];
     for (const wid of workerIds) {
       const w = await c.env.DB.prepare(
-        `SELECT worker_id, name, trade, role FROM Worker_Registry WHERE worker_id = ?`
+        `SELECT worker_id, name, trade, role, ic_no, wp_no, fin_no FROM Worker_Registry WHERE worker_id = ?`
       ).bind(wid).first<any>();
       const certsRes = await c.env.DB.prepare(
         `SELECT cert_type, cert_expiry, cert_valid FROM Worker_Certificates WHERE worker_id = ? ORDER BY cert_expiry DESC`
@@ -1594,6 +1594,7 @@ app.get('/api/ptw/:id/pack', async (c) => {
         name: w?.name || wid,
         trade: w?.trade || 'General',
         role: w?.role || 'WORKER',
+        id_number: w?.fin_no || w?.wp_no || w?.ic_no || wid,
         certs: (certsRes.results || []).map((ct: any) => ({
           cert_type: ct.cert_type || 'Safety Certificate',
           cert_expiry: ct.cert_expiry || '',
