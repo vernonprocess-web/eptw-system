@@ -45,43 +45,97 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePreview();
   }
 
-  // Dynamically load registered Site Supervisors & Working Supervisors from Worker Registry
-  async function loadRegisteredSupervisors() {
-    try {
-      const res = await fetch('/api/workers');
-      const result = await res.json();
-      if (result.success && Array.isArray(result.data)) {
-        const supervisors = result.data.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
-        if (supervisors.length > 0 && select) {
-          const group = document.createElement('optgroup');
-          group.label = "Verified Site Supervisors (From Worker Registry)";
-          supervisors.forEach(s => {
-            const opt = document.createElement('option');
-            const email = (s.email || '').trim();
-            opt.value = `${email}|${s.name}|SITE_SUPERVISOR`;
-            const roleTitle = s.role === 'SUPERVISOR_WORKER' ? 'Working Supervisor (Dual Role)' : 'Site Supervisor';
-            opt.textContent = `${s.name} — ${roleTitle} (${s.fin_no || s.wp_no || s.worker_id})`;
-            group.appendChild(opt);
-          });
-          select.insertBefore(group, select.firstChild);
+  // Dynamically load registered Supervisors from Worker Registry and WSHOs/PMs from Project Directory
+  async function loadAuthorizedAccounts() {
+    if (!select) return;
+    const adminOption = select.querySelector('option[value$="|ADMIN"]');
 
-          if (existingEmail) {
-            for (let i = 0; i < select.options.length; i++) {
-              if (select.options[i].value.startsWith(existingEmail + '|')) {
-                select.selectedIndex = i;
-                break;
-              }
-            }
-          }
-          updatePreview();
+    const [workersRes, projectsRes] = await Promise.allSettled([
+      fetch('/api/workers').then(r => r.json()),
+      fetch('/api/projects').then(r => r.json())
+    ]);
+
+    if (workersRes.status === 'fulfilled' && workersRes.value?.success && Array.isArray(workersRes.value.data)) {
+      const supervisors = workersRes.value.data.filter(w => w.role === 'SUPERVISOR' || w.role === 'SUPERVISOR_WORKER');
+      if (supervisors.length > 0) {
+        const group = document.createElement('optgroup');
+        group.label = 'Verified Site Supervisors (From Worker Registry)';
+        supervisors.forEach(s => {
+          const opt = document.createElement('option');
+          const email = (s.email || '').trim();
+          opt.value = `${email}|${s.name}|SITE_SUPERVISOR`;
+          const roleTitle = s.role === 'SUPERVISOR_WORKER' ? 'Working Supervisor (Dual Role)' : 'Site Supervisor';
+          opt.textContent = `${s.name} — ${roleTitle} (${s.fin_no || s.wp_no || s.worker_id})`;
+          group.appendChild(opt);
+        });
+        select.insertBefore(group, adminOption || select.firstChild);
+      }
+    } else if (workersRes.status === 'rejected') {
+      console.warn('[LoginGateway] Could not fetch dynamic supervisors:', workersRes.reason);
+    }
+
+    if (projectsRes.status === 'fulfilled' && projectsRes.value?.success && Array.isArray(projectsRes.value.data)) {
+      const wshoMap = new Map();
+      const pmMap = new Map();
+
+      projectsRes.value.data.forEach(p => {
+        const wshoEmail = (p.wsho_email || '').trim();
+        const wshoName = (p.wsho_name || '').trim();
+        if (wshoEmail && wshoName && !wshoMap.has(wshoEmail.toLowerCase())) {
+          wshoMap.set(wshoEmail.toLowerCase(), { email: wshoEmail, name: wshoName });
+        }
+
+        const pmEmail = (p.pm_email || '').trim();
+        const pmName = (p.project_manager || '').trim();
+        if (pmEmail && pmName && !pmMap.has(pmEmail.toLowerCase())) {
+          pmMap.set(pmEmail.toLowerCase(), { email: pmEmail, name: pmName });
+        }
+      });
+
+      if (wshoMap.size > 0) {
+        const wshoGroup = document.createElement('optgroup');
+        wshoGroup.label = 'Safety Assessors / WSHOs (From Project Directory)';
+        wshoMap.forEach(({ email, name }) => {
+          const opt = document.createElement('option');
+          opt.value = `${email}|${name}|WSHO`;
+          opt.textContent = `${name} — Workplace Safety & Health Officer (WSHO)`;
+          wshoGroup.appendChild(opt);
+        });
+        select.insertBefore(wshoGroup, adminOption || null);
+      }
+
+      if (pmMap.size > 0) {
+        const pmGroup = document.createElement('optgroup');
+        pmGroup.label = 'Project Managers (From Project Directory)';
+        pmMap.forEach(({ email, name }) => {
+          const opt = document.createElement('option');
+          opt.value = `${email}|${name}|PROJECT_MANAGER`;
+          opt.textContent = `${name} — Project Manager (PM)`;
+          pmGroup.appendChild(opt);
+        });
+        select.insertBefore(pmGroup, adminOption || null);
+      }
+    } else if (projectsRes.status === 'rejected') {
+      console.warn('[LoginGateway] Could not fetch dynamic project leads:', projectsRes.reason);
+    }
+
+    let matched = false;
+    if (existingEmail) {
+      for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value.startsWith(existingEmail + '|')) {
+          select.selectedIndex = i;
+          matched = true;
+          break;
         }
       }
-    } catch (err) {
-      console.warn('[LoginGateway] Could not fetch dynamic supervisors:', err);
     }
+    if (!matched && select.options.length > 0) {
+      select.selectedIndex = 0;
+    }
+    updatePreview();
   }
 
-  loadRegisteredSupervisors();
+  loadAuthorizedAccounts();
 
   if (form) {
     form.addEventListener('submit', (e) => {
