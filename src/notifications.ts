@@ -21,6 +21,9 @@ export interface PTWRecordForNotification {
     status: string;
     rejection_reason?: string;
     tbm_id?: string;
+    closed_by_email?: string;
+    closed_at?: string;
+    closing_remarks?: string;
 }
 
 /**
@@ -159,7 +162,7 @@ export async function dispatchPermitNotification(
     env: NotificationEnv,
     db: D1Database,
     ptw: PTWRecordForNotification,
-    eventType: 'PERMIT_SUBMITTED' | 'PERMIT_VETTED' | 'PERMIT_APPROVED' | 'PERMIT_REJECTED'
+    eventType: 'PERMIT_SUBMITTED' | 'PERMIT_VETTED' | 'PERMIT_APPROVED' | 'PERMIT_REJECTED' | 'PERMIT_CLOSED'
 ): Promise<void> {
     const appUrl = env.APP_URL || 'https://eptw-system.vernon-process.workers.dev';
     const permitLink = `${appUrl}/review?ptw=${encodeURIComponent(ptw.ptw_number)}`;
@@ -276,6 +279,42 @@ ${ptw.tbm_id ? `<a href="${tbmLink}">Conduct TBM Briefing (${ptw.tbm_id})</a>\n`
 <b>Reason:</b> ${ptw.rejection_reason || 'Safety criteria not met'}
 
 <a href="${permitLink}">Review Details</a>
+        `.trim();
+    } else if (eventType === 'PERMIT_CLOSED') {
+        subject = `[ePTW] Permit CLOSED & Handed Over: ${ptw.ptw_number}`;
+        const seenEmails = new Set<string>();
+        const addRecipient = (email?: string, name?: string, role?: string) => {
+            const clean = (email || '').trim().toLowerCase();
+            if (clean && !seenEmails.has(clean)) {
+                seenEmails.add(clean);
+                recipients.push({ email: email!.trim(), name, role: role || 'Reviewer' });
+            }
+        };
+        addRecipient(ptw.assigned_wsho_email, ptw.assigned_wsho_name, 'WSHO');
+        addRecipient(ptw.assigned_pm_email, ptw.assigned_pm_name, 'PM');
+
+        emailHtml = `
+            <h2>Permit Status: CLOSED & WORK COMPLETED</h2>
+            <p>Permit <b>${ptw.ptw_number}</b> has been closed by the Site Supervisor. Housekeeping and site de-isolation have been verified.</p>
+            <ul>
+                <li><b>Permit No:</b> ${ptw.ptw_number}</li>
+                <li><b>Project:</b> ${ptw.project_name}</li>
+                <li><b>Closed By:</b> ${ptw.closed_by_email || ptw.applicant_name || 'Site Supervisor'}</li>
+                <li><b>Closed At (SGT):</b> ${ptw.closed_at || 'N/A'}</li>
+                <li><b>Closing Remarks:</b> ${ptw.closing_remarks || 'Work completed. Housekeeping & site de-isolation verified.'}</li>
+            </ul>
+            <p><a href="${permitLink}" style="background:#0f172a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block;">View Closed Permit</a></p>
+        `;
+
+        telegramHtml = `
+<b>Permit CLOSED & Handed Over</b>
+<b>Permit:</b> ${ptw.ptw_number}
+<b>Project:</b> ${ptw.project_name}
+<b>Closed By:</b> ${ptw.closed_by_email || ptw.applicant_name || 'Site Supervisor'}
+<b>Closed At (SGT):</b> ${ptw.closed_at || 'N/A'}
+<b>Remarks:</b> ${ptw.closing_remarks || 'Housekeeping & de-isolation verified.'}
+
+<a href="${permitLink}">View Closed Permit</a>
         `.trim();
     }
 

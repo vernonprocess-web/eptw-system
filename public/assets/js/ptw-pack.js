@@ -302,6 +302,64 @@ export async function buildPtwTbmPdfPack(ptwId) {
     doc.setTextColor(100, 116, 139);
     doc.text(box.time, bx + 2.5, y + 31);
   });
+  y += sigBoxH + 5;
+
+  // PTW Closure & Handover Block (when Closed)
+  if (permit.status === 'Closed') {
+    const remarksText = `Closing Remarks: ${permit.closing_remarks || 'Nil'}`;
+    const remarkLines = doc.splitTextToSize(remarksText, contentW - 54);
+    const closureCardH = Math.max(26, 16 + remarkLines.length * 3.8);
+
+    drawCardTitle('PTW Closure & Handover Verification');
+    ensureSpace(closureCardH + 4);
+
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(134, 239, 172);
+    doc.roundedRect(margin, y, contentW, closureCardH, 2, 2, 'FD');
+
+    const leftW = contentW - 50;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.2);
+    doc.setTextColor(22, 101, 52);
+    const declText = permit.deisolation_verified
+      ? '[VERIFIED] Housekeeping completed, all workers cleared, and site de-isolation verified.'
+      : 'Site closure recorded.';
+    const declLines = doc.splitTextToSize(declText, leftW);
+    doc.text(declLines, margin + 4, y + 5.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(30, 41, 59);
+    doc.text(remarkLines, margin + 4, y + 5.5 + declLines.length * 4 + 1);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.6);
+    doc.setTextColor(51, 65, 85);
+    const closedTimeStr = permit.closed_at ? `${formatSgtDDMMYYYYTime(permit.closed_at)} SGT` : 'N/A';
+    doc.text(`Closed By: ${permit.closed_by_email || 'Site Supervisor'}  |  Closed At: ${closedTimeStr}`, margin + 4, y + closureCardH - 3.5);
+
+    // Closing signature box on the right
+    const csBoxX = pageW - margin - 44;
+    const csBoxY = y + 3;
+    const csBoxW = 40;
+    const csBoxH = 15;
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(187, 247, 208);
+    doc.roundedRect(csBoxX, csBoxY, csBoxW, csBoxH, 1.5, 1.5, 'FD');
+    const hasCloseSig = safeAddSigImage(doc, permit.closing_signature, csBoxX + 2, csBoxY + 1.5, csBoxW - 4, csBoxH - 3);
+    if (!hasCloseSig) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Signed', csBoxX + 12, csBoxY + 9);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.6);
+    doc.setTextColor(22, 101, 52);
+    doc.text('CLOSING SIGNATURE', csBoxX + csBoxW / 2, csBoxY + csBoxH + 3.5, { align: 'center' });
+
+    y += closureCardH + 4;
+  }
 
   // ==========================================================================
   // PAGE 2+: DAILY SAFETY TOOLBOX MEETING (TBM)

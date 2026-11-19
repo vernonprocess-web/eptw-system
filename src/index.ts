@@ -2218,7 +2218,17 @@ app.put('/api/ptw/:id', async (c) => {
       rejection_reason
     } = body;
 
-    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*,
+              prj.project_name,
+              COALESCE(p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
+              COALESCE(p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
+              COALESCE(p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
+              COALESCE(p.assigned_pm_email, prj.pm_email) AS assigned_pm_email
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
     if (!existing) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
     }
@@ -2329,7 +2339,17 @@ app.post('/api/ptw/:id/close', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const { closing_signature, closed_by_email, closing_remarks, deisolation_verified } = body;
 
-    const existing = await c.env.DB.prepare('SELECT * FROM PTW_Records WHERE ptw_id = ?').bind(id).first<any>();
+    const existing = await c.env.DB.prepare(
+      `SELECT p.*,
+              prj.project_name,
+              COALESCE(p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
+              COALESCE(p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
+              COALESCE(p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
+              COALESCE(p.assigned_pm_email, prj.pm_email) AS assigned_pm_email
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
     if (!existing) {
       return c.json({ success: false, error: 'Permit record not found.' }, 404);
     }
@@ -2361,6 +2381,29 @@ app.post('/api/ptw/:id/close', async (c) => {
       id, 
       `Permit closed by supervisor (${userEmail}). Shift Duration Ended. Housekeeping & De-isolation verified. Linked TBM briefings archived. Remarks: ${remarks}`,
       { email: userEmail, role: 'SITE_SUPERVISOR' }
+    );
+
+    safeWaitUntil(
+      c,
+      dispatchPermitNotification(
+        c.env,
+        c.env.DB,
+        {
+          id,
+          ptw_number: existing.ptw_id || id,
+          project_name: existing.project_name || 'Site Facility',
+          applicant_name: existing.applicant_name || 'Site Supervisor',
+          assigned_wsho_name: existing.assigned_wsho_name,
+          assigned_wsho_email: existing.assigned_wsho_email,
+          assigned_pm_name: existing.assigned_pm_name,
+          assigned_pm_email: existing.assigned_pm_email,
+          status: 'Closed',
+          closed_by_email: userEmail,
+          closed_at: closedAt,
+          closing_remarks: remarks
+        },
+        'PERMIT_CLOSED'
+      )
     );
 
     return c.json({ success: true, message: `Permit ${id} closed successfully and linked TBM briefings archived.`, closed_at: closedAt });
