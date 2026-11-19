@@ -5,6 +5,7 @@
 import { fetchAPI } from './api.js';
 import { setupOfflineSyncListeners } from './db.js';
 import { initSignaturePad } from './signature.js';
+import { buildPtwTbmPdfPack, shareOrDownloadPtwPack } from './ptw-pack.js';
 
 let supervisorSigPad = null;
 let activeProjects = [];
@@ -255,12 +256,94 @@ function renderSupervisorPtwTable() {
             <button type="button" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="switchSupervisorTab('tbmTab');">TBM</button>
             <button type="button" style="background: #dc2626; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 4px;" onclick="window.supervisorStanddown('${escapeHtml(item.ptw_id)}')">Stand-Down</button>
           ` : ''}
+          ${item.status !== 'Draft' ? `
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+              <button type="button" style="background: #0f172a; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer;" onclick="window.supervisorExportPack('${escapeHtml(item.ptw_id)}')">Export / Share Pack</button>
+              <button type="button" style="background: #16a34a; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer;" onclick="window.openShareEmailModal('${escapeHtml(item.ptw_id)}')">Email Pack</button>
+            </div>
+          ` : ''}
           ${item.status === 'Suspended' ? `<span style="font-size: 0.72rem; color: #f97316;">Awaiting WSHO Clearance to Resume</span>` : ''}
         </td>
       </tr>
     `;
   }).join('');
 }
+
+window.supervisorExportPack = async function(ptwId) {
+  try {
+    await shareOrDownloadPtwPack(ptwId, showToast);
+  } catch (err) {
+    showToast('Failed to generate PTW + TBM PDF pack: ' + err.message, 'error');
+  }
+};
+
+window.openShareEmailModal = function(ptwId) {
+  const modal = document.getElementById('sharePackModal');
+  if (!modal) return;
+  document.getElementById('shareTargetPtwId').value = ptwId;
+  document.getElementById('shareModalPtwId').textContent = ptwId;
+  document.getElementById('shareEmailNote').value = '';
+
+  const selectedProjId = document.getElementById('supervisor_project_id')?.value || '';
+  const projObj = activeProjects.find(p => p.project_id === selectedProjId);
+  const emailInput = document.getElementById('shareRecipientEmails');
+  if (emailInput) {
+    emailInput.value = (projObj && projObj.client_email) ? projObj.client_email : '';
+  }
+
+  modal.style.display = 'flex';
+};
+
+window.closeShareEmailModal = function() {
+  const modal = document.getElementById('sharePackModal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.submitSharePackEmail = async function() {
+  const ptwId = document.getElementById('shareTargetPtwId')?.value;
+  const recipientEmails = document.getElementById('shareRecipientEmails')?.value?.trim();
+  const note = document.getElementById('shareEmailNote')?.value?.trim() || '';
+  const btn = document.getElementById('btnSendShareEmail');
+
+  if (!ptwId || !recipientEmails) {
+    showToast('Please enter at least one recipient email address.', 'error');
+    return;
+  }
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Generating & Sending PDF...';
+    }
+    const { base64, filename } = await buildPtwTbmPdfPack(ptwId);
+    const res = await fetchAPI(`/api/ptw/${encodeURIComponent(ptwId)}/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipient_emails: recipientEmails,
+        pdf_base64: base64,
+        filename,
+        note,
+        shared_by_name: localStorage.getItem('active_user_name') || '',
+        shared_by_email: localStorage.getItem('active_user_email') || ''
+      })
+    });
+
+    if (res.success) {
+      window.closeShareEmailModal();
+      showToast(res.message || `PDF pack emailed to ${recipientEmails}.`, 'success');
+    } else {
+      showToast(res.error || 'Failed to send email.', 'error');
+    }
+  } catch (err) {
+    showToast('Share failed: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Send PDF Pack via Email';
+    }
+  }
+};
 
 window.supervisorStanddown = async function(ptwId) {
   const reason = prompt('Enter Work Suspension / Stand-Down Reason (e.g. Heavy Rain / CAT 1 Lightning Alert / Safety Barrier Breach):', 'Monsoon Heavy Rain & CAT 1 Lightning Alert');

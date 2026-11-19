@@ -3,6 +3,7 @@ import {
   dispatchPermitNotification,
   decodeTelegramToken,
   encodeTelegramToken,
+  sendResendEmail,
   PTWRecordForNotification
 } from './notifications';
 
@@ -1083,7 +1084,7 @@ app.get('/api/projects', async (c) => {
 app.post('/api/projects', async (c) => {
   try {
     const body = await c.req.json();
-    let { project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
+    let { project_id, project_name, client_name, client_email, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -1102,12 +1103,13 @@ app.post('/api/projects', async (c) => {
     }
 
     await c.env.DB.prepare(
-      `INSERT INTO Project_Directory (project_id, project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO Project_Directory (project_id, project_name, client_name, client_email, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       project_id,
       project_name,
       client_name || '',
+      (client_email || '').trim(),
       location,
       project_manager || 'TBD',
       status || 'Active',
@@ -1136,7 +1138,7 @@ app.put('/api/projects/:id', async (c) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json();
-    const { project_name, client_name, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
+    const { project_name, client_name, client_email, location, project_manager, status, start_date, wsho_name, wsho_email, wsho_phone, pm_email, pm_phone } = body;
 
     if (!project_name || !location) {
       return c.json({ success: false, error: 'Project Name and Location are required.' }, 400);
@@ -1144,12 +1146,13 @@ app.put('/api/projects/:id', async (c) => {
 
     const result = await c.env.DB.prepare(
       `UPDATE Project_Directory 
-       SET project_name = ?, client_name = ?, location = ?, project_manager = ?, status = ?, start_date = ?,
+       SET project_name = ?, client_name = ?, client_email = ?, location = ?, project_manager = ?, status = ?, start_date = ?,
            wsho_name = ?, wsho_email = ?, wsho_phone = ?, pm_email = ?, pm_phone = ?
        WHERE project_id = ?`
     ).bind(
       project_name,
       client_name || '',
+      (client_email || '').trim(),
       location,
       project_manager || 'TBD',
       status || 'Active',
@@ -1519,6 +1522,190 @@ app.get('/api/ptw/:id', async (c) => {
     ).bind(id).first();
 
     return c.json({ success: true, data: record });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/ptw/:id/pack - Fetch full PTW + RAMS + Worker Cert Expiry (text only) + Linked TBMs for PDF Pack
+app.get('/api/ptw/:id/pack', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const permit = await c.env.DB.prepare(
+      `SELECT p.*, 
+              prj.project_name, prj.location, prj.client_name, prj.client_email, prj.start_date AS project_start_date,
+              COALESCE(p.assigned_wsho_name, prj.wsho_name) AS assigned_wsho_name,
+              COALESCE(p.assigned_wsho_email, prj.wsho_email) AS assigned_wsho_email,
+              COALESCE(p.assigned_pm_name, prj.project_manager) AS assigned_pm_name,
+              COALESCE(p.assigned_pm_email, prj.pm_email) AS assigned_pm_email,
+              COALESCE(p.applicant_name, 'Site Supervisor') AS applicant_name
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
+
+    if (!permit) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    // Resolve RAMS controls
+    let ramsIds: number[] = [];
+    try {
+      const parsed = typeof permit.selected_rams_json === 'string'
+        ? JSON.parse(permit.selected_rams_json)
+        : (permit.selected_rams_json || []);
+      if (Array.isArray(parsed)) {
+        ramsIds = parsed.map((x: any) => Number(x)).filter((n: number) => !isNaN(n));
+      }
+    } catch {}
+
+    let rams: any[] = [];
+    if (ramsIds.length > 0) {
+      const placeholders = ramsIds.map(() => '?').join(',');
+      const ramsRes = await c.env.DB.prepare(
+        `SELECT id, activity_category, work_activity, hazard, control_measures, rpn
+         FROM Master_RAMS_Library WHERE id IN (${placeholders})`
+      ).bind(...ramsIds).all<any>();
+      rams = ramsRes.results || [];
+    }
+
+    // Resolve assigned workers + cert validity/expiry text ONLY (no R2 keys / raw scans for PDPA)
+    let workerIds: string[] = [];
+    try {
+      const parsed = typeof permit.assigned_workers_json === 'string'
+        ? JSON.parse(permit.assigned_workers_json)
+        : (permit.assigned_workers_json || []);
+      if (Array.isArray(parsed)) {
+        workerIds = parsed.map((w: any) => typeof w === 'object' ? (w.worker_id || w.id) : String(w)).filter(Boolean);
+      }
+    } catch {}
+
+    const workers: any[] = [];
+    for (const wid of workerIds) {
+      const w = await c.env.DB.prepare(
+        `SELECT worker_id, name, trade, role FROM Worker_Registry WHERE worker_id = ?`
+      ).bind(wid).first<any>();
+      const certsRes = await c.env.DB.prepare(
+        `SELECT cert_type, cert_expiry, cert_valid FROM Worker_Certificates WHERE worker_id = ? ORDER BY cert_expiry DESC`
+      ).bind(wid).all<any>();
+
+      workers.push({
+        worker_id: wid,
+        name: w?.name || wid,
+        trade: w?.trade || 'General',
+        role: w?.role || 'WORKER',
+        certs: (certsRes.results || []).map((ct: any) => ({
+          cert_type: ct.cert_type || 'Safety Certificate',
+          cert_expiry: ct.cert_expiry || '',
+          cert_valid: ct.cert_valid !== 0
+        }))
+      });
+    }
+
+    // Resolve linked TBM records
+    const tbmRes = await c.env.DB.prepare(
+      `SELECT tbm_id, ptw_id, project_id, supervisor_name, supervisor_role, conducted_at, created_at,
+              status, hazard_summary, worker_concerns_raised, attendance_count, worker_signatures
+       FROM TBM_Records
+       WHERE ptw_id = ? AND deleted_at IS NULL
+       ORDER BY created_at DESC`
+    ).bind(id).all<any>();
+
+    return c.json({
+      success: true,
+      data: {
+        permit,
+        rams,
+        workers,
+        tbms: tbmRes.results || []
+      }
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ptw/:id/share - Email PTW + TBM Compliance Pack PDF to 3rd Party with Audit Log
+app.post('/api/ptw/:id/share', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const { recipient_emails, pdf_base64, filename, note, shared_by_name, shared_by_email } = body;
+
+    const rawEmails = String(recipient_emails || '')
+      .split(/[,;\s]+/)
+      .map(e => e.trim())
+      .filter(Boolean);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validEmails = Array.from(new Set(rawEmails)).filter(e => emailRegex.test(e));
+
+    if (validEmails.length === 0) {
+      return c.json({ success: false, error: 'Please enter at least one valid 3rd-party email address.' }, 400);
+    }
+
+    const cleanBase64 = String(pdf_base64 || '').replace(/^data:application\/pdf[^,]*,/, '').trim();
+    if (!cleanBase64) {
+      return c.json({ success: false, error: 'Generated PDF attachment is missing.' }, 400);
+    }
+
+    const permit = await c.env.DB.prepare(
+      `SELECT p.ptw_id, p.ptw_type, p.work_description, p.status, prj.project_name, prj.location
+       FROM PTW_Records p
+       LEFT JOIN Project_Directory prj ON p.project_id = prj.project_id
+       WHERE p.ptw_id = ?`
+    ).bind(id).first<any>();
+
+    if (!permit) {
+      return c.json({ success: false, error: 'Permit not found.' }, 404);
+    }
+
+    const sgtTimestamp = getSingaporeTimestamp();
+    const safeFilename = (filename || `${id}_PTW_TBM_Pack.pdf`).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const senderLabel = shared_by_name || shared_by_email || 'Site Supervisor';
+
+    const htmlContent = `
+      <h2>ePTW & Daily TBM Compliance Pack</h2>
+      <p>Please find attached the endorsed Permit-to-Work (PTW) and Toolbox Meeting (TBM) compliance pack for your records.</p>
+      <ul>
+        <li><b>Permit No:</b> ${permit.ptw_id}</li>
+        <li><b>Project / Site:</b> ${permit.project_name || 'Site'} (${permit.location || 'Singapore'})</li>
+        <li><b>Permit Type:</b> ${permit.ptw_type || 'General Work'}</li>
+        <li><b>Status:</b> ${permit.status || 'Active'}</li>
+        <li><b>Shared By:</b> ${senderLabel}</li>
+        <li><b>Sent At (SGT):</b> ${sgtTimestamp}</li>
+      </ul>
+      ${note ? `<p><b>Site Note:</b> ${String(note).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>` : ''}
+      <p style="font-size:12px;color:#64748b;">Generated by Unified ePTW Safety Management System (Singapore WSH Compliance).</p>
+    `;
+
+    const sendRes = await sendResendEmail({
+      to: validEmails,
+      subject: `[ePTW Record] ${permit.ptw_id} — ${permit.project_name || 'Site'} (PTW + TBM Pack)`,
+      htmlContent,
+      apiKey: c.env.RESEND_API_KEY,
+      attachments: [{ filename: safeFilename, content: cleanBase64 }]
+    });
+
+    if (!sendRes.success) {
+      return c.json({ success: false, error: `Email delivery failed: ${sendRes.error || 'Unknown error'}` }, 502);
+    }
+
+    await logAuditEvent(
+      c,
+      'SHARE_PERMIT_PACK',
+      'PTW_Records',
+      id,
+      `Shared PTW + TBM PDF pack (${safeFilename}) to 3rd party: ${validEmails.join(', ')} at ${sgtTimestamp} SGT. Resend ID: ${sendRes.id || 'mock'}`,
+      { email: shared_by_email || 'supervisor@site.com', role: 'SUPERVISOR' }
+    );
+
+    return c.json({
+      success: true,
+      message: `PTW + TBM PDF pack sent to ${validEmails.join(', ')}.`,
+      recipients: validEmails,
+      sent_at_sgt: sgtTimestamp
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }

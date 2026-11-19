@@ -239,7 +239,8 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
     }
   </style>
-  <script src="assets/js/supervisor.js?v=13" type="module"></script>
+  <script src="assets/js/jspdf.umd.min.js"></script>
+  <script src="assets/js/supervisor.js?v=14" type="module"></script>
 </head>
 <body>
 
@@ -402,6 +403,29 @@
     </section>
 
   </main>
+
+  <!-- 3RD PARTY EMAIL SHARE MODAL -->
+  <div id="sharePackModal" class="login-modal-overlay" style="display: none;">
+    <div class="login-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2 style="margin: 0; color: #0f172a; font-size: 1.1rem;">Email PTW + TBM Pack</h2>
+        <button type="button" onclick="window.closeShareEmailModal()" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">×</button>
+      </div>
+      <p style="font-size: 0.82rem; color: #475569; margin-top: 0;">
+        Send endorsed <strong id="shareModalPtwId">PTW</strong> + linked TBM PDF pack to Main Contractor / Client:
+      </p>
+      <input type="hidden" id="shareTargetPtwId">
+      <div class="form-group-touch">
+        <label for="shareRecipientEmails">3rd-Party Recipient Email(s):</label>
+        <input type="text" id="shareRecipientEmails" class="input-touch" placeholder="e.g. safety@maincon.com.sg, rto@client.sg">
+      </div>
+      <div class="form-group-touch">
+        <label for="shareEmailNote">Optional Note:</label>
+        <textarea id="shareEmailNote" class="textarea-touch" style="min-height: 60px;" placeholder="e.g. Endorsed PTW and today's TBM briefing sheet attached for record."></textarea>
+      </div>
+      <button type="button" id="btnSendShareEmail" class="btn-touch-primary" onclick="window.submitSharePackEmail()">Send PDF Pack via Email</button>
+    </div>
+  </div>
 
 </body>
 </html>

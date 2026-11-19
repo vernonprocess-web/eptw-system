@@ -1,5 +1,5 @@
 // ePTW System Service Worker for PWA Offline Caching & Shell Support
-const CACHE_NAME = 'eptw-system-cache-v13';
+const CACHE_NAME = 'eptw-system-cache-v14';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -14,6 +14,8 @@ const ASSETS_TO_CACHE = [
   '/assets/js/ocr.js',
   '/assets/js/rams.js',
   '/assets/js/ptw.js',
+  '/assets/js/ptw-pack.js',
+  '/assets/js/jspdf.umd.min.js',
   '/assets/js/tbm.js',
   '/assets/js/tbm-portal.js',
   '/assets/js/supervisor.js',

@@ -46,30 +46,37 @@ export function decodeTelegramToken(token: string): string {
  * Sends an email using the Resend API (HTTP REST)
  */
 export async function sendResendEmail(params: {
-    to: string;
+    to: string | string[];
     subject: string;
     htmlContent: string;
     apiKey?: string;
-}): Promise<{ success: boolean; error?: string }> {
+    attachments?: Array<{ filename: string; content: string }>;
+}): Promise<{ success: boolean; error?: string; id?: string }> {
     const apiKey = params.apiKey;
+    const toList = Array.isArray(params.to) ? params.to : [params.to];
     if (!apiKey) {
-        console.warn(`[Resend Mock] Skipping email to ${params.to} (RESEND_API_KEY missing)`);
+        console.warn(`[Resend Mock] Skipping email to ${toList.join(', ')} (RESEND_API_KEY missing)`);
         return { success: true };
     }
 
     try {
+        const emailBody: Record<string, any> = {
+            from: 'Unified ePTW System <notifications@unified-as.com>',
+            to: toList,
+            subject: params.subject,
+            html: params.htmlContent
+        };
+        if (params.attachments && params.attachments.length > 0) {
+            emailBody.attachments = params.attachments;
+        }
+
         const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                from: 'Unified ePTW System <notifications@unified-as.com>',
-                to: [params.to],
-                subject: params.subject,
-                html: params.htmlContent
-            })
+            body: JSON.stringify(emailBody)
         });
 
         if (!response.ok) {
@@ -79,8 +86,9 @@ export async function sendResendEmail(params: {
         }
 
         const data = await response.json();
-        console.log(`[Resend Email Sent] ID: ${(data as any).id} to ${params.to}`);
-        return { success: true };
+        const emailId = (data as any).id;
+        console.log(`[Resend Email Sent] ID: ${emailId} to ${toList.join(', ')}`);
+        return { success: true, id: emailId };
     } catch (err: any) {
         console.error(`[Resend Fetch Exception]`, err);
         return { success: false, error: err.message };
