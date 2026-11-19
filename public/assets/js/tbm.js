@@ -604,6 +604,7 @@ window.printTbmPdf = async function(tbmId) {
       return;
     }
 
+    const tbm = result.data;
     let assignedWorkers = tbm.assigned_workers_details || [];
     if (!assignedWorkers || assignedWorkers.length === 0) {
       try {
