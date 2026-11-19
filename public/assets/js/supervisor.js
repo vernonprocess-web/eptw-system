@@ -5,7 +5,6 @@
 import { fetchAPI } from './api.js';
 import { setupOfflineSyncListeners } from './db.js';
 import { initSignaturePad } from './signature.js';
-import { initTbmTab, fetchTbmRecords } from './tbm.js';
 
 let supervisorSigPad = null;
 let activeProjects = [];
@@ -43,6 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (projId) {
       localStorage.setItem('supervisor_active_project_id', projId);
       loadSupervisorPermits();
+      if (document.getElementById('tbmTab')?.classList.contains('active')) {
+        loadSupervisorTbms();
+      }
     }
   });
 
@@ -86,9 +88,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (tabId === 'tbmTab') {
       document.querySelectorAll('.kiosk-nav-btn')[2].classList.add('active');
       document.getElementById('tbmTab').classList.add('active');
-      initTbmTab();
+      loadSupervisorTbms();
     }
   };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && document.getElementById('tbmTab')?.classList.contains('active')) {
+      loadSupervisorTbms();
+    }
+  });
 });
 
 function initUserSession() {
@@ -379,6 +387,83 @@ async function savePermitForm(isDraft = false) {
     }
   } catch (err) {
     showToast('Failed to save permit: ' + err.message, 'error');
+  }
+}
+
+function formatTbmDateDDMMYYYY(rawDate) {
+  if (!rawDate) return 'N/A';
+  const normalized = String(rawDate).trim().replace(' ', 'T');
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) {
+    const m = String(rawDate).match(/(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(rawDate);
+  }
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+async function loadSupervisorTbms() {
+  const container = document.getElementById('tbmContainer');
+  if (!container) return;
+
+  const selectedProj = document.getElementById('supervisor_project_id')?.value || '';
+  if (!selectedProj) {
+    container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 24px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px;">Please select an active site above to view Daily TBM sheets.</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 20px;">Loading Daily TBM sheets for selected site...</div>`;
+
+  try {
+    const res = await fetchAPI(`/api/tbm?project_id=${encodeURIComponent(selectedProj)}`);
+    const records = (res.success && Array.isArray(res.data)) ? res.data : [];
+
+    if (records.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: #475569; padding: 28px 18px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px;">
+          <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;">No TBM Sheets Available Yet</div>
+          <div style="font-size: 0.85rem; color: #64748b;">TBM sheets are automatically generated once a permit for this site is approved and active.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = records.map(t => {
+      const isCompleted = t.status === 'COMPLETED' || t.status === 'CLOSED';
+      const shiftDate = formatTbmDateDDMMYYYY(t.conducted_at || t.created_at);
+      const attendance = Number(t.attendance_count || 0);
+      const statusBadge = isCompleted
+        ? `<span style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">Completed</span>`
+        : `<span style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;">Pending Briefing</span>`;
+
+      const actionBtn = isCompleted
+        ? `<a href="/tbm?tbm=${encodeURIComponent(t.tbm_id)}" target="_blank" rel="noopener noreferrer" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: #0f172a; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.9rem; padding: 11px 14px; border-radius: 8px;">View / Export Sheet</a>`
+        : `<a href="/tbm?tbm=${encodeURIComponent(t.tbm_id)}" target="_blank" rel="noopener noreferrer" style="display: block; width: 100%; box-sizing: border-box; text-align: center; background: #0284c7; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 0.9rem; padding: 11px 14px; border-radius: 8px;">Conduct TBM Briefing</a>`;
+
+      return `
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+            <div>
+              <div style="font-weight: 800; font-size: 0.98rem; color: #0f172a;">${escapeHtml(t.tbm_id)}</div>
+              <div style="font-size: 0.82rem; color: #475569; margin-top: 2px;">
+                Permit: <strong>${escapeHtml(t.ptw_id || 'N/A')}</strong> • ${escapeHtml(t.ptw_type || 'General Work')}
+              </div>
+            </div>
+            ${statusBadge}
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: #475569; margin-bottom: 12px; padding-top: 6px; border-top: 1px solid #f1f5f9;">
+            <span><strong>Shift Date:</strong> ${escapeHtml(shiftDate)}</span>
+            <span><strong>Attendance:</strong> ${attendance} ${attendance === 1 ? 'worker' : 'workers'}</span>
+          </div>
+          ${actionBtn}
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load supervisor TBMs:', err);
+    container.innerHTML = `<div style="text-align: center; color: #dc2626; padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;">Failed to load Daily TBM sheets: ${escapeHtml(err.message)}</div>`;
   }
 }
 
