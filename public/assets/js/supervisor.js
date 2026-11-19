@@ -8,6 +8,7 @@ import { initSignaturePad } from './signature.js';
 import { buildPtwTbmPdfPack, shareOrDownloadPtwPack } from './ptw-pack.js';
 
 let supervisorSigPad = null;
+let closePtwSigPad = null;
 let activeProjects = [];
 let masterRams = [];
 let certifiedWorkers = [];
@@ -253,8 +254,11 @@ function renderSupervisorPtwTable() {
         <td style="padding: 10px; text-align: center;">
           ${item.status === 'Draft' ? `<button type="button" style="background: #3b82f6; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="window.editSupervisorDraft('${escapeHtml(item.ptw_id)}')">Edit</button>` : ''}
           ${item.status === 'Active' ? `
-            <button type="button" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="switchSupervisorTab('tbmTab');">TBM</button>
-            <button type="button" style="background: #dc2626; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-top: 4px;" onclick="window.supervisorStanddown('${escapeHtml(item.ptw_id)}')">Stand-Down</button>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <button type="button" style="background: #0284c7; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;" onclick="switchSupervisorTab('tbmTab');">TBM</button>
+              <button type="button" style="background: #0d9488; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer;" onclick="window.openClosePtwModal('${escapeHtml(item.ptw_id)}')">Close PTW / Work Completed</button>
+              <button type="button" style="background: #dc2626; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; cursor: pointer;" onclick="window.supervisorStanddown('${escapeHtml(item.ptw_id)}')">Emergency Stand-Down</button>
+            </div>
           ` : ''}
           ${item.status !== 'Draft' ? `
             <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
@@ -341,6 +345,108 @@ window.submitSharePackEmail = async function() {
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Send PDF Pack via Email';
+    }
+  }
+};
+
+window.openClosePtwModal = function(ptwId) {
+  const modal = document.getElementById('closePtwModal');
+  if (!modal) return;
+
+  document.getElementById('closeTargetPtwId').value = ptwId;
+  document.getElementById('closeModalPtwId').textContent = ptwId;
+  const chk = document.getElementById('closeDeisolationCheck');
+  if (chk) chk.checked = false;
+  const rem = document.getElementById('closePtwRemarks');
+  if (rem) rem.value = '';
+
+  // Show modal first so canvas has non-zero dimensions before initializing/resizing
+  modal.style.display = 'flex';
+
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('closePtwSigCanvas');
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
+      if (!closePtwSigPad) {
+        closePtwSigPad = initSignaturePad('closePtwSigCanvas', null);
+      } else {
+        closePtwSigPad.clear();
+      }
+    }
+  });
+};
+
+window.closeClosePtwModal = function() {
+  const modal = document.getElementById('closePtwModal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.clearClosePtwSig = function() {
+  if (closePtwSigPad) closePtwSigPad.clear();
+};
+
+window.submitClosePtw = async function() {
+  const ptwId = document.getElementById('closeTargetPtwId')?.value;
+  const deisolationChecked = document.getElementById('closeDeisolationCheck')?.checked;
+  const remarks = document.getElementById('closePtwRemarks')?.value?.trim() || '';
+  const btn = document.getElementById('btnConfirmClosePtw');
+  const activeEmail = (localStorage.getItem('active_user_email') || '').trim();
+
+  if (!activeEmail) {
+    showToast('Submission Blocked: Your supervisor profile is missing a registered email address. Please contact the System Admin to update the Worker Registry before closing a permit.', 'error');
+    return;
+  }
+
+  if (!deisolationChecked) {
+    showToast('Please confirm housekeeping, worker clearance, and site de-isolation before closing.', 'error');
+    return;
+  }
+
+  if (!closePtwSigPad || closePtwSigPad.isEmpty()) {
+    showToast('Supervisor Closing Signature is required.', 'error');
+    return;
+  }
+
+  const closingSignature = closePtwSigPad.toDataURL();
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Closing Permit...';
+    }
+
+    const res = await fetchAPI(`/api/ptw/${encodeURIComponent(ptwId)}/close`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Email': activeEmail
+      },
+      body: JSON.stringify({
+        closing_signature: closingSignature,
+        closed_by_email: activeEmail,
+        closing_remarks: remarks || 'Work completed. Housekeeping & site de-isolation verified.',
+        deisolation_verified: 1
+      })
+    });
+
+    if (res.success) {
+      window.closeClosePtwModal();
+      showToast(res.message || `Permit ${ptwId} closed and linked TBM briefings archived.`, 'success');
+      await loadSupervisorPermits();
+      await loadSupervisorTbms();
+    } else {
+      showToast(res.error || 'Failed to close permit.', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to close permit: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Close PTW / Work Completed';
     }
   }
 };
