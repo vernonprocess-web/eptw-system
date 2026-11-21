@@ -6,6 +6,7 @@ import { fetchAPI } from './api.js';
 import { setupOfflineSyncListeners } from './db.js';
 import { initSignaturePad } from './signature.js';
 import { buildPtwTbmPdfPack, shareOrDownloadPtwPack } from './ptw-pack.js';
+import { shareOrDownloadSiteRa } from './ra-export.js';
 
 let supervisorSigPad = null;
 let closePtwSigPad = null;
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (projId) {
       localStorage.setItem('supervisor_active_project_id', projId);
       loadSupervisorPermits();
+      updateSiteRaStatusBadge(projId);
       if (document.getElementById('tbmTab')?.classList.contains('active')) {
         loadSupervisorTbms();
       }
@@ -140,6 +142,9 @@ async function loadActiveProjects() {
       } else if (activeProjects.length > 0) {
         select.value = activeProjects[0].project_id;
         localStorage.setItem('supervisor_active_project_id', activeProjects[0].project_id);
+      }
+      if (select.value) {
+        updateSiteRaStatusBadge(select.value);
       }
     }
   } catch (err) {
@@ -272,6 +277,40 @@ function renderSupervisorPtwTable() {
     `;
   }).join('');
 }
+
+async function updateSiteRaStatusBadge(projId) {
+  const badge = document.getElementById('siteRaStatusBadge');
+  if (!badge || !projId) return;
+  try {
+    const res = await fetchAPI(`/api/ra/profile?project_id=${encodeURIComponent(projId)}`);
+    if (res.success) {
+      if (res.is_site_approved) {
+        badge.textContent = 'Site RA Approved';
+        badge.style.background = '#dcfce7';
+        badge.style.color = '#166534';
+      } else {
+        badge.textContent = 'Baseline RA — HQ Review Pending';
+        badge.style.background = '#fef3c7';
+        badge.style.color = '#92400e';
+      }
+    }
+  } catch {
+    badge.textContent = 'Site RA Ready';
+  }
+}
+
+window.supervisorExportSiteRa = async function() {
+  const projId = document.getElementById('supervisor_project_id')?.value;
+  if (!projId) {
+    showToast('Please select an active site first.', 'error');
+    return;
+  }
+  try {
+    await shareOrDownloadSiteRa(projId, showToast);
+  } catch (err) {
+    showToast('Failed to export Site RA PDF: ' + err.message, 'error');
+  }
+};
 
 window.supervisorExportPack = async function(ptwId) {
   try {

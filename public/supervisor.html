@@ -240,7 +240,7 @@
     }
   </style>
   <script src="assets/js/jspdf.umd.min.js"></script>
-  <script src="assets/js/supervisor.js?v=15" type="module"></script>
+  <script src="assets/js/supervisor.js?v=16" type="module"></script>
 </head>
 <body>
 
@@ -285,6 +285,10 @@
         </select>
         <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">
           Site location remembered automatically on this tablet.
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+          <span id="siteRaStatusBadge" style="font-size: 0.74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #f1f5f9; color: #475569;">Checking Site RA...</span>
+          <button type="button" id="btnShareSiteRa" onclick="window.supervisorExportSiteRa()" style="background: #0f172a; color: #ffffff; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">Share / Download Site RA (PDF)</button>
         </div>
       </div>
     </div>

@@ -315,6 +315,10 @@ app.post('/api/rams', async (c) => {
       control_measures,
       severity_s,
       likelihood_l,
+      action_by,
+      additional_controls,
+      residual_s,
+      residual_l,
     } = body;
 
     if (
@@ -343,11 +347,14 @@ app.post('/api/rams', async (c) => {
     }
 
     const rpn = body.rpn !== undefined ? parseInt(body.rpn, 10) : s * l;
+    const rs = residual_s !== undefined && residual_s !== '' && residual_s !== null ? parseInt(residual_s, 10) : null;
+    const rl = residual_l !== undefined && residual_l !== '' && residual_l !== null ? parseInt(residual_l, 10) : null;
+    const rrpn = (rs && rl && rs >= 1 && rs <= 5 && rl >= 1 && rl <= 5) ? rs * rl : null;
 
     const result = await c.env.DB.prepare(
       `INSERT INTO Master_RAMS_Library 
-      (activity_category, work_activity, hazard, possible_accident, control_measures, severity_s, likelihood_l, rpn)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      (activity_category, work_activity, hazard, possible_accident, control_measures, severity_s, likelihood_l, rpn, action_by, additional_controls, residual_s, residual_l, residual_rpn)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         activity_category,
@@ -357,7 +364,12 @@ app.post('/api/rams', async (c) => {
         control_measures,
         s,
         l,
-        rpn
+        rpn,
+        (action_by || '').trim(),
+        (additional_controls || 'NIL').trim(),
+        rs,
+        rl,
+        rrpn
       )
       .run();
 
@@ -389,6 +401,10 @@ app.put('/api/rams/:id', async (c) => {
       control_measures,
       severity_s,
       likelihood_l,
+      action_by,
+      additional_controls,
+      residual_s,
+      residual_l,
     } = body;
 
     const s = parseInt(severity_s, 10);
@@ -402,12 +418,19 @@ app.put('/api/rams/:id', async (c) => {
     }
 
     const rpn = s * l;
+    const rs = residual_s !== undefined && residual_s !== '' && residual_s !== null ? parseInt(residual_s, 10) : null;
+    const rl = residual_l !== undefined && residual_l !== '' && residual_l !== null ? parseInt(residual_l, 10) : null;
+    const rrpn = (rs && rl && rs >= 1 && rs <= 5 && rl >= 1 && rl <= 5) ? rs * rl : null;
 
     const result = await c.env.DB.prepare(
       `UPDATE Master_RAMS_Library 
-       SET activity_category = ?, work_activity = ?, hazard = ?, possible_accident = ?, control_measures = ?, severity_s = ?, likelihood_l = ?, rpn = ?
+       SET activity_category = ?, work_activity = ?, hazard = ?, possible_accident = ?, control_measures = ?, severity_s = ?, likelihood_l = ?, rpn = ?,
+           action_by = ?, additional_controls = ?, residual_s = ?, residual_l = ?, residual_rpn = ?
        WHERE id = ? AND deleted_at IS NULL`
-    ).bind(activity_category, work_activity, hazard, possible_accident, control_measures, s, l, rpn, id).run();
+    ).bind(
+      activity_category, work_activity, hazard, possible_accident, control_measures, s, l, rpn,
+      (action_by || '').trim(), (additional_controls || 'NIL').trim(), rs, rl, rrpn, id
+    ).run();
 
     if (result.meta.changes === 0) {
       return c.json({ success: false, error: 'RAMS record not found.' }, 404);
@@ -437,6 +460,196 @@ app.delete('/api/rams/:id', async (c) => {
     await logAuditEvent(c, 'DELETE_RAMS', 'Master_RAMS_Library', id, 'Soft-deleted RAMS library entry');
 
     return c.json({ success: true, message: 'RAMS record archived successfully.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// MOM RISK ASSESSMENT (RA) PROFILES (Level 1 Baseline + Level 2 Site Override)
+// ============================================================================
+
+// GET /api/ra/profile?project_id=... - Fetch RA profile with site-bound fallback
+app.get('/api/ra/profile', async (c) => {
+  try {
+    const reqProjId = (c.req.query('project_id') || 'DEFAULT').trim();
+    const isSpecificSite = reqProjId !== '' && reqProjId !== 'DEFAULT';
+
+    const defaultProfile = await c.env.DB.prepare(
+      `SELECT * FROM RA_Profiles WHERE project_id = 'DEFAULT'`
+    ).first<any>();
+
+    let siteProfile: any = null;
+    let project: any = null;
+    if (isSpecificSite) {
+      siteProfile = await c.env.DB.prepare(
+        `SELECT * FROM RA_Profiles WHERE project_id = ?`
+      ).bind(reqProjId).first<any>();
+      project = await c.env.DB.prepare(
+        `SELECT project_id, project_name, client_name, location, project_manager, pm_email, wsho_name, wsho_email
+         FROM Project_Directory WHERE project_id = ? AND deleted_at IS NULL`
+      ).bind(reqProjId).first<any>();
+    }
+
+    const isSiteApproved = isSpecificSite ? Boolean(siteProfile) : Boolean(defaultProfile);
+    const base = siteProfile || defaultProfile || {};
+
+    // Always bind specific site's Name, Address, WSHO, and PM from Project_Directory when a site is selected
+    const siteBoundLocation = project
+      ? `${project.project_name}${project.location ? ' — ' + project.location : ''}`
+      : (base.activity_location || 'Solar Site / Singapore (Island Wide)');
+
+    const mergedProfile = {
+      project_id: isSpecificSite ? reqProjId : 'DEFAULT',
+      company_name: base.company_name || 'Unified Asia Solutions Pte Ltd',
+      process_name: base.process_name || 'Installation of Solar Equipment Systems on Commercial Buildings',
+      activity_location: isSpecificSite ? (siteProfile?.activity_location || siteBoundLocation) : (base.activity_location || 'Solar Site / Singapore (Island Wide)'),
+      ref_no: base.ref_no || (isSpecificSite ? `Install - RA06 (${reqProjId})` : 'Install - RA06'),
+      original_date: base.original_date || '',
+      last_review_date: base.last_review_date || '',
+      next_review_date: base.next_review_date || '',
+      ra_leader: siteProfile?.ra_leader || project?.wsho_name || base.ra_leader || '',
+      ra_leader_sig: base.ra_leader_sig || '',
+      ra_member_1: base.ra_member_1 || '',
+      ra_member_1_sig: base.ra_member_1_sig || '',
+      ra_member_2: base.ra_member_2 || '',
+      ra_member_2_sig: base.ra_member_2_sig || '',
+      ra_member_3: base.ra_member_3 || '',
+      ra_member_3_sig: base.ra_member_3_sig || '',
+      ra_member_4: base.ra_member_4 || '',
+      ra_member_4_sig: base.ra_member_4_sig || '',
+      approver_name: siteProfile?.approver_name || base.approver_name || project?.project_manager || '',
+      approver_designation: base.approver_designation || 'Director / Project Manager',
+      approval_date: base.approval_date || '',
+      approver_signature: base.approver_signature || '',
+      selected_rams_json: base.selected_rams_json || null,
+      site_specific_notes: siteProfile?.site_specific_notes || base.site_specific_notes || '',
+      updated_by: base.updated_by || '',
+      updated_at: base.updated_at || ''
+    };
+
+    const allRamsRes = await c.env.DB.prepare(
+      'SELECT * FROM Master_RAMS_Library WHERE deleted_at IS NULL ORDER BY id ASC'
+    ).all<any>();
+    let ramsList = allRamsRes.results || [];
+
+    if (mergedProfile.selected_rams_json) {
+      try {
+        const selectedIds = JSON.parse(mergedProfile.selected_rams_json);
+        if (Array.isArray(selectedIds) && selectedIds.length > 0) {
+          const idSet = new Set(selectedIds.map((x: any) => Number(x)));
+          ramsList = ramsList.filter((r: any) => idSet.has(Number(r.id)));
+        }
+      } catch {}
+    }
+
+    return c.json({
+      success: true,
+      is_site_approved: isSiteApproved,
+      is_specific_site: isSpecificSite,
+      profile: mergedProfile,
+      project,
+      rams: ramsList
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/ra/profile - Save Level 1 Baseline or Level 2 Site-Specific RA Profile with Audit Log
+app.post('/api/ra/profile', async (c) => {
+  try {
+    const body = await c.req.json();
+    const projectId = (body.project_id || 'DEFAULT').trim() || 'DEFAULT';
+    const nowSgt = getSingaporeTimestamp();
+    const userEmail = c.req.header('x-user-email') || body.updated_by || 'admin@eptw-system.com';
+    const userRole = c.req.header('x-user-role') || body.user_role || 'ADMIN';
+
+    const selectedRamsJson = body.selected_rams_json
+      ? (typeof body.selected_rams_json === 'string' ? body.selected_rams_json : JSON.stringify(body.selected_rams_json))
+      : null;
+
+    await c.env.DB.prepare(
+      `INSERT INTO RA_Profiles (
+        project_id, company_name, process_name, activity_location, ref_no,
+        original_date, last_review_date, next_review_date,
+        ra_leader, ra_leader_sig,
+        ra_member_1, ra_member_1_sig, ra_member_2, ra_member_2_sig,
+        ra_member_3, ra_member_3_sig, ra_member_4, ra_member_4_sig,
+        approver_name, approver_designation, approval_date, approver_signature,
+        selected_rams_json, site_specific_notes, updated_by, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(project_id) DO UPDATE SET
+        company_name = excluded.company_name,
+        process_name = excluded.process_name,
+        activity_location = excluded.activity_location,
+        ref_no = excluded.ref_no,
+        original_date = excluded.original_date,
+        last_review_date = excluded.last_review_date,
+        next_review_date = excluded.next_review_date,
+        ra_leader = excluded.ra_leader,
+        ra_leader_sig = excluded.ra_leader_sig,
+        ra_member_1 = excluded.ra_member_1,
+        ra_member_1_sig = excluded.ra_member_1_sig,
+        ra_member_2 = excluded.ra_member_2,
+        ra_member_2_sig = excluded.ra_member_2_sig,
+        ra_member_3 = excluded.ra_member_3,
+        ra_member_3_sig = excluded.ra_member_3_sig,
+        ra_member_4 = excluded.ra_member_4,
+        ra_member_4_sig = excluded.ra_member_4_sig,
+        approver_name = excluded.approver_name,
+        approver_designation = excluded.approver_designation,
+        approval_date = excluded.approval_date,
+        approver_signature = excluded.approver_signature,
+        selected_rams_json = excluded.selected_rams_json,
+        site_specific_notes = excluded.site_specific_notes,
+        updated_by = excluded.updated_by,
+        updated_at = excluded.updated_at`
+    ).bind(
+      projectId,
+      body.company_name || 'Unified Asia Solutions Pte Ltd',
+      body.process_name || 'Installation of Solar Equipment Systems on Commercial Buildings',
+      body.activity_location || '',
+      body.ref_no || 'Install - RA06',
+      body.original_date || '',
+      body.last_review_date || '',
+      body.next_review_date || '',
+      body.ra_leader || '',
+      body.ra_leader_sig || '',
+      body.ra_member_1 || '',
+      body.ra_member_1_sig || '',
+      body.ra_member_2 || '',
+      body.ra_member_2_sig || '',
+      body.ra_member_3 || '',
+      body.ra_member_3_sig || '',
+      body.ra_member_4 || '',
+      body.ra_member_4_sig || '',
+      body.approver_name || '',
+      body.approver_designation || 'Director',
+      body.approval_date || '',
+      body.approver_signature || '',
+      selectedRamsJson,
+      body.site_specific_notes || '',
+      userEmail,
+      nowSgt
+    ).run();
+
+    await logAuditEvent(
+      c,
+      'SAVE_RA_PROFILE',
+      'RA_Profiles',
+      projectId,
+      `Saved ${projectId === 'DEFAULT' ? 'Level 1 Baseline' : `Level 2 Site-Specific (${projectId})`} RA Profile. Ref: ${body.ref_no || 'N/A'}. Approved by: ${body.approver_name || 'N/A'} at ${nowSgt} SGT.`,
+      { email: userEmail, role: userRole }
+    );
+
+    return c.json({
+      success: true,
+      message: projectId === 'DEFAULT'
+        ? 'Level 1 Baseline RA Profile saved.'
+        : `Site-Specific RA Profile saved and approved for ${projectId}.`,
+      updated_at: nowSgt
+    });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }
