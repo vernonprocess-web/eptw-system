@@ -412,7 +412,85 @@ button {
 
 .table-container {
   overflow-x: auto;
-  max-height: 650px;
+}
+
+/* Sticky Actions Column on Main Tables */
+#ramsTable th:last-child,
+#ramsTable td:last-child,
+#workerTable th:last-child,
+#workerTable td:last-child,
+#projectTable th:last-child,
+#projectTable td:last-child,
+#ptwTable th:last-child,
+#ptwTable td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  box-shadow: -4px 0 8px rgba(15, 23, 42, 0.06);
+}
+
+#ramsTable thead th:last-child,
+#workerTable thead th:last-child,
+#projectTable thead th:last-child,
+#ptwTable thead th:last-child {
+  background-color: var(--header-bg);
+  z-index: 15;
+}
+
+#ramsTable tbody td:last-child,
+#workerTable tbody td:last-child,
+#projectTable tbody td:last-child,
+#ptwTable tbody td:last-child {
+  background-color: #ffffff;
+}
+
+#workerTable tbody tr.expired-row td:last-child {
+  background-color: #fef2f2;
+}
+
+/* Clickable KPI Filter Cards */
+.kpi-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kpi-filter-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.kpi-filter-card:hover {
+  border-color: #93c5fd;
+  transform: translateY(-1px);
+}
+
+.kpi-filter-card.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.kpi-filter-card .kpi-f-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.kpi-filter-card .kpi-f-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 2px;
 }
 
 table {

@@ -22,7 +22,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=12">
+  <link rel="stylesheet" href="assets/css/theme.css?v=13">
   <script src="assets/js/jszip.min.js"></script>
   <script src="assets/js/jspdf.umd.min.js"></script>
   <script src="assets/js/app.js?v=14" type="module"></script>
@@ -45,7 +45,7 @@
 
     <!-- Tab Navigation Bar -->
     <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab('ramsTab')">
+      <button class="tab-btn" onclick="switchTab('ramsTab')">
         Master RAMS Library
       </button>
       <button class="tab-btn" onclick="switchTab('workerTab')">
@@ -54,7 +54,7 @@
       <button class="tab-btn" onclick="switchTab('projectTab')">
         Project Directory
       </button>
-      <button class="tab-btn" onclick="switchTab('ptwTab')">
+      <button class="tab-btn active" onclick="switchTab('ptwTab')">
         Active PTWs (ePTW)
       </button>
       <button class="tab-btn" onclick="switchTab('tbmTab')">
@@ -68,7 +68,7 @@
     <div id="toast"></div>
 
     <!-- TAB 1: MASTER RAMS LIBRARY -->
-    <div id="ramsTab" class="tab-content active">
+    <div id="ramsTab" class="tab-content">
       <!-- Add / Edit RAMS Form (Collapsed by default) -->
       <div class="form-card" id="ramsFormCard" style="display: none;">
         <h2 id="formTitle" style="display: flex; justify-content: space-between; align-items: center;">
@@ -225,15 +225,40 @@
 
     <!-- TAB 2: WORKER REGISTRY & MULTI-CERT OCR -->
     <div id="workerTab" class="tab-content">
+      <!-- Clickable KPI Stat Cards -->
+      <div class="kpi-filter-bar" id="workerKpiBar">
+        <button type="button" class="kpi-filter-card active" data-wkpi="all" onclick="setWorkerKpiFilter('all')">
+          <div class="kpi-f-label">All Workers</div>
+          <div class="kpi-f-val" id="wkpiTotal">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-wkpi="sup_worker" onclick="setWorkerKpiFilter('sup_worker')">
+          <div class="kpi-f-label">Sup + Worker</div>
+          <div class="kpi-f-val" id="wkpiSupWorker" style="color: #047857;">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-wkpi="expiring" onclick="setWorkerKpiFilter('expiring')">
+          <div class="kpi-f-label">Expiring &le; 30 Days</div>
+          <div class="kpi-f-val" id="wkpiExpiring" style="color: #d97706;">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-wkpi="expired" onclick="setWorkerKpiFilter('expired')">
+          <div class="kpi-f-label">Expired</div>
+          <div class="kpi-f-val" id="wkpiExpired" style="color: #dc2626;">0</div>
+        </button>
+      </div>
+
+      <!-- Collapsible OCR Upload + Worker Form Section -->
+      <div id="workerFormSection" style="display: none;">
       <!-- OCR Upload Card -->
       <div class="upload-card" id="certDropzone">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 4px;">
+          <button type="button" onclick="toggleWorkerForm(false)" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">×</button>
+        </div>
         <div onclick="document.getElementById('certFileInput').click()" style="cursor: pointer;">
           <div class="upload-title">Upload Work Permit, WSQ, or Safety Certificates for Automated OCR</div>
           <div class="upload-sub">Click to browse or drag & drop files (PDF, JPG, PNG) to run Gemini Vision AI & extract certificate details</div>
         </div>
         <input type="file" id="certFileInput" accept="image/*,application/pdf,.pdf" style="display: none;" onchange="handleCertUpload(this)">
         
-        <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px;">
+        <div style="margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <label for="targetWorkerSelect" style="font-size: 0.85rem; color: #0369a1; font-weight: 700;">Target Worker:</label>
             <select id="targetWorkerSelect" style="padding: 6px 10px; font-size: 0.85rem; border-color: #0284c7; min-width: 260px;">
@@ -241,9 +266,9 @@
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <label for="geminiApiKeyInput" style="font-size: 0.8rem; color: #0369a1; font-weight: 600;">Gemini API Key:</label>
-            <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy... (Optional if set in .dev.vars)" style="padding: 6px 8px; font-size: 0.8rem; width: 220px;" onchange="localStorage.setItem('gemini_api_key', this.value)">
+          <button type="button" onclick="const w = document.getElementById('geminiKeyWrapper'); w.style.display = w.style.display === 'none' ? 'inline-flex' : 'none';" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">API Key</button>
+          <div id="geminiKeyWrapper" style="display: none; align-items: center; gap: 6px;">
+            <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy... (Optional)" style="padding: 6px 8px; font-size: 0.8rem; width: 190px;" onchange="localStorage.setItem('gemini_api_key', this.value)">
           </div>
         </div>
 
@@ -381,6 +406,7 @@
           </div>
         </form>
       </div>
+      </div><!-- End #workerFormSection -->
 
       <!-- Worker Registry Spreadsheet Data Table -->
       <div class="table-card">
@@ -393,7 +419,8 @@
           </div>
 
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC, WP, FIN, trade, or cert name..." style="max-width: 280px;">
+            <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 0.85rem;" onclick="toggleWorkerForm()">+ Register Worker / Upload Cert</button>
+            <input type="text" id="workerSearchInput" class="search-input" placeholder="Search worker, IC, WP, FIN, trade, or cert name..." style="max-width: 260px;">
 
             <!-- Dual Action Export Dropdown -->
             <div style="position: relative; display: inline-block;" id="exportDropdownContainer">
@@ -429,13 +456,12 @@
                   <input type="checkbox" id="masterWorkerCheckbox" title="Select / Deselect All Visible Workers" onchange="toggleSelectAllWorkers(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
                 </th>
                 <th style="width: 32px; text-align: center;">Expand</th>
-                <th style="width: 85px;" class="sortable active" data-sort="worker_id" onclick="handleWorkerSort('worker_id')">Worker ID <span class="sort-icon">▲</span></th>
-                <th style="width: 140px;" class="sortable" data-sort="name" onclick="handleWorkerSort('name')">Full Name <span class="sort-icon">⇅</span></th>
+                <th style="width: 170px;" class="sortable active" data-sort="name" onclick="handleWorkerSort('name')">Full Name & ID <span class="sort-icon">▲</span></th>
                 <th style="width: 110px; text-align: center;" class="sortable" data-sort="role" onclick="handleWorkerSort('role')">System Role <span class="sort-icon">⇅</span></th>
-                <th style="width: 115px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">ID / Work Permit <span class="sort-icon">⇅</span></th>
-                <th style="width: 95px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
-                <th style="min-width: 320px; width: 35%;">Active Certifications</th>
-                <th style="width: 85px; text-align: center;">Overall Status</th>
+                <th style="width: 125px;" class="sortable" data-sort="wp_no" onclick="handleWorkerSort('wp_no')">ID / Work Permit <span class="sort-icon">⇅</span></th>
+                <th style="width: 105px;" class="sortable" data-sort="trade" onclick="handleWorkerSort('trade')">Trade <span class="sort-icon">⇅</span></th>
+                <th style="min-width: 260px;">Active Certifications</th>
+                <th style="width: 90px; text-align: center;">Overall Status</th>
                 <th style="width: 215px; min-width: 215px; text-align: center;">Actions</th>
               </tr>
             </thead>
@@ -451,11 +477,14 @@
     <div id="projectTab" class="tab-content">
       <!-- 1. Main Project Directory View -->
       <div id="projectListView">
-        <!-- Add / Edit Project Form -->
-        <div class="form-card">
-          <h2 id="projectFormTitle">
+        <!-- Add / Edit Project Form (Collapsed by default) -->
+        <div class="form-card" id="projectFormCard" style="display: none;">
+          <h2 id="projectFormTitle" style="display: flex; justify-content: space-between; align-items: center;">
             <span>Register New Project / Site</span>
-            <span id="projectEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Project: <span id="editingProjectIdText"></span></span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="projectEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Project: <span id="editingProjectIdText"></span></span>
+              <button type="button" onclick="toggleProjectForm(false)" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">×</button>
+            </div>
           </h2>
           <form id="projectForm">
             <input type="hidden" id="editingProjectId" value="">
@@ -595,9 +624,12 @@
 
         <!-- Project High-Density Spreadsheet Table -->
         <div class="table-card">
-          <div class="table-toolbar">
-            <h3>Project & Site Directory</h3>
-            <input type="text" id="projectSearchInput" class="search-input" placeholder="Search project name, client, or location...">
+          <div class="table-toolbar" style="flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin-right: auto;">Project & Site Directory</h3>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 0.85rem;" onclick="toggleProjectForm()">+ Register Project</button>
+              <input type="text" id="projectSearchInput" class="search-input" placeholder="Search project name, client, or location...">
+            </div>
           </div>
 
           <div class="table-container">
@@ -694,12 +726,39 @@
     </div>
 
     <!-- TAB 4: ePTW TRANSACTION ENGINE -->
-    <div id="ptwTab" class="tab-content">
-      <!-- Draft / Edit Permit Form -->
-      <div class="form-card">
-        <h2 id="ptwFormTitle">
+    <div id="ptwTab" class="tab-content active">
+      <!-- Clickable KPI Stat Cards -->
+      <div class="kpi-filter-bar" id="ptwKpiBar">
+        <button type="button" class="kpi-filter-card active" data-filter="all" onclick="setFilterStatus('all')">
+          <div class="kpi-f-label">All Permits</div>
+          <div class="kpi-f-val" id="pkpiAll">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-filter="Pending Safety Vetting" onclick="setFilterStatus('Pending Safety Vetting')">
+          <div class="kpi-f-label">Pending Safety Vetting</div>
+          <div class="kpi-f-val" id="pkpiVetting" style="color: #d97706;">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-filter="Pending PM Approval" onclick="setFilterStatus('Pending PM Approval')">
+          <div class="kpi-f-label">Pending PM Approval</div>
+          <div class="kpi-f-val" id="pkpiPm" style="color: #0284c7;">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-filter="Active" onclick="setFilterStatus('Active')">
+          <div class="kpi-f-label">Active</div>
+          <div class="kpi-f-val" id="pkpiActive" style="color: #16a34a;">0</div>
+        </button>
+        <button type="button" class="kpi-filter-card" data-filter="suspended_closed" onclick="setFilterStatus('suspended_closed')">
+          <div class="kpi-f-label">Suspended / Closed</div>
+          <div class="kpi-f-val" id="pkpiClosed" style="color: #475569;">0</div>
+        </button>
+      </div>
+
+      <!-- Draft / Edit Permit Form (Collapsed by default) -->
+      <div class="form-card" id="ptwFormCard" style="display: none;">
+        <h2 id="ptwFormTitle" style="display: flex; justify-content: space-between; align-items: center;">
           <span>Draft New Permit to Work (ePTW)</span>
-          <span id="ptwEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Permit: <span id="editingPtwIdText"></span></span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="ptwEditIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Permit: <span id="editingPtwIdText"></span></span>
+            <button type="button" onclick="togglePtwForm(false)" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">×</button>
+          </div>
         </h2>
         <form id="ptwForm">
           <input type="hidden" id="editingPtwId" value="">
@@ -810,20 +869,11 @@
 
       <!-- High-Density Permit Spreadsheet Grid -->
       <div class="table-card">
-        <div class="table-toolbar" style="flex-direction: column; align-items: stretch; gap: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Permits to Work (ePTW) Directory</h3>
+        <div class="table-toolbar" style="flex-wrap: wrap; gap: 12px;">
+          <h3 style="margin-right: auto;">Permits to Work (ePTW) Directory</h3>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 0.85rem;" onclick="togglePtwForm()">+ Issue New Permit</button>
             <input type="text" id="ptwSearchInput" class="search-input" placeholder="Search permit ID, site, work description, worker...">
-          </div>
-
-          <!-- Quick Workflow Filter Pills for On-Site Tablets -->
-          <div class="filter-bar">
-            <button type="button" class="filter-pill active" data-filter="all" onclick="setFilterStatus('all')">All Permits</button>
-            <button type="button" class="filter-pill" data-filter="Pending Safety Vetting" onclick="setFilterStatus('Pending Safety Vetting')">Pending Safety Vetting</button>
-            <button type="button" class="filter-pill" data-filter="Pending PM Approval" onclick="setFilterStatus('Pending PM Approval')">Pending PM Authorization</button>
-            <button type="button" class="filter-pill" data-filter="Active" onclick="setFilterStatus('Active')">Active</button>
-            <button type="button" class="filter-pill" data-filter="Closed" onclick="setFilterStatus('Closed')">Closed</button>
-            <button type="button" class="filter-pill" data-filter="Rejected" onclick="setFilterStatus('Rejected')">Rejected</button>
           </div>
         </div>
 
@@ -2102,6 +2152,7 @@ Return ONLY valid JSON matching this schema:
         const result = await response.json();
         if (result.success) {
           workerData = result.data || [];
+          updateWorkerKpiCounts();
           populateTargetWorkerDropdown();
           updateWorkerSortHeaderIcons();
           renderProcessedWorkerData();
@@ -2144,9 +2195,64 @@ Return ONLY valid JSON matching this schema:
       });
     }
 
+    let currentWorkerKpiFilter = 'all';
+
+    window.setWorkerKpiFilter = function(filter) {
+      currentWorkerKpiFilter = filter;
+      document.querySelectorAll('#workerKpiBar .kpi-filter-card').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-wkpi') === filter);
+      });
+      renderProcessedWorkerData();
+    };
+
+    function updateWorkerKpiCounts() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+      let supWorker = 0, expiring = 0, expired = 0;
+      (workerData || []).forEach(w => {
+        if (w.role === 'SUPERVISOR_WORKER') supWorker++;
+        const certs = w.certificates || [];
+        const hasExp = certs.some(c => c.cert_expiry && c.cert_expiry < todayStr);
+        const hasSoon = !hasExp && certs.some(c => c.cert_expiry && c.cert_expiry >= todayStr && c.cert_expiry <= in30);
+        if (hasExp) expired++;
+        if (hasSoon) expiring++;
+      });
+      const elTotal = document.getElementById('wkpiTotal');
+      const elSw = document.getElementById('wkpiSupWorker');
+      const elSoon = document.getElementById('wkpiExpiring');
+      const elExp = document.getElementById('wkpiExpired');
+      if (elTotal) elTotal.textContent = (workerData || []).length;
+      if (elSw) elSw.textContent = supWorker;
+      if (elSoon) elSoon.textContent = expiring;
+      if (elExp) elExp.textContent = expired;
+    }
+
+    window.toggleWorkerForm = function(forceOpen) {
+      const sec = document.getElementById('workerFormSection');
+      if (!sec) return;
+      const show = typeof forceOpen === 'boolean' ? forceOpen : (sec.style.display === 'none');
+      sec.style.display = show ? 'block' : 'none';
+      if (show) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     function getProcessedWorkerData() {
       const query = workerSearchInput.value.toLowerCase().trim();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const in30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
       let filtered = workerData.filter(item => {
+        if (currentWorkerKpiFilter === 'sup_worker' && item.role !== 'SUPERVISOR_WORKER') return false;
+        if (currentWorkerKpiFilter === 'expired') {
+          const hasExp = (item.certificates || []).some(c => c.cert_expiry && c.cert_expiry < todayStr);
+          if (!hasExp) return false;
+        }
+        if (currentWorkerKpiFilter === 'expiring') {
+          const certs = item.certificates || [];
+          const hasExp = certs.some(c => c.cert_expiry && c.cert_expiry < todayStr);
+          const hasSoon = !hasExp && certs.some(c => c.cert_expiry && c.cert_expiry >= todayStr && c.cert_expiry <= in30);
+          if (!hasSoon) return false;
+        }
+
         if (!query) return true;
         const certNames = (item.certificates || []).map(c => c.cert_type).join(' ').toLowerCase();
         return (
@@ -2525,7 +2631,7 @@ Return ONLY valid JSON matching this schema:
       if (!data || data.length === 0) {
         workerTableBody.innerHTML = `
           <tr>
-            <td colspan="10" class="empty-state">No workers registered. Upload a certificate above or fill out the form.</td>
+            <td colspan="9" class="empty-state">No workers found matching the active filter.</td>
           </tr>
         `;
         updateSelectionUI();
@@ -2549,9 +2655,11 @@ Return ONLY valid JSON matching this schema:
 
         const rowClass = hasExpiredCert ? 'expired-row' : '';
 
-        // CERTIFICATES SUMMARY: Standardized Bulleted List ordered by priority
+        // CERTIFICATES SUMMARY: Compact list (max 3 visible + "+X more")
+        const visibleCerts = sortedCerts.slice(0, 3);
+        const extraCertCount = sortedCerts.length - visibleCerts.length;
         const certNamesText = sortedCerts.length > 0 
-          ? `<ul class="cert-bullet-list">${sortedCerts.map(c => `<li>${escapeHtml(c.cert_type)}</li>`).join('')}</ul>`
+          ? `<ul class="cert-bullet-list">${visibleCerts.map(c => `<li>${escapeHtml(c.cert_type)}</li>`).join('')}</ul>${extraCertCount > 0 ? `<div style="font-size: 0.74rem; color: #2563eb; font-weight: 700; margin-top: 2px;">+${extraCertCount} more (click Details)</div>` : ''}`
           : '<span style="color: #94a3b8; font-style: italic;">No certificates attached</span>';
 
         const expandIcon = isExpanded ? '▼' : '►';
@@ -2589,8 +2697,10 @@ Return ONLY valid JSON matching this schema:
             <td style="text-align: center;">
               <button class="btn-expand" onclick="toggleWorkerDrawer('${escapeHtml(item.worker_id)}')">${expandIcon}</button>
             </td>
-            <td><strong>${escapeHtml(item.worker_id)}</strong></td>
-            <td><strong style="font-size: 0.95rem; color: #0f172a;">${escapeHtml(item.name)}</strong></td>
+            <td>
+              <strong style="font-size: 0.92rem; color: #0f172a;">${escapeHtml(item.name)}</strong>
+              <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">${escapeHtml(item.worker_id)}</div>
+            </td>
             <td style="text-align: center;">${roleBadge}</td>
             <td>${idDetailsHTML}</td>
             <td><strong>${escapeHtml(item.trade)}</strong></td>
@@ -2644,7 +2754,7 @@ Return ONLY valid JSON matching this schema:
 
           rowsHTML += `
             <tr class="drawer-row">
-              <td colspan="10">
+              <td colspan="9">
                 <div style="font-weight: 700; font-size: 0.85rem; color: #1e293b; margin-bottom: 6px;">
                   Attached Certificates for ${escapeHtml(item.name)} (${certs.length})
                 </div>
@@ -2680,6 +2790,7 @@ Return ONLY valid JSON matching this schema:
       const worker = workerData.find(w => w.worker_id === workerId);
       if (!worker) return;
 
+      toggleWorkerForm(true);
       targetWorkerSelect.value = worker.worker_id;
       document.getElementById('worker_id').value = worker.worker_id;
       document.getElementById('worker_name').value = worker.name;
@@ -2773,6 +2884,7 @@ Return ONLY valid JSON matching this schema:
       const item = workerData.find(w => w.worker_id === workerId);
       if (!item) return;
 
+      toggleWorkerForm(true);
       targetWorkerSelect.value = item.worker_id;
       document.getElementById('worker_id').value = item.worker_id;
       document.getElementById('worker_id').readOnly = true;
@@ -3044,6 +3156,7 @@ Return ONLY valid JSON matching this schema:
       workerEditIndicator.style.display = 'none';
       btnSubmitWorker.textContent = 'Save Certificate to Worker';
       btnCancelWorker.style.display = 'none';
+      toggleWorkerForm(false);
     }
 
     btnCancelWorker.addEventListener('click', resetWorkerForm);
@@ -3497,10 +3610,19 @@ Return ONLY valid JSON matching this schema:
       }
     });
 
+    window.toggleProjectForm = function(forceOpen) {
+      const card = document.getElementById('projectFormCard');
+      if (!card) return;
+      const show = typeof forceOpen === 'boolean' ? forceOpen : (card.style.display === 'none');
+      card.style.display = show ? 'block' : 'none';
+      if (show) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     window.startEditProject = function(projectId) {
       const item = projectData.find(p => p.project_id === projectId);
       if (!item) return;
 
+      toggleProjectForm(true);
       document.getElementById('editingProjectId').value = item.project_id;
       document.getElementById('project_id_input').value = item.project_id;
       document.getElementById('project_id_input').readOnly = true;
@@ -3559,6 +3681,7 @@ Return ONLY valid JSON matching this schema:
       projectEditIndicator.style.display = 'none';
       btnSubmitProject.textContent = 'Register Project';
       btnCancelProject.style.display = 'none';
+      toggleProjectForm(false);
     }
 
     btnCancelProject.addEventListener('click', resetProjectForm);
@@ -3699,6 +3822,7 @@ Return ONLY valid JSON matching this schema:
         const result = await response.json();
         if (result.success) {
           ptwData = result.data || [];
+          updatePtwKpiCounts();
           updatePtwSortHeaderIcons();
           renderProcessedPtwData();
         } else {
@@ -3738,9 +3862,41 @@ Return ONLY valid JSON matching this schema:
 
     let currentPtwStatusFilter = 'all';
 
+    window.togglePtwForm = function(forceOpen) {
+      const card = document.getElementById('ptwFormCard');
+      if (!card) return;
+      const show = typeof forceOpen === 'boolean' ? forceOpen : (card.style.display === 'none');
+      card.style.display = show ? 'block' : 'none';
+      if (show) {
+        initSignatureCanvas('applicantSigCanvas');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    function updatePtwKpiCounts() {
+      let vetting = 0, pm = 0, active = 0, suspendedClosed = 0;
+      (ptwData || []).forEach(p => {
+        const s = (p.status || '').toLowerCase();
+        if (s === 'pending safety vetting') vetting++;
+        else if (s === 'pending pm approval') pm++;
+        else if (s === 'active') active++;
+        else if (s === 'suspended' || s === 'closed') suspendedClosed++;
+      });
+      const elAll = document.getElementById('pkpiAll');
+      const elVet = document.getElementById('pkpiVetting');
+      const elPm = document.getElementById('pkpiPm');
+      const elAct = document.getElementById('pkpiActive');
+      const elCl = document.getElementById('pkpiClosed');
+      if (elAll) elAll.textContent = (ptwData || []).length;
+      if (elVet) elVet.textContent = vetting;
+      if (elPm) elPm.textContent = pm;
+      if (elAct) elAct.textContent = active;
+      if (elCl) elCl.textContent = suspendedClosed;
+    }
+
     window.setFilterStatus = function(statusFilter) {
       currentPtwStatusFilter = statusFilter;
-      document.querySelectorAll('.filter-pill').forEach(btn => {
+      document.querySelectorAll('#ptwKpiBar .kpi-filter-card, .filter-pill').forEach(btn => {
         if (btn.getAttribute('data-filter') === statusFilter) {
           btn.classList.add('active');
         } else {
@@ -3757,7 +3913,9 @@ Return ONLY valid JSON matching this schema:
         if (currentPtwStatusFilter !== 'all') {
           const itemStatus = (item.status || 'Draft').toLowerCase();
           const targetStatus = currentPtwStatusFilter.toLowerCase();
-          if (itemStatus !== targetStatus) {
+          if (targetStatus === 'suspended_closed') {
+            if (itemStatus !== 'suspended' && itemStatus !== 'closed') return false;
+          } else if (itemStatus !== targetStatus) {
             return false;
           }
         }
@@ -4114,6 +4272,7 @@ Return ONLY valid JSON matching this schema:
       const item = ptwData.find(p => p.ptw_id === ptwId);
       if (!item) return;
 
+      togglePtwForm(true);
       document.getElementById('editingPtwId').value = item.ptw_id;
       populateProjectDropdown(item.project_id);
       document.getElementById('ptw_type').value = item.ptw_type || 'Work at Height';
@@ -4373,6 +4532,7 @@ Return ONLY valid JSON matching this schema:
       ptwEditIndicator.style.display = 'none';
       btnSubmitPtw.textContent = 'Submit Permit for Vetting';
       btnCancelPtw.style.display = 'none';
+      togglePtwForm(false);
       
       // Set default start datetime to NOW and expiry to 6:00 PM today
       const now = new Date();
@@ -4829,6 +4989,7 @@ Return ONLY valid JSON matching this schema:
     loadSystemUserData();
     loadProjectData();
     loadPtwData();
+    switchTab('ptwTab');
 
     // Check for Deep-Link URL parameters (?ptw=PTW-2026-xxx or ?tbm=TBM-2026-xxx)
     const urlParams = new URLSearchParams(window.location.search);
