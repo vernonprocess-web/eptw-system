@@ -612,6 +612,7 @@
                   <th style="width: 180px;">Safety Officer (WSHO)</th>
                   <th style="width: 100px;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Start Date <span class="sort-icon">⇅</span></th>
                   <th style="width: 100px; text-align: center;">Status</th>
+                  <th style="width: 155px; text-align: center;">Site RA Status</th>
                   <th style="width: 200px; text-align: center;">Actions</th>
                 </tr>
               </thead>
@@ -3400,7 +3401,7 @@ Return ONLY valid JSON matching this schema:
       if (!data || data.length === 0) {
         projectTableBody.innerHTML = `
           <tr>
-            <td colspan="9" class="empty-state">No projects found. Use the form above to register a new project.</td>
+            <td colspan="10" class="empty-state">No projects found. Use the form above to register a new project.</td>
           </tr>
         `;
         return;
@@ -3431,6 +3432,11 @@ Return ONLY valid JSON matching this schema:
             </td>
             <td>${escapeHtml(item.start_date || '-')}</td>
             <td style="text-align: center;">${statusBadge}</td>
+            <td style="text-align: center;">
+              ${item.ra_approved
+                ? `<button type="button" onclick="openRaProfileModal('${escapeHtml(item.project_id)}')" title="Click to view or export Site RA" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 4px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Site RA Approved</button>${item.ra_ref_no ? `<div style="font-size: 0.68rem; color: #475569; margin-top: 2px;">${escapeHtml(item.ra_ref_no)}</div>` : ''}`
+                : `<button type="button" onclick="openRaProfileModal('${escapeHtml(item.project_id)}')" title="Click to review and approve Site RA" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 4px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Pending Review</button>`}
+            </td>
             <td style="text-align: center;">
               <div class="action-btn-group">
                 <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">View Dashboard</button>
@@ -5190,7 +5196,7 @@ Return ONLY valid JSON matching this schema:
       document.querySelectorAll('input[name="ra_profile_rams"]').forEach(cb => { cb.checked = checked; });
     };
 
-    window.openRaProfileModal = async function() {
+    window.openRaProfileModal = async function(targetProjId = 'DEFAULT') {
       const modal = document.getElementById('raProfileModal');
       if (!modal) return;
       const sel = document.getElementById('ra_project_select');
@@ -5203,6 +5209,7 @@ Return ONLY valid JSON matching this schema:
           }
         } catch {}
         sel.innerHTML = opts;
+        if (targetProjId) sel.value = targetProjId;
       }
 
       const dl = document.getElementById('raWorkerDatalist');
@@ -5350,6 +5357,7 @@ Return ONLY valid JSON matching this schema:
       if (res.success) {
         if (!silent && typeof showToast === 'function') showToast(res.message);
         await window.loadRaProfileIntoModal(projId);
+        if (typeof loadProjectData === 'function') loadProjectData();
         return true;
       } else {
         if (!silent) alert(res.error || 'Failed to save RA Profile.');

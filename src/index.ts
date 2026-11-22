@@ -1366,10 +1366,14 @@ app.get('/api/projects', async (c) => {
              COALESCE(pm.phone, prj.pm_phone) AS pm_phone,
              COALESCE(wsho.name, prj.wsho_name) AS wsho_name,
              COALESCE(wsho.email, prj.wsho_email) AS wsho_email,
-             COALESCE(wsho.phone, prj.wsho_phone) AS wsho_phone
+             COALESCE(wsho.phone, prj.wsho_phone) AS wsho_phone,
+             CASE WHEN ra.project_id IS NOT NULL THEN 1 ELSE 0 END AS ra_approved,
+             ra.ref_no AS ra_ref_no,
+             ra.next_review_date AS ra_next_review_date
       FROM Project_Directory prj
       LEFT JOIN users pm ON prj.pm_user_id = pm.id OR LOWER(prj.pm_email) = LOWER(pm.email)
       LEFT JOIN users wsho ON prj.wsho_user_id = wsho.id OR LOWER(prj.wsho_email) = LOWER(wsho.email)
+      LEFT JOIN RA_Profiles ra ON prj.project_id = ra.project_id
       WHERE ${whereClause}
       ORDER BY prj.created_at DESC`;
 
