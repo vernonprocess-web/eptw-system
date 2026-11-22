@@ -5228,7 +5228,7 @@ Return ONLY valid JSON matching this schema:
     window.loadRaProfileIntoModal = async function(projId) {
       try {
         const [profRes, allRamsRes] = await Promise.all([
-          fetch(`/api/ra/profile?project_id=${encodeURIComponent(projId || 'DEFAULT')}`).then(r => r.json()),
+          fetch(`/api/ra/profile?project_id=${encodeURIComponent(projId || 'DEFAULT')}&_ts=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
           fetch('/api/rams').then(r => r.json())
         ]);
         if (!profRes.success) return;
@@ -5302,7 +5302,7 @@ Return ONLY valid JSON matching this schema:
       }
     };
 
-    window.saveRaProfileFromModal = async function() {
+    window.saveRaProfileFromModal = async function(silent = false) {
       const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
       const canvas = document.getElementById('raApproverSigCanvas');
       const sigData = raSigHasStroke && canvas ? canvas.toDataURL('image/png') : raExistingApproverSig;
@@ -5348,21 +5348,25 @@ Return ONLY valid JSON matching this schema:
       }).then(r => r.json());
 
       if (res.success) {
-        if (typeof showToast === 'function') showToast(res.message);
+        if (!silent && typeof showToast === 'function') showToast(res.message);
         await window.loadRaProfileIntoModal(projId);
+        return true;
       } else {
-        alert(res.error || 'Failed to save RA Profile.');
+        if (!silent) alert(res.error || 'Failed to save RA Profile.');
+        return false;
       }
     };
 
     window.exportMomRaFromModal = async function() {
       const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
+      await window.saveRaProfileFromModal(true);
       const mod = await import('./assets/js/ra-export.js');
       await mod.shareOrDownloadSiteRa(projId, typeof showToast === 'function' ? showToast : null);
     };
 
     window.exportMomRaWhatsAppFromModal = async function() {
       const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
+      await window.saveRaProfileFromModal(true);
       const mod = await import('./assets/js/ra-export.js');
       await mod.shareRaViaWhatsApp(projId, typeof showToast === 'function' ? showToast : null);
     };
@@ -5391,6 +5395,7 @@ Return ONLY valid JSON matching this schema:
       }
       try {
         if (btn) { btn.disabled = true; btn.textContent = 'Generating & Sending...'; }
+        await window.saveRaProfileFromModal(true);
         const mod = await import('./assets/js/ra-export.js');
         const { base64, filename } = await mod.buildMomRaPdf(projId);
         const res = await fetch('/api/ra/share', {

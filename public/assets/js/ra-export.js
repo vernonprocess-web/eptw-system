@@ -36,7 +36,7 @@ export async function buildMomRaPdf(projectId = 'DEFAULT') {
     throw new Error('PDF generator library (jsPDF) is not loaded. Please refresh and try again.');
   }
 
-  const res = await fetchAPI(`/api/ra/profile?project_id=${encodeURIComponent(projectId || 'DEFAULT')}`);
+  const res = await fetchAPI(`/api/ra/profile?project_id=${encodeURIComponent(projectId || 'DEFAULT')}&_ts=${Date.now()}`, { cache: 'no-store' });
   if (!res.success || !res.profile) {
     throw new Error(res.error || 'Failed to load RA Profile.');
   }
