@@ -449,7 +449,51 @@ export async function buildMomRaPdf(projectId = 'DEFAULT') {
   const filename = `MOM_RA_${safeProj}.pdf`;
   const blob = doc.output('blob');
   const file = new File([blob], filename, { type: 'application/pdf' });
-  return { blob, file, filename, is_site_approved, is_specific_site };
+  const dataUri = doc.output('datauristring');
+  const base64 = dataUri.split(',')[1] || '';
+  return { blob, file, filename, base64, profile, is_site_approved, is_specific_site };
+}
+
+export async function shareRaViaWhatsApp(projectId, showToastFn) {
+  if (showToastFn) showToastFn('Preparing MOM Risk Assessment PDF for WhatsApp...', 'info');
+  const { blob, file, filename, profile } = await buildMomRaPdf(projectId);
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: `MOM Risk Assessment — ${profile.ref_no || projectId}`,
+        text: `MOM Risk Assessment (${profile.ref_no || ''}) for ${profile.activity_location || projectId}`,
+        files: [file]
+      });
+      if (showToastFn) showToastFn(`Shared ${filename} successfully.`, 'success');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+    }
+  }
+
+  // Desktop fallback: download PDF + open WhatsApp Web/Desktop with pre-filled text
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  const msg = [
+    `*MOM Risk Assessment (RA)*`,
+    `Company: ${profile.company_name || 'Unified Asia Solutions Pte Ltd'}`,
+    `Site / Location: ${profile.activity_location || projectId}`,
+    `Ref No: ${profile.ref_no || 'Install - RA06'}`,
+    `Next Review Date: ${formatDDMMYYYY(profile.next_review_date)}`,
+    ``,
+    `Please find the attached PDF (${filename}).`
+  ].join('\n');
+
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  if (showToastFn) showToastFn(`Downloaded ${filename} and opened WhatsApp. Attach the downloaded PDF in chat.`, 'success');
 }
 
 export async function shareOrDownloadSiteRa(projectId, showToastFn) {

@@ -4869,24 +4869,40 @@ Return ONLY valid JSON matching this schema:
           </div>
           <div class="form-group">
             <label for="ra_leader">RA Leader (WSHO / Safety)</label>
-            <input type="text" id="ra_leader" placeholder="e.g. Vernon Tan">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="ra_leader" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+              <button type="button" id="btnSign_ra_leader" onclick="openRaTeamSignModal('ra_leader', 'RA Leader')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="ra_member_1">RA Member 1 (Supervisor / Crew)</label>
-            <input type="text" id="ra_member_1" placeholder="Optional">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="ra_member_1" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+              <button type="button" id="btnSign_ra_member_1" onclick="openRaTeamSignModal('ra_member_1', 'RA Member 1')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="ra_member_2">RA Member 2</label>
-            <input type="text" id="ra_member_2" placeholder="Optional">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="ra_member_2" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+              <button type="button" id="btnSign_ra_member_2" onclick="openRaTeamSignModal('ra_member_2', 'RA Member 2')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="ra_member_3">RA Member 3</label>
-            <input type="text" id="ra_member_3" placeholder="Optional">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="ra_member_3" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+              <button type="button" id="btnSign_ra_member_3" onclick="openRaTeamSignModal('ra_member_3', 'RA Member 3')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="ra_member_4">RA Member 4</label>
-            <input type="text" id="ra_member_4" placeholder="Optional">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="ra_member_4" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+              <button type="button" id="btnSign_ra_member_4" onclick="openRaTeamSignModal('ra_member_4', 'RA Member 4')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+            </div>
           </div>
+          <datalist id="raWorkerDatalist"></datalist>
           <div class="form-group">
             <label for="ra_approver_name">Approved By (PM / Director)</label>
             <input type="text" id="ra_approver_name" placeholder="e.g. Joe Lim">
@@ -4925,11 +4941,52 @@ Return ONLY valid JSON matching this schema:
           </div>
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
           <button type="button" class="btn-secondary" onclick="closeRaProfileModal()">Close</button>
           <button type="button" class="btn-primary" style="background: #16a34a;" onclick="saveRaProfileFromModal()">Save RA Profile & Approve</button>
           <button type="button" class="btn-primary" style="background: #0284c7;" onclick="exportMomRaFromModal()">Export MOM RA (PDF)</button>
+          <button type="button" class="btn-primary" style="background: #15803d;" onclick="exportMomRaWhatsAppFromModal()">Share via WhatsApp</button>
+          <button type="button" class="btn-primary" style="background: #0f172a;" onclick="openRaEmailModal()">Email RA to Client</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RA TEAM MEMBER SIGNATURE POPUP -->
+  <div id="raTeamSignModal" class="modal-overlay" style="display: none; z-index: 1050;">
+    <div class="modal-card" style="max-width: 420px; width: 92%; padding: 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 id="raTeamSignTitle" style="margin: 0; font-size: 1rem;">Sign RA Team Member</h4>
+        <button type="button" onclick="closeRaTeamSignModal()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer;">×</button>
+      </div>
+      <div style="border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; height: 130px;">
+        <canvas id="raTeamSignCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+        <button type="button" class="btn-secondary" onclick="clearRaTeamSignCanvas()">Clear</button>
+        <button type="button" class="btn-primary" onclick="saveRaTeamSignModal()">Save Signature</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMAIL RA TO CLIENT MODAL -->
+  <div id="raEmailModal" class="modal-overlay" style="display: none; z-index: 1050;">
+    <div class="modal-card" style="max-width: 460px; width: 92%; padding: 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="margin: 0; font-size: 1rem;">Email MOM RA (PDF) to Client</h4>
+        <button type="button" onclick="closeRaEmailModal()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer;">×</button>
+      </div>
+      <div class="form-group">
+        <label for="raEmailRecipients">Client / Main-Con Email(s):</label>
+        <input type="text" id="raEmailRecipients" placeholder="e.g. safety@maincon.com.sg">
+      </div>
+      <div class="form-group">
+        <label for="raEmailNote">Optional Note:</label>
+        <textarea id="raEmailNote" rows="2" placeholder="e.g. Attached Risk Assessment for pre-work review and approval."></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+        <button type="button" class="btn-secondary" onclick="closeRaEmailModal()">Cancel</button>
+        <button type="button" id="btnSendRaEmail" class="btn-primary" onclick="submitRaClientEmail()">Send RA PDF</button>
       </div>
     </div>
   </div>
@@ -4938,9 +4995,44 @@ Return ONLY valid JSON matching this schema:
     let raSigDrawing = false;
     let raSigHasStroke = false;
     let raExistingApproverSig = '';
+    let raCurrentClientEmail = '';
+    const raTeamSigs = {
+      ra_leader_sig: '',
+      ra_member_1_sig: '',
+      ra_member_2_sig: '',
+      ra_member_3_sig: '',
+      ra_member_4_sig: ''
+    };
+    let activeTeamSignField = null;
+    let teamSigDrawing = false;
+    let teamSigHasStroke = false;
 
-    function initRaSigCanvas() {
-      const canvas = document.getElementById('raApproverSigCanvas');
+    function getSgtTodayIso() {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Singapore' }).format(new Date());
+    }
+
+    function addYearsIso(isoDate, years) {
+      if (!isoDate) return '';
+      const parts = isoDate.split('-').map(Number);
+      if (parts.length !== 3) return '';
+      const d = new Date(Date.UTC(parts[0] + years, parts[1] - 1, parts[2]));
+      return d.toISOString().split('T')[0];
+    }
+
+    function refreshTeamSignButtons() {
+      const fields = ['ra_leader', 'ra_member_1', 'ra_member_2', 'ra_member_3', 'ra_member_4'];
+      fields.forEach(f => {
+        const btn = document.getElementById(`btnSign_${f}`);
+        if (!btn) return;
+        const hasSig = Boolean(raTeamSigs[`${f}_sig`]);
+        btn.textContent = hasSig ? 'Signed ✓' : 'Sign';
+        btn.style.background = hasSig ? '#dcfce7' : '#f8fafc';
+        btn.style.color = hasSig ? '#166534' : '#334155';
+        btn.style.borderColor = hasSig ? '#86efac' : '#cbd5e1';
+      });
+    }
+
+    function bindCanvasDraw(canvas, onStroke) {
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
@@ -4953,15 +5045,15 @@ Return ONLY valid JSON matching this schema:
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.strokeStyle = '#0f172a';
-
+      let drawing = false;
       const getPos = (e) => {
         const r = canvas.getBoundingClientRect();
         const pt = e.touches ? e.touches[0] : e;
         return { x: pt.clientX - r.left, y: pt.clientY - r.top };
       };
-      const start = (e) => { raSigDrawing = true; raSigHasStroke = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
-      const move = (e) => { if (!raSigDrawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-      const stop = () => { raSigDrawing = false; };
+      const start = (e) => { drawing = true; onStroke(); const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+      const move = (e) => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+      const stop = () => { drawing = false; };
       canvas.addEventListener('mousedown', start);
       canvas.addEventListener('mousemove', move);
       window.addEventListener('mouseup', stop);
@@ -4969,6 +5061,48 @@ Return ONLY valid JSON matching this schema:
       canvas.addEventListener('touchmove', move, { passive: false });
       window.addEventListener('touchend', stop);
     }
+
+    function initRaSigCanvas() {
+      bindCanvasDraw(document.getElementById('raApproverSigCanvas'), () => { raSigHasStroke = true; });
+    }
+
+    window.openRaTeamSignModal = function(fieldKey, label) {
+      activeTeamSignField = `${fieldKey}_sig`;
+      const titleEl = document.getElementById('raTeamSignTitle');
+      const nameVal = document.getElementById(fieldKey)?.value?.trim();
+      if (titleEl) titleEl.textContent = nameVal ? `Sign: ${nameVal} (${label})` : `Sign: ${label}`;
+      const modal = document.getElementById('raTeamSignModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      teamSigHasStroke = false;
+      requestAnimationFrame(() => {
+        const canvas = document.getElementById('raTeamSignCanvas');
+        bindCanvasDraw(canvas, () => { teamSigHasStroke = true; });
+        if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      });
+    };
+
+    window.closeRaTeamSignModal = function() {
+      const modal = document.getElementById('raTeamSignModal');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.clearRaTeamSignCanvas = function() {
+      const canvas = document.getElementById('raTeamSignCanvas');
+      if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      teamSigHasStroke = false;
+      if (activeTeamSignField) raTeamSigs[activeTeamSignField] = '';
+      refreshTeamSignButtons();
+    };
+
+    window.saveRaTeamSignModal = function() {
+      const canvas = document.getElementById('raTeamSignCanvas');
+      if (activeTeamSignField && teamSigHasStroke && canvas) {
+        raTeamSigs[activeTeamSignField] = canvas.toDataURL('image/png');
+      }
+      refreshTeamSignButtons();
+      window.closeRaTeamSignModal();
+    };
 
     window.clearRaApproverSig = function() {
       const canvas = document.getElementById('raApproverSigCanvas');
@@ -4999,6 +5133,16 @@ Return ONLY valid JSON matching this schema:
           }
         } catch {}
         sel.innerHTML = opts;
+      }
+
+      const dl = document.getElementById('raWorkerDatalist');
+      if (dl) {
+        try {
+          const wRes = await fetch('/api/workers').then(r => r.json());
+          if (wRes.success && Array.isArray(wRes.data)) {
+            dl.innerHTML = wRes.data.map(w => `<option value="${w.name}">${w.trade || w.role || ''}</option>`).join('');
+          }
+        } catch {}
       }
 
       modal.style.display = 'flex';
@@ -5032,13 +5176,18 @@ Return ONLY valid JSON matching this schema:
           }
         }
 
+        const todaySgt = getSgtTodayIso();
+        const origDate = p.original_date || todaySgt;
+        const lastDate = p.last_review_date || todaySgt;
+        const nextDate = p.next_review_date || addYearsIso(lastDate, 2);
+
         document.getElementById('ra_company_name').value = p.company_name || '';
         document.getElementById('ra_ref_no').value = p.ref_no || '';
         document.getElementById('ra_process_name').value = p.process_name || '';
         document.getElementById('ra_activity_location').value = p.activity_location || '';
-        document.getElementById('ra_original_date').value = p.original_date || '';
-        document.getElementById('ra_last_review_date').value = p.last_review_date || '';
-        document.getElementById('ra_next_review_date').value = p.next_review_date || '';
+        document.getElementById('ra_original_date').value = origDate;
+        document.getElementById('ra_last_review_date').value = lastDate;
+        document.getElementById('ra_next_review_date').value = nextDate;
         document.getElementById('ra_leader').value = p.ra_leader || '';
         document.getElementById('ra_member_1').value = p.ra_member_1 || '';
         document.getElementById('ra_member_2').value = p.ra_member_2 || '';
@@ -5046,8 +5195,16 @@ Return ONLY valid JSON matching this schema:
         document.getElementById('ra_member_4').value = p.ra_member_4 || '';
         document.getElementById('ra_approver_name').value = p.approver_name || '';
         document.getElementById('ra_approver_designation').value = p.approver_designation || '';
-        document.getElementById('ra_approval_date').value = p.approval_date || '';
+        document.getElementById('ra_approval_date').value = p.approval_date || todaySgt;
         document.getElementById('ra_site_specific_notes').value = p.site_specific_notes || '';
+
+        raCurrentClientEmail = profRes.project?.client_email || '';
+        raTeamSigs.ra_leader_sig = p.ra_leader_sig || '';
+        raTeamSigs.ra_member_1_sig = p.ra_member_1_sig || '';
+        raTeamSigs.ra_member_2_sig = p.ra_member_2_sig || '';
+        raTeamSigs.ra_member_3_sig = p.ra_member_3_sig || '';
+        raTeamSigs.ra_member_4_sig = p.ra_member_4_sig || '';
+        refreshTeamSignButtons();
 
         window.clearRaApproverSig();
         raExistingApproverSig = p.approver_signature || '';
@@ -5091,10 +5248,15 @@ Return ONLY valid JSON matching this schema:
         last_review_date: document.getElementById('ra_last_review_date').value,
         next_review_date: document.getElementById('ra_next_review_date').value,
         ra_leader: document.getElementById('ra_leader').value.trim(),
+        ra_leader_sig: raTeamSigs.ra_leader_sig || '',
         ra_member_1: document.getElementById('ra_member_1').value.trim(),
+        ra_member_1_sig: raTeamSigs.ra_member_1_sig || '',
         ra_member_2: document.getElementById('ra_member_2').value.trim(),
+        ra_member_2_sig: raTeamSigs.ra_member_2_sig || '',
         ra_member_3: document.getElementById('ra_member_3').value.trim(),
+        ra_member_3_sig: raTeamSigs.ra_member_3_sig || '',
         ra_member_4: document.getElementById('ra_member_4').value.trim(),
+        ra_member_4_sig: raTeamSigs.ra_member_4_sig || '',
         approver_name: document.getElementById('ra_approver_name').value.trim(),
         approver_designation: document.getElementById('ra_approver_designation').value.trim(),
         approval_date: document.getElementById('ra_approval_date').value,
@@ -5127,6 +5289,64 @@ Return ONLY valid JSON matching this schema:
       const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
       const mod = await import('./assets/js/ra-export.js');
       await mod.shareOrDownloadSiteRa(projId, typeof showToast === 'function' ? showToast : null);
+    };
+
+    window.exportMomRaWhatsAppFromModal = async function() {
+      const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
+      const mod = await import('./assets/js/ra-export.js');
+      await mod.shareRaViaWhatsApp(projId, typeof showToast === 'function' ? showToast : null);
+    };
+
+    window.openRaEmailModal = function() {
+      const modal = document.getElementById('raEmailModal');
+      if (!modal) return;
+      document.getElementById('raEmailRecipients').value = raCurrentClientEmail || '';
+      document.getElementById('raEmailNote').value = '';
+      modal.style.display = 'flex';
+    };
+
+    window.closeRaEmailModal = function() {
+      const modal = document.getElementById('raEmailModal');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.submitRaClientEmail = async function() {
+      const projId = document.getElementById('ra_project_select')?.value || 'DEFAULT';
+      const recipients = document.getElementById('raEmailRecipients')?.value?.trim() || '';
+      const note = document.getElementById('raEmailNote')?.value?.trim() || '';
+      const btn = document.getElementById('btnSendRaEmail');
+      if (!recipients) {
+        alert('Please enter at least one client email address.');
+        return;
+      }
+      try {
+        if (btn) { btn.disabled = true; btn.textContent = 'Generating & Sending...'; }
+        const mod = await import('./assets/js/ra-export.js');
+        const { base64, filename } = await mod.buildMomRaPdf(projId);
+        const res = await fetch('/api/ra/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project_id: projId,
+            recipient_emails: recipients,
+            pdf_base64: base64,
+            filename,
+            note,
+            shared_by_name: localStorage.getItem('active_user_name') || '',
+            shared_by_email: localStorage.getItem('active_user_email') || ''
+          })
+        }).then(r => r.json());
+        if (res.success) {
+          window.closeRaEmailModal();
+          if (typeof showToast === 'function') showToast(res.message);
+        } else {
+          alert(res.error || 'Failed to send RA email.');
+        }
+      } catch (err) {
+        alert('Error sending RA email: ' + err.message);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send RA PDF'; }
+      }
     };
   </script>
 </body>
