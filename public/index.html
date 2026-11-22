@@ -69,11 +69,14 @@
 
     <!-- TAB 1: MASTER RAMS LIBRARY -->
     <div id="ramsTab" class="tab-content active">
-      <!-- Add / Edit RAMS Form -->
-      <div class="form-card">
-        <h2 id="formTitle">
+      <!-- Add / Edit RAMS Form (Collapsed by default) -->
+      <div class="form-card" id="ramsFormCard" style="display: none;">
+        <h2 id="formTitle" style="display: flex; justify-content: space-between; align-items: center;">
           <span>Add New RAMS Item</span>
-          <span id="editModeIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Item ID: <span id="editingIdText"></span></span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="editModeIndicator" style="display: none; font-size: 0.8rem; color: #2563eb;">Editing Item ID: <span id="editingIdText"></span></span>
+            <button type="button" onclick="toggleRamsForm(false)" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">×</button>
+          </div>
         </h2>
         <form id="ramsForm">
           <input type="hidden" id="ramsId" value="">
@@ -183,10 +186,14 @@
 
       <!-- Data Table -->
       <div class="table-card">
-        <div class="table-toolbar" style="flex-wrap: wrap; gap: 10px;">
-          <h3>Master RAMS Library Table</h3>
+        <div class="table-toolbar" style="flex-wrap: wrap; gap: 10px; align-items: center;">
+          <h3 style="margin-right: auto;">Master RAMS Library Table</h3>
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 0.85rem;" onclick="toggleRamsForm()">+ Add New RAMS Item</button>
             <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 0.85rem; background: #0f172a;" onclick="openRaProfileModal()">Export / Configure MOM RA (PDF)</button>
+            <select id="ramsPhaseFilter" style="padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: #fff; max-width: 220px;">
+              <option value="ALL">All Phases</option>
+            </select>
             <input type="text" id="searchInput" class="search-input" placeholder="Search by category, activity, or hazard...">
           </div>
         </div>
@@ -1435,15 +1442,18 @@
 
     function getProcessedData() {
       const query = searchInput.value.toLowerCase().trim();
-      let filtered = ramsData.filter(item => 
-        !query ||
-        (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
-        (item.work_activity && item.work_activity.toLowerCase().includes(query)) ||
-        (item.hazard && item.hazard.toLowerCase().includes(query)) ||
-        (item.possible_accident && item.possible_accident.toLowerCase().includes(query)) ||
-        (item.control_measures && item.control_measures.toLowerCase().includes(query)) ||
-        (item.id && String(item.id).includes(query))
-      );
+      const phaseFilter = document.getElementById('ramsPhaseFilter')?.value || 'ALL';
+      let filtered = ramsData.filter(item => {
+        const matchesPhase = phaseFilter === 'ALL' || item.activity_category === phaseFilter;
+        const matchesQuery = !query ||
+          (item.activity_category && item.activity_category.toLowerCase().includes(query)) ||
+          (item.work_activity && item.work_activity.toLowerCase().includes(query)) ||
+          (item.hazard && item.hazard.toLowerCase().includes(query)) ||
+          (item.possible_accident && item.possible_accident.toLowerCase().includes(query)) ||
+          (item.control_measures && item.control_measures.toLowerCase().includes(query)) ||
+          (item.id && String(item.id).includes(query));
+        return matchesPhase && matchesQuery;
+      });
 
       filtered.sort((a, b) => {
         let valA = a[currentSortColumn];
@@ -1498,6 +1508,13 @@
         const result = await response.json();
         if (result.success) {
           ramsData = result.data || [];
+          const phaseSel = document.getElementById('ramsPhaseFilter');
+          if (phaseSel) {
+            const cur = phaseSel.value || 'ALL';
+            const phases = Array.from(new Set(ramsData.map(r => r.activity_category).filter(Boolean))).sort();
+            phaseSel.innerHTML = '<option value="ALL">All Phases</option>' + phases.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+            if (phases.includes(cur)) phaseSel.value = cur;
+          }
           updateSortHeaderIcons();
           renderProcessedData();
           populateRamsChecklist();
@@ -1527,6 +1544,8 @@
 
       tableBody.innerHTML = data.map(item => {
         const rpnClass = getRPNClass(item.rpn);
+        const ctrlText = item.control_measures || '';
+        const isLongCtrl = ctrlText.length > 220 || (ctrlText.match(/\n/g) || []).length >= 3;
         return `
           <tr>
             <td><strong>#${item.id}</strong></td>
@@ -1534,7 +1553,10 @@
             <td><strong>${escapeHtml(item.work_activity)}</strong></td>
             <td>${escapeHtml(item.hazard)}</td>
             <td>${escapeHtml(item.possible_accident)}</td>
-            <td style="white-space: pre-wrap;">${escapeHtml(item.control_measures)}</td>
+            <td>
+              <div class="rams-ctrl-clamp" style="white-space: pre-wrap; ${isLongCtrl ? 'display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;' : ''}">${escapeHtml(ctrlText)}</div>
+              ${isLongCtrl ? `<button type="button" onclick="toggleRamsCtrl(this)" style="background: none; border: none; color: #2563eb; font-size: 0.76rem; font-weight: 600; cursor: pointer; padding: 2px 0;">Show more</button>` : ''}
+            </td>
             <td style="text-align: center;">${item.severity_s}</td>
             <td style="text-align: center;">${item.likelihood_l}</td>
             <td style="text-align: center;">
@@ -1551,7 +1573,36 @@
       }).join('');
     }
 
+    window.toggleRamsCtrl = function(btn) {
+      const box = btn.previousElementSibling;
+      if (!box) return;
+      const expanded = box.dataset.expanded === '1';
+      if (expanded) {
+        box.style.display = '-webkit-box';
+        box.style.webkitLineClamp = '4';
+        box.style.webkitBoxOrient = 'vertical';
+        box.style.overflow = 'hidden';
+        box.dataset.expanded = '0';
+        btn.textContent = 'Show more';
+      } else {
+        box.style.display = 'block';
+        box.style.webkitLineClamp = 'unset';
+        box.style.overflow = 'visible';
+        box.dataset.expanded = '1';
+        btn.textContent = 'Show less';
+      }
+    };
+
+    window.toggleRamsForm = function(forceOpen) {
+      const card = document.getElementById('ramsFormCard');
+      if (!card) return;
+      const show = typeof forceOpen === 'boolean' ? forceOpen : (card.style.display === 'none');
+      card.style.display = show ? 'block' : 'none';
+      if (show) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     searchInput.addEventListener('input', renderProcessedData);
+    document.getElementById('ramsPhaseFilter')?.addEventListener('change', renderProcessedData);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1624,6 +1675,7 @@
       });
 
       calculateRPN();
+      toggleRamsForm(true);
       formTitle.querySelector('span').textContent = 'Edit RAMS Record';
       editingIdText.textContent = item.id;
       editModeIndicator.style.display = 'inline';
@@ -1656,6 +1708,7 @@
       btnSubmit.textContent = 'Add RAMS Entry';
       btnCancel.style.display = 'none';
       calculateRPN();
+      toggleRamsForm(false);
     }
     btnCancel.addEventListener('click', resetForm);
 
@@ -4794,7 +4847,7 @@ Return ONLY valid JSON matching this schema:
   </script>
 
   <!-- TELEGRAM PAIRING MODAL -->
-  <div id="telegramPairingModal" class="modal-overlay" style="display: none;">
+  <div id="telegramPairingModal" class="modal-backdrop" style="display: none;">
     <div class="modal-card" style="max-width: 480px; padding: 0;">
       <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
         <h3 style="font-size: 1.1rem; font-weight: 700;">1-Tap Telegram Alert Signup</h3>
@@ -4822,138 +4875,155 @@ Return ONLY valid JSON matching this schema:
   </div>
 
   <!-- MOM RISK ASSESSMENT (RA) PROFILE & EXPORT MODAL -->
-  <div id="raProfileModal" class="modal-overlay" style="display: none;">
-    <div class="modal-card" style="max-width: 820px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 0;">
-      <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #fff; z-index: 10;">
+  <div id="raProfileModal" class="modal-backdrop" style="display: none; z-index: 1000;">
+    <div class="modal-card" style="max-width: 960px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0;">
+      <div class="modal-header" style="padding: 14px 20px; margin-bottom: 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff; flex-shrink: 0;">
         <div>
           <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0;">MOM Risk Assessment (RA) Profile & Export</h3>
           <div id="raProfileStatusBadge" style="margin-top: 4px; font-size: 0.78rem; font-weight: 700;"></div>
         </div>
         <button type="button" class="modal-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;" onclick="closeRaProfileModal()">×</button>
       </div>
-      <div style="padding: 20px;">
-        <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label for="ra_project_select">Target RA Profile (Level 1 Baseline or Level 2 Site Override):</label>
-            <select id="ra_project_select" onchange="loadRaProfileIntoModal(this.value)">
-              <option value="DEFAULT">Level 1 — Company Baseline Template (Default)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="ra_company_name">Company Name</label>
-            <input type="text" id="ra_company_name" placeholder="Unified Asia Solutions Pte Ltd">
-          </div>
-          <div class="form-group">
-            <label for="ra_ref_no">Reference Number</label>
-            <input type="text" id="ra_ref_no" placeholder="Install - RA06">
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label for="ra_process_name">Process</label>
-            <input type="text" id="ra_process_name" placeholder="Installation of Solar Equipment Systems on Commercial Buildings">
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label for="ra_activity_location">Activity Location (Site-Bound)</label>
-            <input type="text" id="ra_activity_location" placeholder="Site Name & Address">
-          </div>
-          <div class="form-group">
-            <label for="ra_original_date">Original Assessment Date</label>
-            <input type="date" id="ra_original_date">
-          </div>
-          <div class="form-group">
-            <label for="ra_last_review_date">Last Review Date</label>
-            <input type="date" id="ra_last_review_date">
-          </div>
-          <div class="form-group">
-            <label for="ra_next_review_date">Next Review Date</label>
-            <input type="date" id="ra_next_review_date">
-          </div>
-          <div class="form-group">
-            <label for="ra_leader">RA Leader (WSHO / Safety)</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="ra_leader" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
-              <button type="button" id="btnSign_ra_leader" onclick="openRaTeamSignModal('ra_leader', 'RA Leader')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+
+      <div style="padding: 18px 20px; overflow-y: auto; flex: 1;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 18px; align-items: start;">
+          <!-- LEFT COLUMN: Site Details, Dates & RA Team -->
+          <div style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">1. Site Details, Dates & RA Team</div>
+            <div class="form-group">
+              <label for="ra_project_select">Target RA Profile (Level 1 Baseline or Level 2 Site Override):</label>
+              <select id="ra_project_select" onchange="loadRaProfileIntoModal(this.value)">
+                <option value="DEFAULT">Level 1 — Company Baseline Template (Default)</option>
+              </select>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="ra_member_1">RA Member 1 (Supervisor / Crew)</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="ra_member_1" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
-              <button type="button" id="btnSign_ra_member_1" onclick="openRaTeamSignModal('ra_member_1', 'RA Member 1')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="ra_member_2">RA Member 2</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="ra_member_2" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
-              <button type="button" id="btnSign_ra_member_2" onclick="openRaTeamSignModal('ra_member_2', 'RA Member 2')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="ra_member_3">RA Member 3</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="ra_member_3" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
-              <button type="button" id="btnSign_ra_member_3" onclick="openRaTeamSignModal('ra_member_3', 'RA Member 3')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="ra_member_4">RA Member 4</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <input type="text" id="ra_member_4" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
-              <button type="button" id="btnSign_ra_member_4" onclick="openRaTeamSignModal('ra_member_4', 'RA Member 4')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
-            </div>
-          </div>
-          <datalist id="raWorkerDatalist"></datalist>
-          <div class="form-group">
-            <label for="ra_approver_name">Approved By (PM / Director)</label>
-            <input type="text" id="ra_approver_name" placeholder="e.g. Joe Lim">
-          </div>
-          <div class="form-group">
-            <label for="ra_approver_designation">Approver Designation</label>
-            <input type="text" id="ra_approver_designation" placeholder="Director / Project Manager">
-          </div>
-          <div class="form-group">
-            <label for="ra_approval_date">Approval Date</label>
-            <input type="date" id="ra_approval_date">
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label for="ra_site_specific_notes">Site-Specific Hazards / Special Notes (Optional)</label>
-            <textarea id="ra_site_specific_notes" rows="2" placeholder="e.g. Fragile roof skylights on Block B; live adjacent MSB switchroom; narrow staircase access."></textarea>
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label>Approver / Director Digital Signature</label>
-            <div style="border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; height: 90px; position: relative;">
-              <canvas id="raApproverSigCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-              <span id="raSavedSigHint" style="font-size: 0.76rem; color: #16a34a;"></span>
-              <button type="button" onclick="clearRaApproverSig()" style="background: none; border: none; color: #dc2626; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Clear Signature</button>
-            </div>
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <label style="margin: 0;">Included RAMS Activities (Leave all checked for full RA):</label>
-              <div style="display: flex; gap: 8px;">
-                <button type="button" onclick="toggleAllRaRams(true)" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer;">Select All</button>
-                <button type="button" onclick="toggleAllRaRams(false)" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer;">Clear</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label for="ra_company_name">Company Name</label>
+                <input type="text" id="ra_company_name" placeholder="Unified Asia Solutions Pte Ltd">
+              </div>
+              <div class="form-group">
+                <label for="ra_ref_no">Reference Number</label>
+                <input type="text" id="ra_ref_no" placeholder="Install - RA06">
               </div>
             </div>
-            <div id="raRamsChecklist" style="max-height: 150px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; background: #f8fafc; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px;"></div>
+            <div class="form-group">
+              <label for="ra_process_name">Process</label>
+              <input type="text" id="ra_process_name" placeholder="Installation of Solar Equipment Systems on Commercial Buildings">
+            </div>
+            <div class="form-group">
+              <label for="ra_activity_location">Activity Location (Site-Bound)</label>
+              <input type="text" id="ra_activity_location" placeholder="Site Name & Address">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <div class="form-group">
+                <label for="ra_original_date">Original Date</label>
+                <input type="date" id="ra_original_date">
+              </div>
+              <div class="form-group">
+                <label for="ra_last_review_date">Last Review</label>
+                <input type="date" id="ra_last_review_date">
+              </div>
+              <div class="form-group">
+                <label for="ra_next_review_date">Next Review (+2 Yr)</label>
+                <input type="date" id="ra_next_review_date">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_leader">RA Leader (WSHO / Safety)</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="ra_leader" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+                <button type="button" id="btnSign_ra_leader" onclick="openRaTeamSignModal('ra_leader', 'RA Leader')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_member_1">RA Member 1 (Supervisor / Crew)</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="ra_member_1" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+                <button type="button" id="btnSign_ra_member_1" onclick="openRaTeamSignModal('ra_member_1', 'RA Member 1')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_member_2">RA Member 2</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="ra_member_2" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+                <button type="button" id="btnSign_ra_member_2" onclick="openRaTeamSignModal('ra_member_2', 'RA Member 2')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_member_3">RA Member 3</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="ra_member_3" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+                <button type="button" id="btnSign_ra_member_3" onclick="openRaTeamSignModal('ra_member_3', 'RA Member 3')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_member_4">RA Member 4</label>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="ra_member_4" list="raWorkerDatalist" placeholder="Pick or type name" style="flex: 1;">
+                <button type="button" id="btnSign_ra_member_4" onclick="openRaTeamSignModal('ra_member_4', 'RA Member 4')" style="padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.78rem; font-weight: 700; cursor: pointer; white-space: nowrap;">Sign</button>
+              </div>
+            </div>
+            <datalist id="raWorkerDatalist"></datalist>
+          </div>
+
+          <!-- RIGHT COLUMN: Approver Signature, Site Notes & RAMS Checklist -->
+          <div style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">2. Approval Sign-Off & Site Activities</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label for="ra_approver_name">Approved By (PM / Director)</label>
+                <input type="text" id="ra_approver_name" placeholder="e.g. Joe Lim">
+              </div>
+              <div class="form-group">
+                <label for="ra_approver_designation">Designation</label>
+                <input type="text" id="ra_approver_designation" placeholder="Director / PM">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_approval_date">Approval Date</label>
+              <input type="date" id="ra_approval_date">
+            </div>
+            <div class="form-group">
+              <label>Approver / Director Digital Signature</label>
+              <div style="border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; height: 90px; position: relative;">
+                <canvas id="raApproverSigCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                <span id="raSavedSigHint" style="font-size: 0.76rem; color: #16a34a;"></span>
+                <button type="button" onclick="clearRaApproverSig()" style="background: none; border: none; color: #dc2626; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Clear Signature</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="ra_site_specific_notes">Site-Specific Hazards / Special Notes (Optional)</label>
+              <textarea id="ra_site_specific_notes" rows="2" placeholder="e.g. Fragile roof skylights on Block B; live adjacent MSB switchroom; narrow staircase access."></textarea>
+            </div>
+            <div class="form-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin: 0;">Included RAMS Activities:</label>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" onclick="toggleAllRaRams(true)" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer;">Select All</button>
+                  <button type="button" onclick="toggleAllRaRams(false)" style="font-size: 0.75rem; padding: 2px 8px; cursor: pointer;">Clear</button>
+                </div>
+              </div>
+              <div id="raRamsChecklist" style="max-height: 210px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; background: #fff; display: grid; grid-template-columns: 1fr; gap: 6px;"></div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-          <button type="button" class="btn-secondary" onclick="closeRaProfileModal()">Close</button>
-          <button type="button" class="btn-primary" style="background: #16a34a;" onclick="saveRaProfileFromModal()">Save RA Profile & Approve</button>
-          <button type="button" class="btn-primary" style="background: #0284c7;" onclick="exportMomRaFromModal()">Export MOM RA (PDF)</button>
-          <button type="button" class="btn-primary" style="background: #15803d;" onclick="exportMomRaWhatsAppFromModal()">Share via WhatsApp</button>
-          <button type="button" class="btn-primary" style="background: #0f172a;" onclick="openRaEmailModal()">Email RA to Client</button>
-        </div>
+      <!-- Sticky Single-Row Footer -->
+      <div style="padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #fff; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; flex-shrink: 0;">
+        <button type="button" class="btn-secondary" onclick="closeRaProfileModal()">Close</button>
+        <button type="button" class="btn-primary" style="background: #16a34a;" onclick="saveRaProfileFromModal()">Save RA Profile & Approve</button>
+        <button type="button" class="btn-primary" style="background: #0284c7;" onclick="exportMomRaFromModal()">Export MOM RA (PDF)</button>
+        <button type="button" class="btn-primary" style="background: #15803d;" onclick="exportMomRaWhatsAppFromModal()">Share via WhatsApp</button>
+        <button type="button" class="btn-primary" style="background: #0f172a;" onclick="openRaEmailModal()">Send RA to Client</button>
       </div>
     </div>
   </div>
 
   <!-- RA TEAM MEMBER SIGNATURE POPUP -->
-  <div id="raTeamSignModal" class="modal-overlay" style="display: none; z-index: 1050;">
+  <div id="raTeamSignModal" class="modal-backdrop" style="display: none; z-index: 1050;">
     <div class="modal-card" style="max-width: 420px; width: 92%; padding: 18px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h4 id="raTeamSignTitle" style="margin: 0; font-size: 1rem;">Sign RA Team Member</h4>
@@ -4970,7 +5040,7 @@ Return ONLY valid JSON matching this schema:
   </div>
 
   <!-- EMAIL RA TO CLIENT MODAL -->
-  <div id="raEmailModal" class="modal-overlay" style="display: none; z-index: 1050;">
+  <div id="raEmailModal" class="modal-backdrop" style="display: none; z-index: 1050;">
     <div class="modal-card" style="max-width: 460px; width: 92%; padding: 18px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h4 style="margin: 0; font-size: 1rem;">Email MOM RA (PDF) to Client</h4>
