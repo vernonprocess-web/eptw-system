@@ -509,13 +509,20 @@ thead {
 }
 
 th {
-  padding: 12px 14px;
+  padding: 10px 10px;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
   border-right: 1px solid #334155;
-  white-space: nowrap;
+  white-space: normal;
+}
+
+.email-wrap {
+  font-size: 0.74rem;
+  color: #0284c7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 th.sortable {

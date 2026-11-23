@@ -22,7 +22,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="assets/css/theme.css?v=13">
+  <link rel="stylesheet" href="assets/css/theme.css?v=14">
   <script src="assets/js/jszip.min.js"></script>
   <script src="assets/js/jspdf.umd.min.js"></script>
   <script src="assets/js/app.js?v=14" type="module"></script>
@@ -636,16 +636,12 @@
             <table id="projectTable">
               <thead>
                 <tr>
-                  <th style="width: 110px;" class="sortable active" data-sort="project_id" onclick="handleProjectSort('project_id')">Project ID <span class="sort-icon">▲</span></th>
-                  <th style="width: 200px;" class="sortable" data-sort="project_name" onclick="handleProjectSort('project_name')">Project Name <span class="sort-icon">⇅</span></th>
-                  <th style="width: 160px;" class="sortable" data-sort="client_name" onclick="handleProjectSort('client_name')">Client Name <span class="sort-icon">⇅</span></th>
-                  <th>Location / Site Address</th>
-                  <th style="width: 150px;" class="sortable" data-sort="project_manager" onclick="handleProjectSort('project_manager')">Project Manager <span class="sort-icon">⇅</span></th>
-                  <th style="width: 180px;">Safety Officer (WSHO)</th>
-                  <th style="width: 100px;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Start Date <span class="sort-icon">⇅</span></th>
-                  <th style="width: 100px; text-align: center;">Status</th>
-                  <th style="width: 155px; text-align: center;">Site RA Status</th>
-                  <th style="width: 200px; text-align: center;">Actions</th>
+                  <th style="width: 24%;" class="sortable active" data-sort="project_name" onclick="handleProjectSort('project_name')">Project &amp; Location <span class="sort-icon">▲</span></th>
+                  <th style="width: 15%;" class="sortable" data-sort="client_name" onclick="handleProjectSort('client_name')">Client <span class="sort-icon">⇅</span></th>
+                  <th style="width: 23%;" class="sortable" data-sort="project_manager" onclick="handleProjectSort('project_manager')">Key Personnel (PM / WSHO) <span class="sort-icon">⇅</span></th>
+                  <th style="width: 12%; text-align: center;" class="sortable" data-sort="start_date" onclick="handleProjectSort('start_date')">Status &amp; Start <span class="sort-icon">⇅</span></th>
+                  <th style="width: 12%; text-align: center;">Site RA Status</th>
+                  <th style="width: 14%; text-align: center;">Actions</th>
                 </tr>
               </thead>
               <tbody id="projectTableBody">
@@ -3510,11 +3506,17 @@ Return ONLY valid JSON matching this schema:
       return `<span class="status-badge status-project-active">${escapeHtml(status)}</span>`;
     }
 
+    function formatDateDDMMYYYY(raw) {
+      if (!raw) return '-';
+      const m = String(raw).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : String(raw);
+    }
+
     function renderProjectTable(data) {
       if (!data || data.length === 0) {
         projectTableBody.innerHTML = `
           <tr>
-            <td colspan="10" class="empty-state">No projects found. Use the form above to register a new project.</td>
+            <td colspan="6" class="empty-state">No projects found. Use + Register Project above to add a site.</td>
           </tr>
         `;
         return;
@@ -3523,36 +3525,51 @@ Return ONLY valid JSON matching this schema:
       projectTableBody.innerHTML = data.map(item => {
         const statusBadge = getProjectStatusBadge(item.status);
         const pmText = item.project_manager || 'TBD';
-        const pmContactText = item.pm_phone || item.pm_email
-          ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.pm_phone ? '' + item.pm_phone : '')}${item.pm_phone && item.pm_email ? ' ' : ''}${escapeHtml(item.pm_email || '')}</div>`
-          : '';
+        const pmEmailHtml = item.pm_email ? `<div class="email-wrap">${escapeHtml(item.pm_email)}</div>` : '';
+        const pmPhoneHtml = item.pm_phone ? `<div style="font-size: 0.72rem; color: #475569;">${escapeHtml(item.pm_phone)}</div>` : '';
         const wshoText = item.wsho_name || 'Unassigned';
-        const wshoContactText = item.wsho_phone || item.wsho_email ? `<div style="font-size: 0.75rem; color: #0284c7;">${escapeHtml(item.wsho_phone ? '' + item.wsho_phone : '')}${item.wsho_phone && item.wsho_email ? ' ' : ''}${escapeHtml(item.wsho_email || '')}</div>` : '';
+        const wshoEmailHtml = item.wsho_email ? `<div class="email-wrap">${escapeHtml(item.wsho_email)}</div>` : '';
+        const wshoPhoneHtml = item.wsho_phone ? `<div style="font-size: 0.72rem; color: #475569;">${escapeHtml(item.wsho_phone)}</div>` : '';
+        const clientEmailHtml = item.client_email ? `<div class="email-wrap">${escapeHtml(item.client_email)}</div>` : '';
+        const startStr = formatDateDDMMYYYY(item.start_date);
 
         return `
           <tr>
-            <td><strong>${escapeHtml(item.project_id)}</strong></td>
-            <td><strong>${escapeHtml(item.project_name)}</strong></td>
-            <td>${escapeHtml(item.client_name || '-')}</td>
-            <td>${escapeHtml(item.location)}</td>
             <td>
-              <strong>${escapeHtml(pmText)}</strong>
-              ${pmContactText}
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span style="background: #f1f5f9; color: #334155; font-size: 0.72rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; border: 1px solid #cbd5e1;">${escapeHtml(item.project_id)}</span>
+                <strong style="color: #0f172a;">${escapeHtml(item.project_name)}</strong>
+              </div>
+              <div style="font-size: 0.78rem; color: #475569; margin-top: 3px;">${escapeHtml(item.location)}</div>
             </td>
             <td>
-              <strong>${escapeHtml(wshoText)}</strong>
-              ${wshoContactText}
+              <div style="font-weight: 600; color: #0f172a;">${escapeHtml(item.client_name || '-')}</div>
+              ${clientEmailHtml}
             </td>
-            <td>${escapeHtml(item.start_date || '-')}</td>
-            <td style="text-align: center;">${statusBadge}</td>
+            <td>
+              <div style="margin-bottom: 5px;">
+                <span style="font-size: 0.7rem; font-weight: 700; color: #0369a1; text-transform: uppercase;">PM:</span>
+                <strong style="font-size: 0.84rem; color: #0f172a;">${escapeHtml(pmText)}</strong>
+                ${pmPhoneHtml}${pmEmailHtml}
+              </div>
+              <div>
+                <span style="font-size: 0.7rem; font-weight: 700; color: #15803d; text-transform: uppercase;">WSHO:</span>
+                <strong style="font-size: 0.84rem; color: #0f172a;">${escapeHtml(wshoText)}</strong>
+                ${wshoPhoneHtml}${wshoEmailHtml}
+              </div>
+            </td>
+            <td style="text-align: center;">
+              ${statusBadge}
+              <div style="font-size: 0.74rem; color: #475569; margin-top: 4px;">Start: ${escapeHtml(startStr)}</div>
+            </td>
             <td style="text-align: center;">
               ${item.ra_approved
                 ? `<button type="button" onclick="openRaProfileModal('${escapeHtml(item.project_id)}')" title="Click to view or export Site RA" style="background: #dcfce7; color: #166534; border: 1px solid #86efac; padding: 4px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Site RA Approved</button>${item.ra_ref_no ? `<div style="font-size: 0.68rem; color: #475569; margin-top: 2px;">${escapeHtml(item.ra_ref_no)}</div>` : ''}`
                 : `<button type="button" onclick="openRaProfileModal('${escapeHtml(item.project_id)}')" title="Click to review and approve Site RA" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; padding: 4px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">Pending Review</button>`}
             </td>
             <td style="text-align: center;">
-              <div class="action-btn-group">
-                <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">View Dashboard</button>
+              <div class="action-btn-group" style="justify-content: center; flex-wrap: wrap;">
+                <button class="btn-action-dashboard" onclick="openProjectDashboard('${escapeHtml(item.project_id)}')">Dashboard</button>
                 <button class="btn-action-edit" onclick="startEditProject('${escapeHtml(item.project_id)}')">Edit</button>
                 <button class="btn-action-delete" onclick="deleteProject('${escapeHtml(item.project_id)}')">Delete</button>
               </div>
