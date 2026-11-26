@@ -26,8 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Signature Pad
   supervisorSigPad = initSignaturePad('supervisorSigCanvas', null);
 
-  // Initialize User Session
-  initUserSession();
+  // Initialize User Session via server HttpOnly cookie
+  const ok = await initUserSession();
+  if (!ok) return;
 
   // Load Active Projects for Option A Dropdown
   await loadActiveProjects();
@@ -103,24 +104,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-function initUserSession() {
-  const activeEmail = (localStorage.getItem('active_user_email') || '').trim();
-  const activeName = (localStorage.getItem('active_user_name') || '').trim();
-  const activeRole = (localStorage.getItem('active_user_role') || '').trim();
+async function initUserSession() {
+  try {
+    const res = await fetchAPI('/api/auth/me');
+    if (!res.success || !res.user) {
+      window.location.replace('/login.html?redirect=/supervisor.html');
+      return false;
+    }
+    const u = res.user;
+    localStorage.setItem('active_user_email', u.email || u.display_name);
+    localStorage.setItem('active_user_role', u.role);
+    localStorage.setItem('active_user_name', u.display_name);
+    localStorage.setItem('active_user_key', u.user_key);
 
-  if ((!activeEmail && !activeName) || !activeRole) {
-    window.location.replace('/login.html');
+    const nameEl = document.getElementById('userNameText');
+    if (nameEl) nameEl.textContent = u.display_name || u.email;
+
+    const applicantInput = document.getElementById('applicant_name_input');
+    if (applicantInput) {
+      applicantInput.value = u.display_name || '';
+    }
+    return true;
+  } catch (_) {
+    window.location.replace('/login.html?redirect=/supervisor.html');
     return false;
   }
-
-  const nameEl = document.getElementById('userNameText');
-  if (nameEl) nameEl.textContent = activeName || activeEmail;
-
-  const applicantInput = document.getElementById('applicant_name_input');
-  if (applicantInput) {
-    applicantInput.value = activeName || '';
-  }
-  return true;
 }
 
 async function loadActiveProjects() {

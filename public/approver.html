@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ePTW — PM &amp; Safety Portal</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="stylesheet" href="assets/css/theme.css?v=14">
+  <script src="assets/js/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      background: #f8fafc;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding-bottom: 84px;
+    }
+    .approver-header {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+    }
+    .approver-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .role-pill {
+      background: #2563eb;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+    .approver-sub {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-hdr {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-hdr:hover { background: #334155; }
+    .approver-main {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    }
+    .permit-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .permit-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .permit-id {
+      font-weight: 800;
+      font-size: 0.96rem;
+      color: #0f172a;
+    }
+    .permit-meta {
+      font-size: 0.82rem;
+      color: #475569;
+      line-height: 1.45;
+    }
+    .status-pill {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .status-pending-vet { background: #fef3c7; color: #92400e; }
+    .status-pending-pm { background: #dbeafe; color: #1e40af; }
+    .status-active { background: #dcfce7; color: #166534; }
+    .status-suspended { background: #fee2e2; color: #991b1b; }
+    .status-closed { background: #f1f5f9; color: #475569; }
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-emerald { background: #059669; color: #fff; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-outline { background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; }
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      z-index: 30;
+    }
+    .nav-item {
+      background: none;
+      border: none;
+      padding: 10px 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .nav-item.active {
+      color: #2563eb;
+      background: #eff6ff;
+    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .ra-project-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .ra-project-row:last-child { border-bottom: none; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+    }
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .field-group input, .field-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      box-sizing: border-box;
+    }
+    .rams-checklist-box {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #f8fafc;
+      margin-top: 8px;
+    }
+    .rams-check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.8rem;
+      padding: 4px 0;
+    }
+    #toast {
+      position: fixed;
+      bottom: 76px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      display: none;
+      z-index: 60;
+    }
+  </style>
+</head>
+<body>
+  <header class="approver-header">
+    <div>
+      <div class="approver-title">
+        <span>🛡️ PM &amp; Safety Portal</span>
+        <span id="approverRoleBadge" class="role-pill">LOADING</span>
+      </div>
+      <div id="approverUserSub" class="approver-sub">Verifying session...</div>
+    </div>
+    <div class="header-actions">
+      <a id="hqBackLink" href="/index.html" class="btn-hdr" style="display:none;">← HQ Admin</a>
+      <button id="btnRefreshApprover" class="btn-hdr" type="button">↻ Refresh</button>
+      <button id="btnApproverLogout" class="btn-hdr" type="button">Logout</button>
+    </div>
+  </header>
+
+  <main class="approver-main">
+    <div id="pendingTab" class="tab-pane active">
+      <div class="section-card">
+        <h2 style="margin:0 0 6px 0; font-size:1.05rem;">Pending My Action</h2>
+        <div id="pendingSubtitle" style="font-size:0.82rem; color:#64748b;">
+          Permits waiting for your review, authorization, or suspension clearance.
+        </div>
+      </div>
+      <div id="pendingList"></div>
+    </div>
+
+    <div id="permitsTab" class="tab-pane">
+      <div class="section-card">
+        <h2 style="margin:0 0 8px 0; font-size:1.05rem;">Assigned Site Risk Assessments (RA)</h2>
+        <div id="assignedProjectsRaList" style="font-size:0.84rem; color:#64748b;">Loading assigned sites...</div>
+      </div>
+      <div class="section-card" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <h2 style="margin:0; font-size:1.05rem;">My Site Permits</h2>
+        <select id="permitStatusFilter" style="padding:7px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.84rem;">
+          <option value="ALL">All Statuses</option>
+          <option value="Pending Safety Vetting">Pending Safety Vetting</option>
+          <option value="Pending PM Approval">Pending PM Approval</option>
+          <option value="Active">Active</option>
+          <option value="Suspended">Suspended</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+      <div id="sitePermitsList"></div>
+    </div>
+
+    <div id="tbmTab" class="tab-pane">
+      <div class="section-card">
+        <h2 style="margin:0 0 6px 0; font-size:1.05rem;">TBM &amp; Safety Briefings Log</h2>
+        <div style="font-size:0.82rem; color:#64748b;">Daily Toolbox Meeting briefings for your assigned sites.</div>
+      </div>
+      <div id="tbmList"></div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button type="button" class="nav-item active" data-tab="pendingTab">
+      <span>⚡ Pending</span>
+      <span id="pendingCountBadge" style="font-size:0.7rem;">(0)</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="permitsTab">
+      <span>📋 My Sites</span>
+    </button>
+    <button type="button" class="nav-item" data-tab="tbmTab">
+      <span>🦺 TBM Log</span>
+    </button>
+  </nav>
+
+  <!-- WSHO Site RA Configuration Modal -->
+  <div id="siteRaModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+        <h3 id="siteRaModalTitle" style="margin:0; font-size:1.05rem;">Configure Site RA Profile</h3>
+        <button type="button" id="btnCloseSiteRaModal" class="btn-hdr" style="background:#f1f5f9; color:#334155; border-color:#cbd5e1;">✕</button>
+      </div>
+      <form id="siteRaForm">
+        <input type="hidden" id="raProjectId">
+        <div class="modal-grid">
+          <div class="field-group">
+            <label for="raCompanyName">Company Name</label>
+            <input id="raCompanyName" type="text" required>
+          </div>
+          <div class="field-group">
+            <label for="raRefNo">Reference No.</label>
+            <input id="raRefNo" type="text" required>
+          </div>
+          <div class="field-group" style="grid-column: 1 / -1;">
+            <label for="raProcessName">Process / Work Scope</label>
+            <input id="raProcessName" type="text" required>
+          </div>
+          <div class="field-group" style="grid-column: 1 / -1;">
+            <label for="raActivityLocation">Site Activity Location</label>
+            <input id="raActivityLocation" type="text">
+          </div>
+          <div class="field-group">
+            <label for="raOriginalDate">Original Date</label>
+            <input id="raOriginalDate" type="text" placeholder="DD/MM/YYYY">
+          </div>
+          <div class="field-group">
+            <label for="raLastReviewDate">Last Review Date</label>
+            <input id="raLastReviewDate" type="text" placeholder="DD/MM/YYYY">
+          </div>
+          <div class="field-group">
+            <label for="raNextReviewDate">Next Review Date</label>
+            <input id="raNextReviewDate" type="text" placeholder="DD/MM/YYYY">
+          </div>
+          <div class="field-group">
+            <label for="raLeader">RA Leader (WSHO)</label>
+            <input id="raLeader" type="text">
+          </div>
+          <div class="field-group">
+            <label for="raMember1">RA Member 1</label>
+            <input id="raMember1" type="text">
+          </div>
+          <div class="field-group">
+            <label for="raMember2">RA Member 2</label>
+            <input id="raMember2" type="text">
+          </div>
+          <div class="field-group">
+            <label for="raApproverName">Approver Name</label>
+            <input id="raApproverName" type="text">
+          </div>
+          <div class="field-group">
+            <label for="raApproverDesignation">Approver Designation</label>
+            <input id="raApproverDesignation" type="text">
+          </div>
+        </div>
+        <div class="field-group" style="margin-top:12px;">
+          <label for="raSiteNotes">Site-Specific RA Notes</label>
+          <textarea id="raSiteNotes" rows="2"></textarea>
+        </div>
+        <div class="field-group" style="margin-top:12px;">
+          <label>Selected Master RAMS Hazards for This Site</label>
+          <div id="raRamsChecklist" class="rams-checklist-box">Loading RAMS items...</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+          <button type="button" id="btnCancelSiteRa" class="btn-action btn-outline">Cancel</button>
+          <button type="submit" id="btnSaveSiteRa" class="btn-action btn-primary">Save Site RA Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script type="module" src="assets/js/approver.js?v=1"></script>
+</body>
+</html>

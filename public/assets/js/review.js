@@ -11,6 +11,20 @@ let currentWorkers = [];
 let activeSigPad = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const meRes = await fetchAPI('/api/auth/me');
+    if (!meRes.success || !meRes.user) {
+      window.location.replace(`/login.html?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+    localStorage.setItem('active_user_email', meRes.user.email || meRes.user.display_name);
+    localStorage.setItem('active_user_role', meRes.user.role);
+    localStorage.setItem('active_user_name', meRes.user.display_name);
+    localStorage.setItem('active_user_key', meRes.user.user_key);
+  } catch (_) {
+    return;
+  }
+
   const urlParams = new URLSearchParams(window.location.search);
   const ptwId = urlParams.get('ptw');
 

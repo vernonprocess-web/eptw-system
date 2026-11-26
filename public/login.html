@@ -66,6 +66,12 @@
       font-size: 0.95rem;
       box-sizing: border-box;
     }
+    .pin-input {
+      letter-spacing: 0.35em;
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
     .login-select:focus, .login-input:focus {
       outline: none;
       border-color: #2563eb;
@@ -91,6 +97,10 @@
     .btn-login-gateway:active {
       transform: scale(0.98);
     }
+    .btn-login-gateway:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
     .routing-preview-badge {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -98,33 +108,76 @@
       padding: 10px;
       font-size: 0.78rem;
       color: #1e40af;
-      margin-top: 16px;
+      margin-top: 8px;
+      text-align: left;
+      line-height: 1.4;
+    }
+    .login-error-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-top: 12px;
       text-align: left;
     }
+    .login-footer-note {
+      margin-top: 18px;
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.45;
+    }
   </style>
-  <script src="assets/js/login.js?v=9" type="module"></script>
 </head>
 <body>
-
   <div class="login-gateway-card">
-    <div class="brand-title">ePTW System Gateway</div>
-    <div class="brand-subtitle">Singapore WSH Audit Compliance & Site Management Portal</div>
+    <div class="brand-logo">🛡️</div>
+    <div class="brand-title">ePTW Safety Gateway</div>
+    <div class="brand-subtitle">Singapore MOM WSH Compliance &amp; Site Access</div>
 
-    <form id="loginGatewayForm">
+    <form id="loginGatewayForm" autocomplete="off">
       <div class="form-group-login">
-        <label for="userProfileSelect">Select Authorized Account / Role:</label>
+        <label for="userProfileSelect">Select Your Account</label>
         <select id="userProfileSelect" class="login-select" required>
-          <option value="admin@eptw-system.com|System Admin|ADMIN">System Admin — Operations HQ</option>
+          <option value="">Loading active accounts...</option>
         </select>
       </div>
 
-      <div class="routing-preview-badge" id="routingPreview">
-        <strong>Smart Routing:</strong> Site Supervisors auto-route to <code>supervisor.html</code>. WSHOs & PMs auto-route to <code>index.html</code>.
+      <div class="form-group-login">
+        <label for="pinInput">6-Digit Access PIN</label>
+        <input
+          id="pinInput"
+          type="password"
+          inputmode="numeric"
+          pattern="[0-9]{6}"
+          maxlength="6"
+          class="login-input pin-input"
+          placeholder="••••••"
+          autocomplete="one-time-code"
+          required
+        >
       </div>
 
-      <button type="submit" class="btn-login-gateway">Authenticate & Launch Portal</button>
+      <div id="routingPreview" class="routing-preview-badge">
+        Select your account and enter the 6-digit PIN issued by HQ.
+      </div>
+
+      <div id="loginError" class="login-error-banner" role="alert"></div>
+
+      <button type="submit" id="loginSubmitBtn" class="btn-login-gateway">
+        Unlock &amp; Enter Portal
+      </button>
     </form>
+
+    <div class="login-footer-note">
+      Sessions remain active on this device for 30 days.<br>
+      Need a PIN or reset? Contact HQ Admin.
+    </div>
   </div>
 
+  <script type="module" src="assets/js/login.js?v=2"></script>
 </body>
 </html>

@@ -1,86 +1,75 @@
-// ePTW System Service Worker for PWA Offline Caching & Shell Support
-const CACHE_NAME = 'eptw-system-cache-v24';
+// ============================================================================
+// ePTW SYSTEM SERVICE WORKER (NETWORK-ONLY AUTH & API + OFFLINE SHELL CACHE)
+// ============================================================================
+
+const CACHE_NAME = 'eptw-system-cache-v25';
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/supervisor.html',
+  '/approver.html',
   '/review.html',
   '/tbm.html',
   '/manifest.json',
-  '/assets/css/theme.css',
   '/assets/js/api.js',
   '/assets/js/db.js',
-  '/assets/js/signature.js',
-  '/assets/js/ocr.js',
-  '/assets/js/rams.js',
-  '/assets/js/ptw.js',
-  '/assets/js/ptw-pack.js',
-  '/assets/js/ra-export.js',
-  '/assets/js/jspdf.umd.min.js',
-  '/assets/js/tbm.js',
-  '/assets/js/tbm-portal.js',
+  '/assets/js/approver.js',
   '/assets/js/supervisor.js',
   '/assets/js/review.js',
-  '/assets/js/app.js'
+  '/assets/js/tbm-portal.js',
+  '/assets/js/ptw-pack.js',
+  '/assets/js/ra-export.js',
+  '/assets/js/signature.js',
+  '/assets/js/jspdf.umd.min.js',
+  '/assets/js/jszip.min.js'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) => cache.add(url).catch(() => null))
+      );
+    }).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Deleting old cache:', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k !== CACHE_NAME)
+          .map((k) => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first strategy for API, JS assets, and HTML page requests so updates show immediately
-  if (event.request.url.includes('/api/') || event.request.url.includes('/assets/js/') || event.request.mode === 'navigate' || event.request.url.endsWith('/') || event.request.url.includes('index.html')) {
-    event.respondWith(
-      fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      }).catch(() => {
-        return caches.match(event.request, { ignoreSearch: true });
-      })
-    );
-  } else {
-    event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        });
-      })
-    );
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Strictly network-only for all API endpoints & login gateway (never serve stale PII or auth responses)
+  if (url.pathname.startsWith('/api/') || url.pathname === '/login.html' || url.pathname === '/assets/js/login.js') {
+    event.respondWith(fetch(req));
+    return;
   }
+
+  // Network-first with cache fallback for portal shells & assets
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
+  );
 });

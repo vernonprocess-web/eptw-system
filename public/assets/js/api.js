@@ -1,64 +1,59 @@
 // ============================================================================
-// CENTRALIZED FETCH API WRAPPER
+// CORE API CLIENT & AUTHENTICATED FETCH WRAPPER
 // ============================================================================
 
-import { saveToOutbox, generateUUID } from './db.js';
+export const API_BASE = '';
 
-export async function fetchAPI(url, options = {}) {
-  const method = (options.method || 'GET').toUpperCase();
-  
-  options.headers = options.headers || {};
-  if (!options.headers['X-User-Email'] && !options.headers['x-user-email']) {
-    const activeUser = localStorage.getItem('active_user_email') || 'vernon.process@gmail.com';
-    const activeRole = localStorage.getItem('active_user_role') || 'PROJECT_MANAGER';
-    options.headers['X-User-Email'] = activeUser;
-    options.headers['X-User-Role'] = activeRole;
+/**
+ * Standard fetch wrapper for ePTW API endpoints.
+ * Automatically sends same-origin HttpOnly session cookies and handles 401 redirects.
+ */
+export async function fetchAPI(endpoint, options = {}) {
+  const url = `${API_BASE}${endpoint}`;
+
+  const headers = new Headers(options.headers || {});
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
-  if (!navigator.onLine && method !== 'GET') {
-    let payload = {};
-    try {
-      payload = JSON.parse(options.body || '{}');
-    } catch (e) {
-      payload = {};
-    }
-    
-    if (!payload.client_id && method === 'POST' && url === '/api/ptw') {
-      payload.client_id = generateUUID();
-    }
-    if (!payload.action_transaction_id && (url.includes('/vet') || url.includes('/approve'))) {
-      payload.action_transaction_id = generateUUID();
-    }
-
-    await saveToOutbox(method, url, method, payload);
-    return {
-      success: true,
-      offlineQueued: true,
-      message: 'Network offline. Action saved locally and will auto-sync when online.'
-    };
+  // Non-authoritative UI metadata headers for legacy audit compatibility
+  const activeEmail = localStorage.getItem('active_user_email');
+  const activeRole = localStorage.getItem('active_user_role');
+  if (activeEmail && !headers.has('X-User-Email')) {
+    headers.set('X-User-Email', activeEmail);
+  }
+  if (activeRole && !headers.has('X-User-Role')) {
+    headers.set('X-User-Role', activeRole);
   }
 
-  try {
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({ error: 'Network error occurred' }));
-      throw new Error(errData.error || `HTTP ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    if (method !== 'GET' && (error.message.includes('Failed to fetch') || !navigator.onLine)) {
-      let payload = {};
-      try {
-        payload = JSON.parse(options.body || '{}');
-      } catch (e) {}
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'same-origin'
+  });
 
-      await saveToOutbox(method, url, method, payload);
-      return {
-        success: true,
-        offlineQueued: true,
-        message: 'Network connection lost. Action queued offline for auto-sync.'
-      };
+  if (response.status === 401) {
+    localStorage.removeItem('active_user_email');
+    localStorage.removeItem('active_user_role');
+    localStorage.removeItem('active_user_name');
+    localStorage.removeItem('active_user_key');
+
+    const path = window.location.pathname || '';
+    if (!path.endsWith('/login.html') && !endpoint.startsWith('/api/auth/')) {
+      const currentTarget = `${window.location.pathname}${window.location.search}`;
+      window.location.replace(`/login.html?redirect=${encodeURIComponent(currentTarget)}`);
     }
-    throw error;
+    const errBody = await response.json().catch(() => ({}));
+    throw new Error(errBody.error || 'Authentication required. Please sign in with your 6-digit PIN.');
   }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data.error || `HTTP ${response.status} ${response.statusText}`);
+    err.status = response.status;
+    err.data = data;
+    throw err;
+  }
+
+  return data;
 }

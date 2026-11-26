@@ -6,6 +6,15 @@ import {
   sendResendEmail,
   PTWRecordForNotification
 } from './notifications';
+import {
+  SessionUser,
+  normalizeUserKey,
+  hashPin,
+  generateSaltHex,
+  createSessionToken,
+  verifySessionToken,
+  buildUnifiedRoster
+} from './auth';
 
 type Bindings = {
   DB: D1Database;
@@ -15,9 +24,15 @@ type Bindings = {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_USERNAME?: string;
   APP_URL?: string;
+  ADMIN_PIN?: string;
+  SESSION_SECRET?: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+  authUser?: SessionUser;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // Edge Redirect Middleware: Automatically forward legacy query links to standalone portals
 app.use('*', async (c, next) => {
@@ -31,6 +46,314 @@ app.use('*', async (c, next) => {
     return c.redirect(`/tbm?tbm=${encodeURIComponent(tbm)}`, 302);
   }
   await next();
+});
+
+// Global /api/* Session & RBAC Middleware
+app.use('/api/*', async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  const method = c.req.method.toUpperCase();
+
+  const publicPaths = [
+    '/api/auth/roster',
+    '/api/auth/login',
+    '/api/auth/logout',
+    '/api/auth/me',
+    '/api/telegram/webhook'
+  ];
+  if (publicPaths.includes(path)) {
+    await next();
+    return;
+  }
+
+  const secret = c.env.SESSION_SECRET;
+  const sessionUser = await verifySessionToken(c.req.header('Cookie'), secret);
+  if (!sessionUser) {
+    return c.json({ success: false, error: 'Authentication required. Please log in with your 6-digit PIN.' }, 401);
+  }
+
+  // Instant Session Revocation check against Auth_Credentials (for non-ADMIN_MASTER users)
+  if (sessionUser.user_key !== 'ADMIN_MASTER') {
+    const cred = await c.env.DB.prepare(
+      'SELECT is_active, session_version, role, email, display_name FROM Auth_Credentials WHERE user_key = ?'
+    ).bind(sessionUser.user_key).first<any>();
+
+    if (!cred || cred.is_active === 0 || Number(cred.session_version) !== Number(sessionUser.sv)) {
+      return c.json({ success: false, error: 'Session revoked or expired. Please log in again.' }, 401);
+    }
+    sessionUser.role = cred.role;
+    sessionUser.email = cred.email || sessionUser.email;
+    sessionUser.name = cred.display_name || sessionUser.name;
+  }
+
+  c.set('authUser', sessionUser);
+  const role = sessionUser.role;
+
+  // Strict ADMIN-only endpoints
+  if (path.startsWith('/api/admin') || path.startsWith('/api/audit') || path.startsWith('/api/users')) {
+    if (role !== 'ADMIN') {
+      return c.json({ success: false, error: 'Forbidden: HQ Admin authorization required.' }, 403);
+    }
+  }
+
+  if (method !== 'GET') {
+    if (
+      (path.startsWith('/api/rams') || path.startsWith('/api/workers') || path.startsWith('/api/projects')) &&
+      role !== 'ADMIN'
+    ) {
+      return c.json({ success: false, error: 'Forbidden: Only HQ Admin can modify Master RAMS, Workers, or Projects.' }, 403);
+    }
+    if (path === '/api/ra/profile' && role !== 'ADMIN' && role !== 'WSHO') {
+      return c.json({ success: false, error: 'Forbidden: Only HQ Admin or WSHO can save RA Profiles.' }, 403);
+    }
+  }
+
+  await next();
+});
+
+// ============================================================================
+// AUTHENTICATION & HQ PIN MANAGEMENT ROUTES
+// ============================================================================
+
+// GET /api/auth/roster - Public login dropdown (Zero PII: Display Name & Role only)
+app.get('/api/auth/roster', async (c) => {
+  try {
+    const roster = await buildUnifiedRoster(c.env.DB);
+    const activeAccounts = roster
+      .filter(r => r.has_pin && r.is_active)
+      .map(r => ({
+        user_key: r.user_key,
+        display_name: r.display_name,
+        role: r.role
+      }));
+
+    // Always include break-glass System Admin
+    activeAccounts.push({
+      user_key: 'ADMIN_MASTER',
+      display_name: 'System Admin — Operations HQ',
+      role: 'ADMIN'
+    });
+
+    return c.json({ success: true, data: activeAccounts });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// GET /api/auth/me - Verify current session cookie
+app.get('/api/auth/me', async (c) => {
+  const sessionUser = await verifySessionToken(c.req.header('Cookie'), c.env.SESSION_SECRET);
+  if (!sessionUser) {
+    return c.json({ authenticated: false }, 401);
+  }
+  if (sessionUser.user_key !== 'ADMIN_MASTER') {
+    const cred = await c.env.DB.prepare(
+      'SELECT is_active, session_version, role, email, display_name FROM Auth_Credentials WHERE user_key = ?'
+    ).bind(sessionUser.user_key).first<any>();
+    if (!cred || cred.is_active === 0 || Number(cred.session_version) !== Number(sessionUser.sv)) {
+      return c.json({ authenticated: false }, 401);
+    }
+    sessionUser.role = cred.role;
+    sessionUser.email = cred.email || sessionUser.email;
+    sessionUser.name = cred.display_name || sessionUser.name;
+  }
+  return c.json({
+    authenticated: true,
+    user: {
+      user_key: sessionUser.user_key,
+      email: sessionUser.email,
+      name: sessionUser.name,
+      role: sessionUser.role
+    }
+  });
+});
+
+// POST /api/auth/login - Verify 6-digit PIN and issue 30-day HttpOnly HMAC cookie
+app.post('/api/auth/login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const userKey = String(body.user_key || '').trim();
+    const pin = String(body.pin || '').trim();
+
+    if (!userKey || !pin) {
+      return c.json({ success: false, error: 'Account selection and 6-digit PIN are required.' }, 400);
+    }
+
+    const secret = c.env.SESSION_SECRET;
+    if (!secret) {
+      return c.json({ success: false, error: 'Server SESSION_SECRET is not configured.' }, 500);
+    }
+
+    let sessionPayload: Omit<SessionUser, 'exp'>;
+
+    if (userKey === 'ADMIN_MASTER') {
+      const adminPin = (c.env.ADMIN_PIN || '').trim();
+      if (!adminPin || pin !== adminPin) {
+        return c.json({ success: false, error: 'Invalid System Admin PIN.' }, 401);
+      }
+      sessionPayload = {
+        user_key: 'ADMIN_MASTER',
+        email: 'admin@eptw-system.com',
+        name: 'System Admin',
+        role: 'ADMIN',
+        sv: 1
+      };
+    } else {
+      const cred = await c.env.DB.prepare(
+        'SELECT * FROM Auth_Credentials WHERE user_key = ?'
+      ).bind(userKey).first<any>();
+
+      if (!cred) {
+        return c.json({ success: false, error: 'PIN has not been issued for this account. Contact HQ Admin.' }, 401);
+      }
+      if (cred.is_active === 0) {
+        return c.json({ success: false, error: 'Account access has been disabled by HQ Admin.' }, 403);
+      }
+
+      const candidateHash = await hashPin(pin, cred.pin_salt);
+      if (candidateHash !== cred.pin_hash) {
+        return c.json({ success: false, error: 'Incorrect 6-digit PIN.' }, 401);
+      }
+
+      sessionPayload = {
+        user_key: cred.user_key,
+        email: cred.email || '',
+        name: cred.display_name,
+        role: cred.role,
+        sv: Number(cred.session_version || 1)
+      };
+    }
+
+    const token = await createSessionToken(sessionPayload, secret, 30);
+    const maxAge = 30 * 24 * 60 * 60;
+    c.header(
+      'Set-Cookie',
+      `eptw_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`
+    );
+
+    await logAuditEvent(
+      c,
+      'USER_LOGIN',
+      'Auth_Credentials',
+      sessionPayload.user_key,
+      `Authenticated via 6-digit PIN (${sessionPayload.role})`,
+      { email: sessionPayload.email || sessionPayload.name, role: sessionPayload.role }
+    );
+
+    return c.json({
+      success: true,
+      user: {
+        user_key: sessionPayload.user_key,
+        email: sessionPayload.email,
+        name: sessionPayload.name,
+        role: sessionPayload.role
+      }
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/auth/logout - Clear session cookie
+app.post('/api/auth/logout', (c) => {
+  c.header('Set-Cookie', 'eptw_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+  return c.json({ success: true });
+});
+
+// GET /api/admin/pins - HQ Admin deduplicated user & PIN status list
+app.get('/api/admin/pins', async (c) => {
+  try {
+    const roster = await buildUnifiedRoster(c.env.DB);
+    return c.json({ success: true, data: roster });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/admin/pins - Issue or reset a 6-digit PIN + optional role override
+app.post('/api/admin/pins', async (c) => {
+  try {
+    const authUser = c.get('authUser');
+    const body = await c.req.json();
+    const displayName = String(body.display_name || '').trim();
+    const email = String(body.email || '').trim();
+    const role = String(body.role || 'SITE_SUPERVISOR').trim().toUpperCase();
+    const pin = String(body.pin || '').trim();
+    const userKey = String(body.user_key || normalizeUserKey(email, displayName)).trim();
+
+    if (!userKey || !displayName) {
+      return c.json({ success: false, error: 'User name and key are required.' }, 400);
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      return c.json({ success: false, error: 'PIN must be exactly 6 digits.' }, 400);
+    }
+    if (!['ADMIN', 'PROJECT_MANAGER', 'WSHO', 'SITE_SUPERVISOR'].includes(role)) {
+      return c.json({ success: false, error: 'Invalid role specified.' }, 400);
+    }
+
+    const salt = generateSaltHex(16);
+    const pinHash = await hashPin(pin, salt);
+    const nowSgt = getSingaporeTimestamp();
+
+    await c.env.DB.prepare(
+      `INSERT INTO Auth_Credentials (user_key, email, display_name, role, pin_hash, pin_salt, is_active, session_version, updated_by, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+       ON CONFLICT(user_key) DO UPDATE SET
+         email = excluded.email,
+         display_name = excluded.display_name,
+         role = excluded.role,
+         pin_hash = excluded.pin_hash,
+         pin_salt = excluded.pin_salt,
+         is_active = 1,
+         session_version = Auth_Credentials.session_version + 1,
+         updated_by = excluded.updated_by,
+         updated_at = excluded.updated_at`
+    ).bind(userKey, email, displayName, role, pinHash, salt, authUser?.email || 'admin@eptw-system.com', nowSgt).run();
+
+    await logAuditEvent(
+      c,
+      'SET_USER_PIN',
+      'Auth_Credentials',
+      userKey,
+      `Issued/Reset 6-digit PIN for ${displayName} (${role}) at ${nowSgt} SGT`,
+      { email: authUser?.email || 'admin@eptw-system.com', role: authUser?.role || 'ADMIN' }
+    );
+
+    return c.json({ success: true, message: `6-digit PIN saved for ${displayName} (${role}).`, user_key: userKey });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// POST /api/admin/pins/:userKey/disable - Revoke PIN & invalidate active sessions immediately
+app.post('/api/admin/pins/:userKey/disable', async (c) => {
+  try {
+    const authUser = c.get('authUser');
+    const userKey = decodeURIComponent(c.req.param('userKey'));
+    const nowSgt = getSingaporeTimestamp();
+
+    const res = await c.env.DB.prepare(
+      `UPDATE Auth_Credentials
+       SET is_active = 0, session_version = session_version + 1, updated_by = ?, updated_at = ?
+       WHERE user_key = ?`
+    ).bind(authUser?.email || 'admin@eptw-system.com', nowSgt, userKey).run();
+
+    if (res.meta.changes === 0) {
+      return c.json({ success: false, error: 'User credential record not found.' }, 404);
+    }
+
+    await logAuditEvent(
+      c,
+      'DISABLE_USER_PIN',
+      'Auth_Credentials',
+      userKey,
+      `Disabled PIN & revoked active sessions for ${userKey} at ${nowSgt} SGT`,
+      { email: authUser?.email || 'admin@eptw-system.com', role: authUser?.role || 'ADMIN' }
+    );
+
+    return c.json({ success: true, message: 'User access disabled and active sessions revoked.' });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
 });
 
 function safeWaitUntil(c: any, promise: Promise<any>) {
@@ -82,6 +405,12 @@ async function logAuditEvent(
   try {
     let email = userOverride?.email;
     let role = userOverride?.role;
+
+    const authUser = typeof c.get === 'function' ? c.get('authUser') : undefined;
+    if ((!email || !role) && authUser) {
+      email = email || authUser.email || authUser.name;
+      role = role || authUser.role;
+    }
 
     if (!email || !role) {
       email = c.req.header('x-user-email') || c.req.header('X-User-Email');
@@ -560,10 +889,29 @@ app.get('/api/ra/profile', async (c) => {
 app.post('/api/ra/profile', async (c) => {
   try {
     const body = await c.req.json();
+    const authUser = c.get('authUser');
     const projectId = (body.project_id || 'DEFAULT').trim() || 'DEFAULT';
     const nowSgt = getSingaporeTimestamp();
-    const userEmail = c.req.header('x-user-email') || body.updated_by || 'admin@eptw-system.com';
-    const userRole = c.req.header('x-user-role') || body.user_role || 'ADMIN';
+    const userEmail = authUser?.email || body.updated_by || 'admin@eptw-system.com';
+    const userRole = authUser?.role || body.user_role || 'ADMIN';
+
+    if (userRole === 'WSHO') {
+      if (projectId === 'DEFAULT') {
+        return c.json({ success: false, error: 'Forbidden: Only HQ Admin can modify the Level 1 Baseline RA.' }, 403);
+      }
+      const prj = await c.env.DB.prepare(
+        'SELECT wsho_email, wsho_name FROM Project_Directory WHERE project_id = ? AND deleted_at IS NULL'
+      ).bind(projectId).first<any>();
+      const uEmail = (authUser?.email || '').toLowerCase().trim();
+      const uName = (authUser?.name || '').toLowerCase().trim();
+      const matchesWsho = prj && (
+        (uEmail && (prj.wsho_email || '').toLowerCase().trim() === uEmail) ||
+        (uName && (prj.wsho_name || '').toLowerCase().trim() === uName)
+      );
+      if (!matchesWsho) {
+        return c.json({ success: false, error: 'Forbidden: You are not the assigned WSHO for this project.' }, 403);
+      }
+    }
 
     const selectedRamsJson = body.selected_rams_json
       ? (typeof body.selected_rams_json === 'string' ? body.selected_rams_json : JSON.stringify(body.selected_rams_json))
@@ -1341,8 +1689,10 @@ app.delete('/api/workers/:id', async (c) => {
 app.get('/api/projects', async (c) => {
   try {
     const includeArchived = c.req.query('include_archived') === 'true';
-    const userRole = (c.req.header('x-user-role') || c.req.header('X-User-Role') || '').toUpperCase();
-    const userEmail = (c.req.header('x-user-email') || c.req.header('X-User-Email') || '').toLowerCase().trim();
+    const authUser = c.get('authUser');
+    const userRole = (authUser?.role || '').toUpperCase();
+    const userEmail = (authUser?.email || '').toLowerCase().trim();
+    const userName = (authUser?.name || '').toLowerCase().trim();
 
     let whereClause = includeArchived
       ? '1=1'
@@ -1350,13 +1700,13 @@ app.get('/api/projects', async (c) => {
 
     const params: any[] = [];
 
-    // Hybrid Data Isolation: Strict Portfolio Scoping for PMs and WSHOs
-    if (userRole === 'PROJECT_MANAGER' && userEmail) {
-      whereClause += ' AND (LOWER(prj.pm_email) = ? OR prj.pm_user_id = ?)';
-      params.push(userEmail, userEmail);
-    } else if (userRole === 'WSHO' && userEmail) {
-      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR prj.wsho_user_id = ?)';
-      params.push(userEmail, userEmail);
+    // Hybrid Data Isolation: Strict Portfolio Scoping for PMs and WSHOs from verified cookie
+    if (userRole === 'PROJECT_MANAGER') {
+      whereClause += ' AND (LOWER(prj.pm_email) = ? OR LOWER(prj.project_manager) = ?)';
+      params.push(userEmail || '__none__', userName || '__none__');
+    } else if (userRole === 'WSHO') {
+      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR LOWER(prj.wsho_name) = ?)';
+      params.push(userEmail || '__none__', userName || '__none__');
     }
 
     const sql = `
@@ -1747,34 +2097,36 @@ app.get('/api/telegram/pairing-link', (c) => {
 // GET /api/ptw - Fetch all permits dynamically joined with Project details & Users (excluding deleted)
 app.get('/api/ptw', async (c) => {
   try {
-    const userRole = (c.req.header('x-user-role') || c.req.header('X-User-Role') || '').toUpperCase();
-    const userEmail = (c.req.header('x-user-email') || c.req.header('X-User-Email') || '').toLowerCase();
+    const authUser = c.get('authUser');
+    const userRole = (authUser?.role || '').toUpperCase();
+    const userEmail = (authUser?.email || '').toLowerCase().trim();
+    const userName = (authUser?.name || '').toLowerCase().trim();
     const queryProjectId = c.req.query('project_id') || '';
 
     let whereClause = 'WHERE p.deleted_at IS NULL';
     const params: any[] = [];
 
-    if (userRole === 'PROJECT_MANAGER' && userEmail) {
-      whereClause += ' AND (LOWER(prj.pm_email) = ? OR prj.pm_user_id = ? OR LOWER(p.assigned_pm_email) = ? OR p.pm_user_id = ?)';
-      params.push(userEmail, userEmail, userEmail, userEmail);
+    if (userRole === 'PROJECT_MANAGER') {
+      whereClause += ' AND (LOWER(prj.pm_email) = ? OR LOWER(p.assigned_pm_email) = ? OR LOWER(prj.project_manager) = ? OR LOWER(p.assigned_pm_name) = ?)';
+      params.push(userEmail || '__none__', userEmail || '__none__', userName || '__none__', userName || '__none__');
       if (queryProjectId) {
         whereClause += ' AND p.project_id = ?';
         params.push(queryProjectId);
       }
-    } else if (userRole === 'WSHO' && userEmail) {
-      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR prj.wsho_user_id = ? OR LOWER(p.assigned_wsho_email) = ? OR p.assessor_user_id = ?)';
-      params.push(userEmail, userEmail, userEmail, userEmail);
+    } else if (userRole === 'WSHO') {
+      whereClause += ' AND (LOWER(prj.wsho_email) = ? OR LOWER(p.assigned_wsho_email) = ? OR LOWER(prj.wsho_name) = ? OR LOWER(p.assigned_wsho_name) = ?)';
+      params.push(userEmail || '__none__', userEmail || '__none__', userName || '__none__', userName || '__none__');
       if (queryProjectId) {
         whereClause += ' AND p.project_id = ?';
         params.push(queryProjectId);
       }
-    } else if (userRole === 'SITE_SUPERVISOR' || userRole === 'SUPERVISOR') {
+    } else if (userRole === 'SITE_SUPERVISOR') {
       if (queryProjectId) {
         whereClause += ' AND (p.project_id = ? AND (p.status != \'Draft\' OR LOWER(p.applicant_email) = ?))';
-        params.push(queryProjectId, userEmail);
+        params.push(queryProjectId, userEmail || '__none__');
       } else {
         whereClause += ' AND (LOWER(p.applicant_email) = ? OR p.status IN (\'Pending Safety Vetting\', \'Pending PM Approval\', \'Active\', \'Closed\', \'Rejected\'))';
-        params.push(userEmail);
+        params.push(userEmail || '__none__');
       }
     } else if (queryProjectId) {
       whereClause += ' AND p.project_id = ?';
@@ -2225,6 +2577,11 @@ app.post('/api/ptw', async (c) => {
 // POST /api/ptw/:id/vet - Safety Officer Sign-Off & Vetting (Idempotent)
 app.post('/api/ptw/:id/vet', async (c) => {
   try {
+    const authUser = c.get('authUser');
+    if (!authUser || !['WSHO', 'ADMIN', 'SAFETY_ASSESSOR'].includes(authUser.role)) {
+      return c.json({ success: false, error: 'Access Denied: Only WSHO or Admin can perform Safety Vetting.' }, 403);
+    }
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { safety_signature, safety_officer_name, action_transaction_id } = body;
@@ -2241,7 +2598,7 @@ app.post('/api/ptw/:id/vet', async (c) => {
     }
 
     // MOM WSH Separation of Duties Check: Applicant cannot self-vet as Safety Officer
-    const vettingEmail = c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.wsho_email;
+    const vettingEmail = authUser.email || c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.wsho_email;
     if (existing.applicant_email && vettingEmail && existing.applicant_email.toLowerCase().trim() === vettingEmail.toLowerCase().trim()) {
       return c.json({
         success: false,
@@ -2298,6 +2655,11 @@ app.post('/api/ptw/:id/vet', async (c) => {
 // POST /api/ptw/:id/approve - Project Manager Final Authorization (Idempotent)
 app.post('/api/ptw/:id/approve', async (c) => {
   try {
+    const authUser = c.get('authUser');
+    if (!authUser || !['PROJECT_MANAGER', 'ADMIN'].includes(authUser.role)) {
+      return c.json({ success: false, error: 'Access Denied: Only Project Manager or Admin can authorize permits.' }, 403);
+    }
+
     const id = c.req.param('id');
     const body = await c.req.json();
     const { pm_signature, action_transaction_id } = body;
@@ -2314,7 +2676,7 @@ app.post('/api/ptw/:id/approve', async (c) => {
     }
 
     // MOM WSH Separation of Duties Check: Approving PM cannot be Applicant or WSHO
-    const pmEmail = c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.pm_email;
+    const pmEmail = authUser.email || c.req.header('x-user-email') || c.req.header('X-User-Email') || body.user_email || body.pm_email;
     if (pmEmail) {
       const pmClean = pmEmail.toLowerCase().trim();
       if (existing.applicant_email && existing.applicant_email.toLowerCase().trim() === pmClean) {
@@ -2751,8 +3113,9 @@ const handleResume = async (c: any) => {
   try {
     const id = c.req.param('id');
     const body = await c.req.json().catch(() => ({}));
-    const userEmail = c.req.header('x-user-email') || body.user_email || 'wsho@unified-as.com';
-    const userRole = (c.req.header('x-user-role') || body.user_role || 'WSHO').toUpperCase();
+    const authUser = c.get('authUser');
+    const userEmail = authUser?.email || authUser?.display_name || 'wsho@unified-as.com';
+    const userRole = (authUser?.role || '').toUpperCase();
 
     if (userRole !== 'WSHO' && userRole !== 'PROJECT_MANAGER' && userRole !== 'ADMIN' && userRole !== 'SAFETY_ASSESSOR') {
       return c.json({ success: false, error: 'Access Denied: Only WSHO or Project Manager can clear work suspensions and resume permits.' }, 403);
@@ -2944,6 +3307,19 @@ app.get('/api/tbm', async (c) => {
       WHERE t.deleted_at IS NULL
     `;
     const params: any[] = [];
+
+    const authUser = c.get('authUser');
+    const userRole = (authUser?.role || '').toUpperCase();
+    const userEmail = (authUser?.email || '').toLowerCase().trim();
+    const userName = (authUser?.name || '').toLowerCase().trim();
+
+    if (userRole === 'PROJECT_MANAGER') {
+      sql += ' AND (LOWER(prj.pm_email) = ? OR LOWER(p.assigned_pm_email) = ? OR LOWER(prj.project_manager) = ?)';
+      params.push(userEmail || '__none__', userEmail || '__none__', userName || '__none__');
+    } else if (userRole === 'WSHO') {
+      sql += ' AND (LOWER(prj.wsho_email) = ? OR LOWER(p.assigned_wsho_email) = ? OR LOWER(prj.wsho_name) = ?)';
+      params.push(userEmail || '__none__', userEmail || '__none__', userName || '__none__');
+    }
 
     if (projectId && projectId !== 'ALL') {
       sql += ' AND t.project_id = ?';
