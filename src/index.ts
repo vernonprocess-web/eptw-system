@@ -157,11 +157,13 @@ app.get('/api/auth/me', async (c) => {
     sessionUser.name = cred.display_name || sessionUser.name;
   }
   return c.json({
+    success: true,
     authenticated: true,
     user: {
       user_key: sessionUser.user_key,
       email: sessionUser.email,
       name: sessionUser.name,
+      display_name: sessionUser.name,
       role: sessionUser.role
     }
   });
@@ -245,6 +247,7 @@ app.post('/api/auth/login', async (c) => {
         user_key: sessionPayload.user_key,
         email: sessionPayload.email,
         name: sessionPayload.name,
+        display_name: sessionPayload.name,
         role: sessionPayload.role
       }
     });
